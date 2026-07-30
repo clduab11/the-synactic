@@ -97,3 +97,6 @@ playground-pricing.html
 # ACLED fixtures: licensed content held pre-corporate-licence. Keeping these
 # out of git history matters — removal after the fact is painful.
 tests/fixtures/oracle/acled/
+
+# TypeScript incremental build state (synactic workspaces)
+synactic/**/*.tsbuildinfo
