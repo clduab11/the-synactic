@@ -10,6 +10,14 @@
 # The app will be available at http://localhost:3000
 # =============================================================================
 
+# Project name pinned: compose otherwise derives it from the directory name,
+# and the 2026-07-30 rename (worldmonitor-fork → the-synactic) would have
+# switched the project to "the-synactic" — abandoning the existing containers
+# AND silently creating a fresh empty redis-data volume (orphaning every
+# seeded key). The running stack, its labels, and worldmonitor_redis-data
+# stay continuous under the original name.
+name: worldmonitor
+
 services:
 
   worldmonitor:
