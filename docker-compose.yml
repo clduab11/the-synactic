@@ -128,6 +128,11 @@ services:
       redis-rest:
         condition: service_started
     restart: "no"
+    # The app image's HEALTHCHECK probes the node sidecar on 8080, which does
+    # not run in this container — without this override the warmer reports
+    # "unhealthy" forever while working correctly.
+    healthcheck:
+      disable: true
 
   # ADV-28: the stale CII key expires hourly (RISK_STALE_TTL = 3600,
   # get-risk-scores.ts:1417) and the one-shot cii-warmer above is a bootstrap
@@ -163,6 +168,10 @@ services:
       redis-rest:
         condition: service_started
     restart: unless-stopped
+    # Same as the one-shot: no sidecar in this container, so the inherited
+    # image HEALTHCHECK can never pass.
+    healthcheck:
+      disable: true
 
   # ADV-16: recurring short-TTL seeder cadence. Six bootstrap keys carry 2-3h
   # TTLs (aviation:delays-bootstrap:v2 7200, radiation:observations:v1 7200,
@@ -206,6 +215,10 @@ services:
       redis-rest:
         condition: service_started
     restart: unless-stopped
+    # Same as cii-warmer-loop: worker container on the app image, no sidecar,
+    # inherited HEALTHCHECK can never pass.
+    healthcheck:
+      disable: true
 
   ais-relay:
     build:
