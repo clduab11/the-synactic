@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxen.internal/the-synactic/threat-matrix-output.schema.json",
+  "title": "Threat Matrix Assessment Output",
+  "description": "Constrained output contract for the threat-matrix inference layer. Designed so that licensed source data CANNOT be reproduced in the artifact: there is no field capable of holding an event count, a per-event record, a date-stamped incident, or a per-location tally. Non-transformative output is structurally impossible rather than merely discouraged. Source datasets are named in provenance; they are never reproduced in the body.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subject", "assessments", "provenance", "generated"],
+  "properties": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "label"],
+      "properties": {
+        "scope": { "enum": ["country", "subnational", "corridor", "site", "theater"] },
+        "label": { "type": "string", "maxLength": 120, "description": "Human-readable area of interest, e.g. \"Cabinda, Angola\"." },
+        "iso2": { "type": "string", "pattern": "^[A-Z]{2}$" }
+      }
+    },
+
+    "assessments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["dimension", "level", "direction", "confidence", "judgment"],
+        "properties": {
+          "dimension": {
+            "enum": ["armed_conflict", "civil_unrest", "criminality", "state_capacity", "infrastructure", "regulatory", "labor_community", "cyber", "environmental"]
+          },
+          "level": { "enum": ["low", "moderate", "elevated", "high", "critical"] },
+          "direction": { "enum": ["improving", "stable", "deteriorating", "indeterminate"] },
+          "confidence": { "enum": ["low", "moderate", "high"] },
+          "judgment": {
+            "type": "string",
+            "minLength": 40,
+            "maxLength": 1200,
+            "description": "Analytical prose. MUST NOT contain event counts, incident dates, casualty figures, or per-location tallies drawn from licensed source data. State pattern, driver, and implication — not the underlying records."
+          },
+          "drivers": {
+            "type": "array",
+            "maxItems": 6,
+            "items": { "type": "string", "maxLength": 240, "description": "Qualitative driver. Same prohibition as judgment." }
+          },
+          "watch_indicators": {
+            "type": "array",
+            "maxItems": 6,
+            "items": { "type": "string", "maxLength": 240, "description": "Forward-looking signal that would change this assessment." }
+          }
+        }
+      }
+    },
+
+    "bottom_line": {
+      "type": "string",
+      "maxLength": 900,
+      "description": "BLUF synthesis across dimensions. Same prohibition on reproducing source records."
+    },
+
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources", "transformation"],
+      "description": "Names the inputs without reproducing them. This is the attribution surface.",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "role"],
+            "properties": {
+              "name": { "type": "string", "maxLength": 120, "description": "e.g. \"ACLED\", \"UCDP GED\", \"Cloudflare Radar\"." },
+              "role": { "enum": ["primary", "corroborating", "contextual"] },
+              "licence_note": { "type": "string", "maxLength": 300, "description": "Attribution string required by the provider, if any." },
+              "coverage_window": { "type": "string", "maxLength": 60, "description": "Coarse window only, e.g. \"trailing 90 days\". Never a per-event date range." }
+            }
+          }
+        },
+        "transformation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "reconstructable"],
+          "properties": {
+            "method": { "type": "string", "maxLength": 400, "description": "How source records became this assessment." },
+            "reconstructable": {
+              "const": false,
+              "description": "Hard-pinned false. This artifact asserts that the underlying licensed dataset cannot be reconstructed from its contents. If a change would make that untrue, the schema must be changed deliberately — it cannot drift."
+            },
+            "model": { "type": "string", "maxLength": 120 },
+            "model_role": { "const": "inference", "description": "Inference-time input only. Licensed content is NOT used as training data." }
+          }
+        }
+      }
+    },
+
+    "limitations": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "type": "string", "maxLength": 300 },
+      "description": "Known gaps. A thin source window belongs here, not hidden."
+    },
+
+    "generated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at"],
+      "properties": {
+        "at": { "type": "string", "format": "date-time" },
+        "schema_version": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

@@ -90,3 +90,10 @@ tmp/
 docs/plans/
 docs/brainstorms/
 playground-pricing.html
+
+# --- the-synactic fork: licensed content and credentials (do not commit) ---
+# ACLED bearer/refresh token cache — live credential material
+.acled-token.json
+# ACLED fixtures: licensed content held pre-corporate-licence. Keeping these
+# out of git history matters — removal after the fact is painful.
+tests/fixtures/oracle/acled/
