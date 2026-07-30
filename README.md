@@ -1,43 +1,69 @@
 # the-synactic
 
-**Praxen Development & Engineering** · Advanced Research Division
+**One instrument. A world of signals. Every claim accounted for.**
 
-> A self-hosted geopolitical-intelligence instrument. Machine-scale collection,
-> analyst-grade judgment, human-authored reports out.
+Praxen Development & Engineering · Advanced Research Division
 
-**Status: in active build.** Private by design. What you're looking at is the
-workshop door — not the machine.
+the-synactic is Praxen's self-hosted geopolitical-intelligence instrument —
+machine-scale collection, analyst-grade judgment, human-authored reports out.
+In active build. Private by design. This page is the workshop door, not the
+machine.
 
----
+* * *
 
-## What's being built behind this door
+## Rent your intelligence, or own it
 
-the-synactic is Praxen's internal analytical instrument: a full-stack,
-self-hosted intelligence platform that watches the world in real time and
-answers hard questions with **provenance attached to every number**.
+Rented intelligence looks like this: a SaaS dashboard you don't control,
+metered API quotas, models that vanish on a vendor's schedule, and numbers
+you're asked to trust because the interface looks confident.
 
-- **A global data plane** — 150+ autonomous collectors sweeping conflict
-  events, sanctions programs, maritime chokepoints, energy flows, airspace,
-  cyber threat feeds, macroeconomics, climate anomalies, and more into a
-  self-contained cache layer. No third-party clouds custody the data.
-- **An MCP-native tool surface** — 40+ typed, schema-verified tools any
-  MCP-speaking agent can call: composite country-risk scoring, conflict-event
-  retrieval, LLM-grounded country briefs, chokepoint status, prediction
-  markets, and beyond. Server-side JMESPath projection keeps agent context
-  windows lean.
-- **A multi-model reasoning layer** — LLM routing across 190+ model
-  endpoints with per-route budgets and capability-tiered fallback chains that
-  terminate on local hardware. The instrument never goes dark because a cloud
-  provider did.
-- **A clean-room orchestration core** — original contracts, provenance
-  envelopes, and a default-deny tool-policy engine (mutation-tested), built to
-  put an agent council on rails rather than on vibes.
-- **A semantic memory layer** *(in build)* — vector-indexed intel history for
-  similar-event recall and retrieval-grounded report drafting.
+the-synactic is the alternative. The collection fleet runs on hardware we
+own. The data plane lives in a cache layer no third-party cloud custodies.
+The reasoning layer routes across capability-tiered model chains that
+terminate on local metal — the instrument never goes dark because someone
+else's cloud did. And every figure that reaches a client deliverable carries
+its provenance, because the difference between intelligence and content is
+being able to say where a number came from.
+
+## The live numbers
+
+150+ autonomous collectors sweeping conflict events, sanctions programs,
+maritime chokepoints, energy flows, airspace, cyber threat feeds,
+macroeconomics, and climate anomalies. 40+ typed MCP tools any agent can
+call — composite country-risk scoring, conflict-event retrieval,
+LLM-grounded country briefs, chokepoint status — with server-side projection
+keeping context windows lean. 190+ routed model endpoints behind one
+gateway, budget-enveloped per route. 400+ tests in the clean-room
+orchestration core alone, with mutation-tested guards on the paths that
+matter.
 
 <!-- [prototype screenshot slot: dashboard overview] -->
 
 <!-- [prototype screenshot slot: country-risk MCP tool card] -->
+
+## The guarantees
+
+**Provenance or it didn't happen.** Claims carry labels — verified against
+file and line, open, or boundary. Runtime values are never asserted from
+source code alone. A green test suite is treated as evidence of exactly what
+it tests, and nothing more.
+
+**Contracts that tell the truth.** Every declared schema is verified against
+captured live payloads — oracle fixtures with explicit presence and absence
+assertions, because a validator that can't say no proves nothing. When
+declared contracts and reality disagreed, eight surfaces were fixed in one
+pass and pinned so the drift can never silently return.
+
+**Fail loudly.** Degraded states announce themselves. Cache writes are
+verified by reading them back — an HTTP 200 is not success; the persisted
+key is. No silent fallback stands between an upstream failure and a number
+in a client report.
+
+**Read-only by charter.** The instrument observes markets and events. It
+will never place an order, execute a trade, or move money. Permanently.
+
+**Human-authored, always.** No external users, no client logins, no exposed
+API. Machines collect and compute — a human signs every conclusion.
 
 ## The silhouette
 
@@ -51,55 +77,30 @@ flowchart LR
   A --> R[[Human-authored<br/>client reports]]
 ```
 
-Machines collect and compute. A human signs every conclusion.
-
-## How this workshop builds
-
-The engineering culture is the product:
-
-- **Contract truthing.** Every declared schema is verified against captured
-  live payloads — oracle fixtures with explicit presence/absence assertions,
-  because a validator that can't say *no* proves nothing. When declared
-  contracts and reality disagreed, we fixed eight surfaces in one pass and
-  pinned tests so the drift can never silently return.
-- **Provenance discipline.** Claims carry labels — `[VERIFIED file:line]`,
-  `[OPEN]`, `[BOUNDARY]`. Runtime values are never asserted from source alone.
-  A green test suite is treated as evidence of exactly what it tests, and
-  nothing more.
-- **Fail loudly.** Degraded states announce themselves — no silent fallbacks
-  between an upstream failure and a number that lands in a client deliverable.
-  Cache writes are verified by reading them back. An HTTP 200 is not success;
-  the persisted key is.
-- **Adversarial review.** Substantive changes face independent reviewer fleets
-  prompted to refute, not confirm. Findings survive or die on file:line
-  evidence.
-- **400+ tests in the clean-room core alone**, with mutation-tested guards on
-  the security-relevant paths — plus the instrument's own multi-hundred-test
-  battery, typechecks, secret scanning, and CI on every push.
-
 <!-- [prototype screenshot slot: oracle contract suite green run] -->
 
-## Design posture
+## The stack, briefly
 
-- **Internal instrument.** No external users, no client logins, no exposed
-  API. Intelligence flows out exclusively as human-authored reports.
-- **Read-only by charter.** The instrument observes markets and events; it
-  will never place an order, execute a trade, or move money. Permanently.
-- **Self-contained.** One compose stack: app, relay, cache, verification
-  tooling. Every fallback chain ends on hardware we own.
-
-## Lineage
+A real-time TypeScript intelligence dashboard and its 150-strong collection
+fleet, hardened for sovereign self-hosting — one compose stack: app, relay,
+cache, verification tooling. An MCP-native tool surface with adversarially
+reviewed, contract-truthed schemas. A clean-room orchestration core —
+original contracts, provenance envelopes, and a default-deny tool-policy
+engine — built to put an agent council on rails rather than on vibes. A
+vector-indexed semantic memory layer for similar-event recall and
+retrieval-grounded drafting, in build now.
 
 Built on the excellent AGPL-3.0
 [WorldMonitor](https://github.com/koala73/worldmonitor) project — preserved
-here as [UPSTREAM-WORLDMONITOR-README.md](UPSTREAM-WORLDMONITOR-README.md) —
-then forked private, hardened for sovereign self-hosting, contract-truthed
-end to end, and extended with Praxen's original clean-room core
-([synactic/](synactic/README.md)). Upstream's honesty patterns didn't just
-survive the fork; they were promoted to house style.
+verbatim as
+[UPSTREAM-WORLDMONITOR-README.md](UPSTREAM-WORLDMONITOR-README.md) — then
+forked private, hardened end to end, and extended with Praxen's original
+core ([synactic/](synactic/README.md)). Upstream's honesty patterns didn't
+just survive the fork; they were promoted to house style.
 
----
+* * *
 
-**Praxen Development & Engineering** — we build the machines that build the
-briefings. © 2026. All rights reserved where applicable; upstream components
-remain under their original licenses.
+Praxen builds the machines that build the briefings. Own your instrument.
+
+**Praxen Development & Engineering** · [cld-dev.io](https://cld-dev.io) ·
+© 2026 — upstream components remain under their original licenses.
