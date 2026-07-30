@@ -23,7 +23,7 @@ import { NUCLEAR_FACILITIES, SPACEPORTS, ECONOMIC_CENTERS, CRITICAL_MINERALS, UN
 import { PIPELINES } from '@/config/pipelines';
 import { t } from '@/services/i18n';
 import { SITE_VARIANT } from '@/config/variant';
-import { getGlobeRenderScale, resolveGlobePixelRatio, resolvePerformanceProfile, subscribeGlobeRenderScaleChange, getGlobeTexture, GLOBE_TEXTURE_URLS, subscribeGlobeTextureChange, getGlobeVisualPreset, subscribeGlobeVisualPresetChange, type GlobeRenderScale, type GlobePerformanceProfile, type GlobeVisualPreset } from '@/services/globe-render-settings';
+import { getGlobeRenderScale, resolveGlobePixelRatio, resolvePerformanceProfile, subscribeGlobeRenderScaleChange, getGlobeTexture, GLOBE_TEXTURE_URLS, subscribeGlobeTextureChange, getGlobeVisualPreset, subscribeGlobeVisualPresetChange, type GlobeRenderScale, type GlobePerformanceProfile, type GlobeTexture, type GlobeVisualPreset } from '@/services/globe-render-settings';
 import {
   getLayerExplanation,
   getLayersForVariant,
@@ -673,8 +673,8 @@ export class GlobeMap {
     const initH = this.container.clientHeight || window.innerHeight;
 
     const initialTexture = getGlobeTexture();
+    this.applyGlobeTexture(globe, initialTexture);
     globe
-      .globeImageUrl(GLOBE_TEXTURE_URLS[initialTexture])
       .backgroundImageUrl('')
       .atmosphereColor('#4466cc')
       .atmosphereAltitude(0.18)
@@ -736,7 +736,7 @@ export class GlobeMap {
 
     // Subscribe to texture changes (kept as-is)
     this.unsubscribeGlobeTexture = subscribeGlobeTextureChange((texture) => {
-      if (this.globe) this.globe.globeImageUrl(GLOBE_TEXTURE_URLS[texture]);
+      if (this.globe) this.applyGlobeTexture(this.globe, texture);
     });
 
     // Pause auto-rotate on user interaction; resume after 60 s idle (like Sentinel)
@@ -3675,16 +3675,47 @@ export class GlobeMap {
     }
   }
 
+  // ─── Globe texture ────────────────────────────────────────────────────────
+  // three-globe loads globeImageUrl with a TextureLoader that has NO error
+  // callback: a 404/undecodable body silently leaves the default black sphere
+  // while data layers keep drawing on top (reads as an untextured blob, not a
+  // failure). Preflight the image ourselves so a load failure is loud and
+  // falls back to the other shipped texture instead of dying silently.
+  private applyGlobeTexture(globe: GlobeInstance, texture: GlobeTexture, isFallback = false): void {
+    const url = GLOBE_TEXTURE_URLS[texture];
+    const img = new Image();
+    img.onload = () => {
+      if (this.destroyed) return;
+      globe.globeImageUrl(url);
+      // Paint the freshly textured sphere even if the idle pause already hit.
+      this.wakeGlobe();
+    };
+    img.onerror = () => {
+      if (this.destroyed) return;
+      console.error(`[GlobeMap] Earth texture failed to load: ${url}${isFallback ? ' (fallback — globe stays untextured)' : ''}`);
+      if (!isFallback) {
+        const alternate: GlobeTexture = texture === 'topographic' ? 'blue-marble' : 'topographic';
+        this.applyGlobeTexture(globe, alternate, true);
+      }
+    };
+    img.src = url;
+  }
+
   // ─── Idle rendering control ──────────────────────────────────────────────
   // globe.gl runs requestAnimationFrame at 60fps continuously.
   // Pause when idle to save CPU; resume on interaction or data change.
 
   private wakeGlobe(): void {
     if (this.destroyed || !this.globe) return;
-    if (!this.isGlobeAnimating) {
-      this.isGlobeAnimating = true;
-      try { (this.globe as any).resumeAnimation?.(); } catch { /* best-effort */ }
-    }
+    // Always call resumeAnimation, not just when our bookkeeping says the loop
+    // is paused: `isGlobeAnimating` can desync from the real RAF state (e.g. a
+    // visibilitychange to hidden that fires before this.globe is assigned, or
+    // an OS-level occlusion pause Chrome applies without any DOM event). The
+    // call is internally idempotent — globe.gl re-enters its cycle only when
+    // animationFrameRequestId is null — so an unconditional wake is safe and
+    // closes the "stale last frame shown forever" failure mode.
+    this.isGlobeAnimating = true;
+    try { (this.globe as any).resumeAnimation?.(); } catch { /* best-effort */ }
     this.scheduleIdlePause();
   }
 
