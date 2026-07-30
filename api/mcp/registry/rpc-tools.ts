@@ -390,13 +390,16 @@ export const RPC_TOOLS: ToolDef[] = [
     },
     outputSchema: {
       type: 'object',
+      // Handler ground truth: server/worldmonitor/intelligence/v1/get-country-intel-brief.ts
+      // returns { countryCode, countryName, brief, model, generatedAt, sources }
+      // (:93-100 empty case, :266-273 computed case, spread at :283 and :285-288);
+      // _execute overlays sources (:490-492). No `framework`/`provider` field exists.
       properties: {
-        country_code: { type: 'string' },
+        countryCode: { type: 'string' },
+        countryName: { type: 'string' },
         brief: { type: 'string', description: 'LLM-synthesized country intelligence brief.' },
-        framework: { type: 'string' },
-        generatedAt: { type: ['string', 'number', 'null'] },
-        provider: { type: 'string' },
         model: { type: 'string' },
+        generatedAt: { type: 'number' },
         sources: {
           type: 'array',
           description: 'Original feed articles used as grounding inputs for this brief.',
@@ -503,7 +506,7 @@ export const RPC_TOOLS: ToolDef[] = [
   {
     name: 'get_country_risk',
     _outputBudgetBytes: 262144,
-    description: 'Structured risk intelligence for a specific country: Composite Instability Index (CII) score 0-100, component breakdown (unrest/conflict/security/news), travel advisory level, and OFAC sanctions exposure. Fast Redis read — no LLM. Use for quantitative risk screening or to answer "how risky is X right now?"',
+    description: 'Structured risk intelligence for one country: Composite Instability Index (CII) 0-100 with component breakdown. Component wire names are back-compat fossils — ciiContribution=unrest, geoConvergence=conflict, militaryActivity=security, newsActivity=information. `cii` is absent (never null) when untracked or upstream unavailable; top-level advisoryLevel, sanctionsActive, sanctionsCount. Fast Redis read — no LLM. Use for quantitative risk screening or to answer "how risky is X right now?"',
     inputSchema: {
       type: 'object',
       properties: {
@@ -513,20 +516,53 @@ export const RPC_TOOLS: ToolDef[] = [
     },
     outputSchema: {
       type: 'object',
+      // Handler ground truth: server/worldmonitor/intelligence/v1/get-country-risk.ts
+      // returns { countryCode, countryName, cii?, advisoryLevel, sanctionsActive,
+      // sanctionsCount, fetchedAt, upstreamUnavailable } (:32-41, :54-63, :76-85).
+      // `cii` is ABSENT when untracked/unavailable (`cii: undefined` :35,:57,:67) —
+      // never null. CiiScore payload emitted at get-risk-scores.ts:1205-1231; the
+      // four component wire names are back-compat fossils (:1214-1219).
       properties: {
-        country_code: { type: 'string' },
-        cii: { type: ['number', 'null'], description: 'Composite Instability Index 0-100.' },
-        components: {
+        countryCode: { type: 'string' },
+        countryName: { type: 'string' },
+        cii: {
           type: 'object',
+          description: 'CII score object. Absent when the country is untracked or upstream is unavailable (never null).',
           properties: {
-            unrest: { type: ['number', 'null'] },
-            conflict: { type: ['number', 'null'] },
-            security: { type: ['number', 'null'] },
-            news: { type: ['number', 'null'] },
+            region: { type: 'string' },
+            staticBaseline: { type: 'number' },
+            dynamicScore: { type: 'number' },
+            combinedScore: { type: 'number', description: 'Composite Instability Index 0-100.' },
+            trend: {
+              type: 'string',
+              enum: [
+                'TREND_DIRECTION_UNSPECIFIED',
+                'TREND_DIRECTION_RISING',
+                'TREND_DIRECTION_STABLE',
+                'TREND_DIRECTION_FALLING',
+              ],
+            },
+            components: {
+              type: 'object',
+              properties: {
+                newsActivity: { type: 'number' },
+                ciiContribution: { type: 'number' },
+                geoConvergence: { type: 'number' },
+                militaryActivity: { type: 'number' },
+              },
+            },
+            computedAt: { type: 'number' },
+            eventMultiplier: { type: 'number' },
+            methodologyVersion: { type: 'string' },
+            advisoryLevel: { type: 'string' },
+            advisoryProvenance: { type: 'string' },
           },
         },
-        travelAdvisory: { type: ['object', 'string', 'null'] },
-        sanctionsExposure: { type: ['object', 'array', 'null'] },
+        advisoryLevel: { type: 'string' },
+        sanctionsActive: { type: 'boolean' },
+        sanctionsCount: { type: 'number' },
+        fetchedAt: { type: 'number' },
+        upstreamUnavailable: { type: 'boolean' },
       },
     },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },

@@ -55,13 +55,19 @@ export const PROMPT_REGISTRY: McpPromptDef[] = [
       {
         tool: 'get_country_risk',
         args: { country_code: '${iso2}' },
-        jmespath: '{cii: cii, components: components, travelAdvisory: travelAdvisory, sanctionsExposure: sanctionsExposure}',
-        purpose: 'Quantitative Composite Instability Index (CII) + component breakdown + travel advisory + OFAC sanctions exposure.',
+        // Real wire fields only: cii is an object carrying combinedScore plus
+        // the fossil-named component breakdown; top-level components/
+        // travelAdvisory/sanctionsExposure never existed on this payload.
+        jmespath: '{cii: cii, advisoryLevel: advisoryLevel, sanctionsActive: sanctionsActive, sanctionsCount: sanctionsCount, upstreamUnavailable: upstreamUnavailable}',
+        purpose: 'Quantitative Composite Instability Index (CII) object (combinedScore + fossil-named component breakdown) + advisory level + OFAC sanctions status.',
       },
       {
         tool: 'get_country_brief',
         args: { country_code: '${iso2}' },
-        jmespath: '{country_code: country_code, brief: brief}',
+        // Output field is countryCode (camelCase) — country_code exists only
+        // on the INPUT schema; the output declaration was corrected in the
+        // Trap-3 remediation pass.
+        jmespath: '{countryCode: countryCode, brief: brief}',
         purpose: 'LLM-synthesised geopolitical + economic narrative grounded on the latest headlines.',
       },
       {

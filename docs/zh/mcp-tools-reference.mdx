@@ -85,22 +85,33 @@ Schemas 在每次 `tools/list` 时**无条件**输出，无论协商的 `protoco
 {
   "type": "object",
   "properties": {
-    "country_code": { "type": "string" },
-    "cii": { "type": ["number", "null"], "description": "Composite Instability Index 0-100." },
-    "components": {
+    "countryCode": { "type": "string" },
+    "countryName": { "type": "string" },
+    "cii": {
       "type": "object",
+      "description": "CII score object. Absent when the country is untracked or upstream is unavailable (never null).",
       "properties": {
-        "unrest":   { "type": ["number", "null"] },
-        "conflict": { "type": ["number", "null"] },
-        "security": { "type": ["number", "null"] },
-        "news":     { "type": ["number", "null"] }
+        "combinedScore": { "type": "number", "description": "Composite Instability Index 0-100." },
+        "components": {
+          "type": "object",
+          "properties": {
+            "newsActivity":     { "type": "number" },
+            "ciiContribution":  { "type": "number" },
+            "geoConvergence":   { "type": "number" },
+            "militaryActivity": { "type": "number" }
+          }
+        }
       }
     },
-    "travelAdvisory":    { "type": ["object", "string", "null"] },
-    "sanctionsExposure": { "type": ["object", "array", "null"] }
+    "advisoryLevel":       { "type": "string" },
+    "sanctionsActive":     { "type": "boolean" },
+    "sanctionsCount":      { "type": "number" },
+    "upstreamUnavailable": { "type": "boolean" }
   }
 }
 ```
+
+（节选 — 完整声明还包含 `staticBaseline`、`dynamicScore`、`trend`、`computedAt` 及方法论披露字段。）组件的线上字段名是向后兼容的化石命名：`ciiContribution` = unrest（动荡）、`geoConvergence` = conflict（冲突）、`militaryActivity` = security（安全）、`newsActivity` = information（信息）。
 
 缓存工具将其声明的 `data` 形状包装在标准的新鲜度信封中：
 
@@ -121,11 +132,19 @@ Schemas 在每次 `tools/list` 时**无条件**输出，无论协商的 `protoco
 ```ts
 // Synthesise types from the schema once (e.g. with json-schema-to-typescript).
 type CountryRisk = {
-  country_code: string;
-  cii: number | null;
-  components: { unrest: number | null; conflict: number | null; security: number | null; news: number | null };
-  travelAdvisory: object | string | null;
-  sanctionsExposure: object | unknown[] | null;
+  countryCode: string;
+  countryName: string;
+  // Absent (never null) when the country is untracked or upstream is unavailable.
+  cii?: {
+    combinedScore: number; // Composite Instability Index 0-100
+    // Fossil wire names: ciiContribution=unrest, geoConvergence=conflict,
+    // militaryActivity=security, newsActivity=information.
+    components: { newsActivity: number; ciiContribution: number; geoConvergence: number; militaryActivity: number };
+  };
+  advisoryLevel: string;
+  sanctionsActive: boolean;
+  sanctionsCount: number;
+  upstreamUnavailable: boolean;
 };
 
 const reply = await callTool('get_country_risk', { country_code: 'IR' });

@@ -168,9 +168,15 @@ export const COUNTRY_RISK_APP_HTML = `<!DOCTYPE html>
     document.getElementById("empty").style.display = "none";
     document.getElementById("card").style.display = "block";
 
-    setText("country", data.country_code || data.country || "—");
+    // Real payload (get-country-risk.ts): countryCode/countryName; the legacy
+    // country_code/country reads are kept as fallbacks for older captures.
+    setText("country", data.countryName || data.countryCode || data.country_code || data.country || "—");
 
-    var cii = num(data.cii);
+    // Real payload: cii is an OBJECT (absent when untracked/unavailable, never
+    // null) whose composite lives at cii.combinedScore. A bare number is
+    // accepted as a legacy fallback.
+    var ciiObj = (data.cii && typeof data.cii === "object") ? data.cii : null;
+    var cii = ciiObj ? num(ciiObj.combinedScore) : num(data.cii);
     setText("cii", cii == null ? "—" : String(Math.round(cii)));
     var lv = levelFor(cii);
     var levelEl = document.getElementById("level");
@@ -183,13 +189,26 @@ export const COUNTRY_RISK_APP_HTML = `<!DOCTYPE html>
       bar.style.background = color || "var(--accent)";
     }
 
-    var comps = (data.components && typeof data.components === "object") ? data.components : {};
-    var order = ["unrest", "conflict", "security", "news"];
+    // Components live at cii.components under back-compat fossil wire names
+    // (get-risk-scores.ts components block): ciiContribution=unrest,
+    // geoConvergence=conflict, militaryActivity=security, newsActivity=
+    // information. Display the semantic label, read the fossil key first,
+    // then the legacy semantic key for older payloads.
+    var comps = (ciiObj && ciiObj.components && typeof ciiObj.components === "object")
+      ? ciiObj.components
+      : ((data.components && typeof data.components === "object") ? data.components : {});
+    var order = [
+      { label: "unrest", keys: ["ciiContribution", "unrest"] },
+      { label: "conflict", keys: ["geoConvergence", "conflict"] },
+      { label: "security", keys: ["militaryActivity", "security"] },
+      { label: "news", keys: ["newsActivity", "news"] }
+    ];
     var host = document.getElementById("components");
     host.textContent = "";
     var any = false;
-    order.forEach(function (key) {
-      var val = num(comps[key]);
+    order.forEach(function (entry) {
+      var val = null;
+      for (var i = 0; i < entry.keys.length && val == null; i++) val = num(comps[entry.keys[i]]);
       if (val == null) return;
       any = true;
       var wrap = document.createElement("div");
@@ -198,7 +217,7 @@ export const COUNTRY_RISK_APP_HTML = `<!DOCTYPE html>
       top.className = "comp-top";
       var name = document.createElement("span");
       name.className = "comp-name";
-      name.textContent = key;
+      name.textContent = entry.label;
       var v = document.createElement("span");
       v.textContent = String(Math.round(val));
       top.appendChild(name); top.appendChild(v);
@@ -216,16 +235,39 @@ export const COUNTRY_RISK_APP_HTML = `<!DOCTYPE html>
     if (!any) {
       var none = document.createElement("div");
       none.className = "empty";
-      none.textContent = "No component breakdown available.";
+      none.textContent = data.upstreamUnavailable
+        ? "Upstream unavailable — the CII snapshot has not been computed yet."
+        : "No component breakdown available.";
       host.appendChild(none);
     }
 
-    setText("advisory", describeAdvisory(data.travelAdvisory));
-    setText("sanctions", describeSanctions(data.sanctionsExposure));
+    // Real payload: advisoryLevel is a top-level string ('' when the advisories
+    // seed lacks the country); cii.advisoryLevel carries the embedded-table
+    // fallback. travelAdvisory is the legacy field name.
+    var advisory = data.advisoryLevel || (ciiObj && ciiObj.advisoryLevel) || null;
+    setText("advisory", advisory != null ? describeAdvisory(advisory) : describeAdvisory(data.travelAdvisory));
+
+    // Real payload: sanctionsActive boolean + sanctionsCount number.
+    // sanctionsExposure is the legacy field name.
+    var sanctionsText;
+    if (typeof data.sanctionsActive === "boolean") {
+      var cnt = num(data.sanctionsCount);
+      sanctionsText = data.sanctionsActive
+        ? ("Active" + (cnt != null && cnt > 0 ? " (" + String(cnt) + " program" + (cnt === 1 ? "" : "s") + ")" : ""))
+        : "None";
+    } else {
+      sanctionsText = describeSanctions(data.sanctionsExposure);
+    }
+    setText("sanctions", sanctionsText);
 
     var foot = document.getElementById("foot");
+    var fetchedAt = num(data.fetchedAt);
     if (data.cached_at) {
       foot.textContent = "Snapshot: " + String(data.cached_at) + (data.stale ? " (stale)" : "");
+    } else if (fetchedAt != null && fetchedAt > 0) {
+      foot.textContent = "Fetched: " + new Date(fetchedAt).toISOString();
+    } else if (data.upstreamUnavailable) {
+      foot.textContent = "Upstream unavailable - no snapshot yet (see SELF_HOSTING.md, CII warming).";
     } else {
       foot.textContent = "";
     }

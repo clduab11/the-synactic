@@ -237,8 +237,31 @@ export const CACHE_TOOLS: ToolDef[] = [
       scores: {
         type: ['object', 'null'],
         properties: {
-          ciiScores: { type: 'array', items: { type: 'object', properties: { region: { type: 'string' }, score: { type: 'number' } } } },
+          // CiiScore emission: server/worldmonitor/intelligence/v1/get-risk-scores.ts:1205-1231
+          // (single push site, all fields unconditional; stored payload shape is
+          // GetRiskScoresResponse — src/generated/server/worldmonitor/intelligence/v1/service_server.ts:8-13).
+          // The field clients should read is `combinedScore`; a bare `score` never exists here.
+          ciiScores: { type: 'array', items: { type: 'object', properties: {
+            region: { type: 'string' },
+            staticBaseline: { type: 'number' },
+            dynamicScore: { type: 'number' },
+            combinedScore: { type: 'number' },
+            trend: { type: 'string', description: 'TREND_DIRECTION_* enum string' },
+            components: { type: 'object', properties: {
+              newsActivity: { type: 'number' },
+              ciiContribution: { type: 'number' },
+              geoConvergence: { type: 'number' },
+              militaryActivity: { type: 'number' },
+            } },
+            computedAt: { type: 'number' },
+            eventMultiplier: { type: 'number' },
+            methodologyVersion: { type: 'string' },
+            advisoryLevel: { type: 'string' },
+            advisoryProvenance: { type: 'string' },
+          } } },
           strategicRisks: { type: ['array', 'object', 'null'] },
+          degraded: { type: 'boolean' },
+          stale: { type: 'boolean' },
         },
       },
     }),

@@ -85,22 +85,33 @@ Worked example — the `outputSchema` for `get_country_risk`:
 {
   "type": "object",
   "properties": {
-    "country_code": { "type": "string" },
-    "cii": { "type": ["number", "null"], "description": "Composite Instability Index 0-100." },
-    "components": {
+    "countryCode": { "type": "string" },
+    "countryName": { "type": "string" },
+    "cii": {
       "type": "object",
+      "description": "CII score object. Absent when the country is untracked or upstream is unavailable (never null).",
       "properties": {
-        "unrest":   { "type": ["number", "null"] },
-        "conflict": { "type": ["number", "null"] },
-        "security": { "type": ["number", "null"] },
-        "news":     { "type": ["number", "null"] }
+        "combinedScore": { "type": "number", "description": "Composite Instability Index 0-100." },
+        "components": {
+          "type": "object",
+          "properties": {
+            "newsActivity":     { "type": "number" },
+            "ciiContribution":  { "type": "number" },
+            "geoConvergence":   { "type": "number" },
+            "militaryActivity": { "type": "number" }
+          }
+        }
       }
     },
-    "travelAdvisory":    { "type": ["object", "string", "null"] },
-    "sanctionsExposure": { "type": ["object", "array", "null"] }
+    "advisoryLevel":       { "type": "string" },
+    "sanctionsActive":     { "type": "boolean" },
+    "sanctionsCount":      { "type": "number" },
+    "upstreamUnavailable": { "type": "boolean" }
   }
 }
 ```
+
+(Abridged — the full declaration also carries `staticBaseline`, `dynamicScore`, `trend`, `computedAt`, and the methodology-disclosure fields.) The component wire names are back-compat fossils: `ciiContribution` = unrest, `geoConvergence` = conflict, `militaryActivity` = security, `newsActivity` = information.
 
 Cache tools wrap their declared `data` shape in the standard freshness envelope:
 
@@ -121,11 +132,19 @@ A typed-parsing sketch in TypeScript using the schema for compile-time hints:
 ```ts
 // Synthesise types from the schema once (e.g. with json-schema-to-typescript).
 type CountryRisk = {
-  country_code: string;
-  cii: number | null;
-  components: { unrest: number | null; conflict: number | null; security: number | null; news: number | null };
-  travelAdvisory: object | string | null;
-  sanctionsExposure: object | unknown[] | null;
+  countryCode: string;
+  countryName: string;
+  // Absent (never null) when the country is untracked or upstream is unavailable.
+  cii?: {
+    combinedScore: number; // Composite Instability Index 0-100
+    // Fossil wire names: ciiContribution=unrest, geoConvergence=conflict,
+    // militaryActivity=security, newsActivity=information.
+    components: { newsActivity: number; ciiContribution: number; geoConvergence: number; militaryActivity: number };
+  };
+  advisoryLevel: string;
+  sanctionsActive: boolean;
+  sanctionsCount: number;
+  upstreamUnavailable: boolean;
 };
 
 const reply = await callTool('get_country_risk', { country_code: 'IR' });
@@ -574,7 +593,7 @@ curl -s https://worldmonitor.app/mcp \
 
 ### `get_country_risk`
 
-Structured risk intelligence for a specific country: Composite Instability Index (CII) score 0-100, component breakdown (unrest/conflict/security/news), travel advisory level, and OFAC sanctions exposure. Fast Redis read — no LLM. Use for quantitative risk screening or to answer "how risky is X right now?"
+Structured risk intelligence for one country: Composite Instability Index (CII) 0-100 with component breakdown. Component wire names are back-compat fossils — ciiContribution=unrest, geoConvergence=conflict, militaryActivity=security, newsActivity=information. `cii` is absent (never null) when untracked or upstream unavailable; top-level advisoryLevel, sanctionsActive, sanctionsCount. Fast Redis read — no LLM. Use for quantitative risk screening or to answer "how risky is X right now?"
 
 **Parameters:**
 

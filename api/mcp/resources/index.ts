@@ -98,7 +98,7 @@ export const TEMPLATE_RESOURCE_REGISTRY: TemplateResourceDef[] = [
   {
     uriTemplate: 'worldmonitor://countries/{iso2}/risk',
     name: 'Country Risk',
-    description: 'Composite Instability Index (CII) score 0–100 with unrest/conflict/security/news components, travel-advisory level, and OFAC sanctions exposure for a single ISO 3166-1 alpha-2 country. URI param {iso2} is lowercase alpha-2 (e.g. "de", "us", "ir").',
+    description: 'Composite Instability Index (CII) 0–100 for a single ISO 3166-1 alpha-2 country. Same payload as get_country_risk: `cii` object (absent when untracked/unavailable, never null) whose component wire names are back-compat fossils — ciiContribution=unrest, geoConvergence=conflict, militaryActivity=security, newsActivity=information — plus top-level advisoryLevel, sanctionsActive, sanctionsCount. URI param {iso2} is lowercase alpha-2 (e.g. "de", "us", "ir").',
     mimeType: 'application/json',
     tool: 'get_country_risk',
     // RPC tool — wrap freshness against the regional-snapshot-canonical

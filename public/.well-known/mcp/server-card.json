@@ -155,7 +155,7 @@
     },
     {
       "name": "get_country_risk",
-      "description": "Structured risk intelligence for a specific country: Composite Instability Index (CII) score 0-100, component breakdown (unrest/conflict/security/news), travel advisory level, and OFAC sanctions exposure. Fast Redis read — no LLM. Use for quantitative risk screening or to answer \"how risky is X right now?\""
+      "description": "Structured risk intelligence for one country: Composite Instability Index (CII) 0-100 with component breakdown. Component wire names are back-compat fossils — ciiContribution=unrest, geoConvergence=conflict, militaryActivity=security, newsActivity=information. `cii` is absent (never null) when untracked or upstream unavailable; top-level advisoryLevel, sanctionsActive, sanctionsCount. Fast Redis read — no LLM. Use for quantitative risk screening or to answer \"how risky is X right now?\""
     },
     {
       "name": "get_consumer_prices",
