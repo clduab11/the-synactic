@@ -5,27 +5,31 @@ Kept as a separate file so upstream merges never conflict with fork knowledge.
 
 **v2 — 2026-07-29.** Corrected after `docs/plans/recon-01.md`, which refuted three v1 claims from source. Every correction is marked. Line numbers re-pinned to this checkout.
 
+**v3 — 2026-07-30.** Charter change by the owner: the-synactic is now an MCP-accessible **read-only intelligence provider** for downstream authorized actors, not report-only. AGPL §13 escalation language removed (owner decision, legal cleared). The instrument stays read-only in its own code; execution lives downstream. README lineage credit and the LICENSE file are unchanged (attribution, not charter).
+
 ---
 
-## What this fork is
+## What this instrument is
 
-Praxen's internal analytical instrument (working name **the-synactic**), forked from AGPL-3.0 WorldMonitor. It is an **internal tool that produces human-authored reports**. No external users ever touch the running instance.
+Praxen's analytical instrument (**the-synactic**), built on a WorldMonitor fork. It collects at machine scale and exposes **read-only intelligence** — over an MCP tool surface and as human-authored reports. Downstream systems that hold their own execution authority (Claude Code sessions, trading repos) consume that intelligence via MCP and act on it under their own permissions.
 
 Consequences that shape every decision here:
 
-- **No SLA, no multi-tenancy, no auth hardening, no uptime obligation.** Do not build them.
-- **Correctness and provenance matter more than in a product**, because a wrong figure lands in a client deliverable. Prefer failing loudly over degrading silently.
-- AGPL §13 network copyleft does not trigger while there are no external users. If anyone proposes client logins or an exposed API, that is a charter change — stop and escalate.
+- **Correctness and provenance matter more than in a product**, because a wrong figure lands in a client deliverable or a downstream decision. Prefer failing loudly over degrading silently.
+- **The instrument is a source of truth, not an actor.** It reads, scores, and serves; it never places an order, executes a trade, or moves money in its own code. Execution lives downstream, gated by those systems' own authorization.
+- **Serving the MCP surface to downstream systems is the intended operating model** (owner decision, legal cleared). Build the tool surface to be robust, self-describing, and pleasant for LLM consumers — that is now a first-class goal, not a charter risk.
 
 ---
 
 ## HARD BOUNDARIES — do not cross without an explicit human decision
 
-1. **Never write code that places orders, executes trades, or moves money.** This system is information plumbing. OANDA, Binance, Kraken, and Coinbase integrations are **read-only pricing/rates streams**. Order endpoints are out of scope, permanently.
+1. **The instrument itself stays read-only — it never places orders, executes trades, or moves money.** OANDA, Binance, Kraken, and Coinbase integrations are **read-only pricing/rates streams**. The-synactic serves this data — plus risk scores and prediction-market signals — over MCP to downstream systems that hold their own trading authorization; those systems execute, the instrument does not. Order/execution code does not live in this repo. (This is the instrument's own design, and the line Claude holds when authoring its code.)
 
 2. **Retention decided 2026-07-29: OREF, the Telegram MTProto layer, and OpenSky / `PROXY_URL` STAY.** The keep/disable question is closed — they are not to be removed, and refactors must not break them.
 
-   **What has not changed:** do not actively improve the circumvention capability itself. Specifically, do not enhance JA3 fingerprint evasion, add proxy rotation or exit-IP diversity, or harden these paths against detection. Keeping a component and upgrading its evasion are different acts, and only the first was decided.
+   **v3 change (owner, 2026-07-30): collection-path resilience is IN SCOPE.** Diagnosing our own TLS/JA3 fingerprint, sequestering collection clients by fingerprint, proxy rotation, exit-IP diversity, and comparable narrow, orthogonal measures are ordinary collection infrastructure and may be researched, built, and hardened. Earlier drafts of this file forbade them; that restriction is lifted by owner decision.
+
+   **The one line that stays:** measures whose only purpose is to defeat a third party's control in order to take more than that party permits — impersonating a browser to get around an anti-bot product that has deliberately blocked us, or cycling identities to evade a published per-IP quota — remain out. Respect published rate limits and back off. Path diversity for reliability is fine; laundering identity to exceed a quota is not.
 
    Reading them, keeping them compiling, and refactoring around them is fine and expected.
 
@@ -98,6 +102,8 @@ The relay's CII warm-ping hard-codes the **hosted** origin `https://api.worldmon
 **A fresh self-host with all 156 seeders green still returns `upstreamUnavailable: true` from `get_country_risk` — forever — until something hits the LOCAL `/api/intelligence/v1/get-risk-scores`.** Note `cii` is *absent*, not `null` (`get-country-risk.ts:53-64`).
 
 Runbook: curl the local endpoint once after seeding, or add a fork-local warmer. Do not debug the seeders for this.
+
+**v3 amendment — the cure is not durable, and the deadlock returns hourly.** The stale key is written with `RISK_STALE_TTL = 3600` (`get-risk-scores.ts:1417`, write at `:1545`) and compose's `cii-warmer` is a one-shot (`docker-compose.yml:130` `restart: "no"`). A live probe on 2026-07-30, roughly four hours after session-02's successful warm, found the key **absent** (`TTL -2`) with the other two gate keys still present — `get_country_risk` was failing closed again. Re-running `docker compose run --rm cii-warmer` restored it (exit 0, `ciiScores=31`, `degraded=false`, TTL 3600 s). Treat the warmer as a **recurring** job, not a bootstrap step. Until it is scheduled, assume the CII surface is cold unless you have just warmed it — and never capture an oracle fixture without warming first.
 
 ### Trap 6 — the contract test is circular and provides false assurance
 
