@@ -27,6 +27,25 @@ services:
       LOCAL_API_MODE: "docker"
       LOCAL_API_CLOUD_FALLBACK: "false"
       WS_RELAY_URL: "http://ais-relay:3004"
+      # Shared secret the app presents on non-public relay routes
+      # (server/_shared/relay.ts). Must match the ais-relay service's value.
+      RELAY_SHARED_SECRET: "${RELAY_SHARED_SECRET:-}"
+      # Comma-separated operator MCP keys (api/mcp/auth.ts env_key class —
+      # ungated and unmetered on a self-host; presented via X-WorldMonitor-Key).
+      # Keep DISTINCT from WORLDMONITOR_RELAY_KEY (server/gateway.ts says the
+      # relay warm-ping secret should not be a valid key).
+      WORLDMONITOR_VALID_KEYS: "${WORLDMONITOR_VALID_KEYS:-}"
+      # Seed-only refresh credential for the resilience-ranking recompute path
+      # (gateway isResilienceRankingSeedRefreshRequest; seed-resilience-scores.mjs
+      # FATALs without it and the gateway must hold the same value).
+      WORLDMONITOR_SEED_REFRESH_KEY: "${WORLDMONITOR_SEED_REFRESH_KEY:-}"
+      # Relay warm-ping credential (server/gateway.ts RELAY_WARM_PING_PATHS).
+      # The cii-warmer one-shot below presents this as X-WorldMonitor-Key to
+      # authenticate its warm GET of /api/intelligence/v1/get-risk-scores.
+      # REQUIRED for the cii-warmer to function: without it the warmer exits
+      # AUTH REQUIRED and the CII cold-start deadlock persists (the endpoint
+      # is auth-gated even on self-host). Generate: openssl rand -hex 32 → .env
+      WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
       # LLM provider (any OpenAI-compatible endpoint)
       LLM_API_URL: "${LLM_API_URL:-}"
       LLM_API_KEY: "${LLM_API_KEY:-}"
@@ -62,6 +81,46 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # One-shot CII warmer — breaks the cold-start deadlock: get_country_risk
+  # reads ONLY risk:scores:sebuf:stale:v8 and no seeder writes it; one GET to
+  # the local get-risk-scores endpoint populates it (TTL 3600s). Runs once on
+  # `docker compose up -d` and exits; runs again on the next up. Inspect with:
+  #   docker compose logs cii-warmer
+  # After the warm GET the script reads the stale key back through redis-rest
+  # and exits non-zero if it is absent — an HTTP 200 alone does NOT prove the
+  # write (the degraded path answers 200 without persisting). Exit codes:
+  # 0 warmed+verified; 1 warm failed, key absent, or key present but corrupt
+  # (deadlock persists); 2 warmed but unverified — shim unreachable, token
+  # rejected, or malformed shim reply (write state unknown, NOT a deadlock
+  # verdict).
+  # Same image as the app (shared build — no extra pull); the warmer script is
+  # bind-mounted from the repo so no rebuild is needed when it changes.
+  cii-warmer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: worldmonitor:latest
+    container_name: worldmonitor-cii-warmer
+    command: ["node", "/tmp/warm-cii-stale.mjs"]
+    volumes:
+      - ./scripts/warm-cii-stale.mjs:/tmp/warm-cii-stale.mjs:ro
+    environment:
+      CII_WARM_URL: "http://worldmonitor:8080/api/intelligence/v1/get-risk-scores"
+      WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
+      # Write-verification path. In-network address — the host-published
+      # 127.0.0.1:8079 is this container's OWN loopback and always refuses.
+      # CII_WARM_* (not UPSTASH_*): the script deliberately ignores the
+      # UPSTASH_ pair so a hybrid .env carrying hosted Upstash creds can
+      # never point verification at production Redis (see the script header).
+      CII_WARM_REDIS_URL: "http://redis-rest:80"
+      CII_WARM_REDIS_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
+    depends_on:
+      worldmonitor:
+        condition: service_started
+      redis-rest:
+        condition: service_started
+    restart: "no"
+
   ais-relay:
     build:
       context: .
@@ -69,6 +128,11 @@ services:
     image: worldmonitor-ais-relay:latest
     container_name: worldmonitor-ais-relay
     environment:
+      # The relay FATALs at boot without this (scripts/ais-relay.cjs) unless
+      # I_UNDERSTAND_THIS_DISABLES_AUTH=true — fail compose validation early
+      # instead of shipping a restart-looping container. SELF_HOSTING.md
+      # documents it as required.
+      RELAY_SHARED_SECRET: "${RELAY_SHARED_SECRET:?RELAY_SHARED_SECRET required — generate with: openssl rand -hex 32}"
       AISSTREAM_API_KEY: "${AISSTREAM_API_KEY:-}"
       FINNHUB_API_KEY: "${FINNHUB_API_KEY:-}"
       MARKET_YAHOO_REFRESH_INTERVAL_MS: "${MARKET_YAHOO_REFRESH_INTERVAL_MS:-900000}"

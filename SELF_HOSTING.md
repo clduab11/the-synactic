@@ -21,6 +21,9 @@ npm install
 echo "RELAY_SHARED_SECRET=$(openssl rand -hex 32)" >> .env
 echo "REDIS_PASSWORD=$(openssl rand -hex 32)"      >> .env
 echo "REDIS_TOKEN=$(openssl rand -hex 32)"         >> .env
+# Recommended: lets the one-shot CII warmer authenticate against the app
+# (see "Warming the CII cache" below — without it get_country_risk stays empty).
+echo "WORLDMONITOR_RELAY_KEY=$(openssl rand -hex 32)" >> .env
 
 # 3. Start the stack
 docker compose up -d        # or: uvx podman-compose up -d
@@ -144,6 +147,39 @@ node scripts/seed-military-flights.mjs
 ```
 
 `./scripts/run-seeders.sh` auto-sources `REDIS_TOKEN` from `.env`, so the wrapper is the simpler path. Use the manual form only when iterating on a single seeder.
+
+### 🌡️ Warming the CII cache (cold-start deadlock)
+
+`get_country_risk` (the per-country risk RPC / MCP tool) reads **only** the Redis key `risk:scores:sebuf:stale:v8`. **No seeder writes that key** — it is written by the app's own `/api/intelligence/v1/get-risk-scores` handler, with a 3600s TTL. So a fresh stack with every seeder green still returns `upstreamUnavailable: true` from `get_country_risk` — until something requests the **local** get-risk-scores endpoint once.
+
+The compose stack does this automatically: the one-shot `cii-warmer` service runs on every `docker compose up -d`, waits for the app, and GETs the local endpoint. Inspect it with:
+
+```bash
+docker compose logs cii-warmer
+```
+
+The endpoint is auth-gated even on self-host, so the warmer authenticates via the gateway's relay warm-ping path: set `WORLDMONITOR_RELAY_KEY` in `.env` (`openssl rand -hex 32`) **before** `up -d` (see Quick Start step 2). Without it the warmer exits with `AUTH REQUIRED` and the deadlock remains.
+
+An HTTP 200 from the endpoint does **not** by itself prove the key was written — the handler's degraded fallback answers 200 without persisting, and Redis write failures are swallowed. So after the warm GET the script reads `risk:scores:sebuf:stale:v8` back through the `redis-rest` proxy and reports one of three outcomes on its single output line:
+
+| Exit | Meaning |
+| --- | --- |
+| `0` | Warmed **and verified** — the stale key was read back as a parsable risk-scores snapshot. Deadlock cured. |
+| `1` | Definitive failure — the warm request failed, **or** it returned 200 but the key is absent (deadlock persists; check the app container's logs and its Redis config), **or** the key exists but its value is corrupt (inspect and clear it). |
+| `2` | Warmed but **unverified** — the `redis-rest` proxy was unreachable, rejected the token, or answered with a malformed envelope. The write state is unknown; fix the verification path and re-run. Do **not** read this as the deadlock persisting. |
+
+To warm manually from the host (e.g. after `down -v` + reseed, or a non-compose setup):
+
+```bash
+set -a; . ./.env; set +a   # picks up WORLDMONITOR_RELAY_KEY and REDIS_TOKEN
+node scripts/warm-cii-stale.mjs
+```
+
+`CII_WARM_URL` overrides the target (default `http://127.0.0.1:${WM_PORT:-3000}/api/intelligence/v1/get-risk-scores`). The read-back defaults to `http://127.0.0.1:8079` (the host-published `redis-rest` port) with `REDIS_TOKEN` as the bearer token; inside the compose network it is `http://redis-rest:80` (compose sets this for the `cii-warmer` service — a container cannot reach the host's `127.0.0.1:8079`). Override with `CII_WARM_REDIS_URL` / `CII_WARM_REDIS_TOKEN`.
+
+> The read-back **deliberately ignores** `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, so sourcing a hybrid `.env` that also carries hosted Vercel/Upstash credentials cannot point verification at production Redis (same rule the seeder section above applies — the local `REDIS_TOKEN` wins). If your self-host genuinely uses hosted Upstash as its cache, set `CII_WARM_REDIS_URL`/`CII_WARM_REDIS_TOKEN` explicitly.
+
+Never point the warmer at the hosted `api.worldmonitor.app` — the hosted stack has its own relay warmer, and the script refuses that origin.
 
 ## 🏗️ Architecture
 

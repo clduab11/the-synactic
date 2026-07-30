@@ -78,7 +78,13 @@ async function runCommand(args) {
   return client.sendCommand([cmd, ...cmdArgs.map(String)]);
 }
 
-const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
+// 16 MB: the largest legitimate seed payloads exceed 1 MB (e.g. the OFAC
+// sanctions entity index is ~2 MB; news digests ~126 KB). A 1 MB cap made the
+// shim destroy the connection mid-body, which surfaced in seeders as ECONNRESET
+// → crash AFTER partial extra-key writes (torn seeds). The endpoint is
+// loopback/compose-network only and bearer-gated, so the cap is DoS hygiene,
+// not an exposure boundary — size it above the data, not at it.
+const MAX_BODY_BYTES = 16 * 1024 * 1024;
 
 async function readBody(req) {
   const chunks = [];
