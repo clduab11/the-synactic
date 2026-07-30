@@ -19,7 +19,10 @@
     "endpoint": "https://worldmonitor.app/mcp"
   },
   "remotes": [
-    { "type": "streamable-http", "url": "https://worldmonitor.app/mcp" }
+    {
+      "type": "streamable-http",
+      "url": "https://worldmonitor.app/mcp"
+    }
   ],
   "capabilities": {
     "tools": true,
@@ -142,6 +145,26 @@
       "description": "Reddit geopolitical social velocity: top posts from worldnews, geopolitics, and related subreddits with engagement scores and trend signals."
     },
     {
+      "name": "get_security_advisories",
+      "description": "Government travel and health security advisories aggregated from national foreign-ministry, embassy, CDC/ECDC and WHO feeds. Each record carries the issuing source, the issuing government (sourceCountry), the subject country as ISO2, a publication date and a level. Also returns byCountry — the ISO2→level map that feeds the country-risk advisory floor. NOTE: the payload also contains a byCountryName field upstream, which despite its name is a static ISO2→display-name dictionary carrying no advisory data; this tool strips it."
+    },
+    {
+      "name": "get_sovereign_stress_screen",
+      "description": "Sovereign balance-sheet stress inputs, per country: IMF-derived fiscal space (revenue, balance, debt/GDP, a derived debt-sustainability gap), World Bank reserve adequacy in months of imports, short-term-debt-to-reserves ratios, IEA-derived strategic fuel-stock days, and sovereign-wealth buffer months. Coverage differs sharply by dataset — fiscal space spans ~190 countries, fuel stocks ~26 (IEA members) and sovereign wealth single digits — so read each dataset's own country set rather than assuming global coverage. Vintages also differ per dataset and per country; every record carries its own year."
+    },
+    {
+      "name": "get_rates_fx_credit_pressure",
+      "description": "BIS-sourced monetary and credit pressure: central-bank policy rates, real effective exchange rates, credit-to-GDP ratios with their previous reading, and consolidated cross-border banking claims. The banking-claims dataset is DEBTOR-KEYED — countries[XX] is the counterparty/borrower economy and its parents map holds the CREDITOR banking systems (where the lending bank group is headquartered), in USD millions, with self-claims excluded. Country codes include non-ISO aggregates such as XM (euro area)."
+    },
+    {
+      "name": "get_financial_conditions_regime",
+      "description": "Financial-conditions regime read: the ECB CISS composite systemic-stress indicator for the euro area with its history, the NY Fed Global Supply Chain Pressure Index series, and a seven-signal risk-appetite panel with an overall verdict. READ THE PANEL'S ASSIGNMENTS, NOT ITS FIELD NAMES: four of its seven signals are crypto- or single-ETF-derived — technicalTrend is Bitcoin price vs its SMAs and Mayer multiple, hashRate is Bitcoin mining, flowStructure is a BTC-vs-QQQ 5-day return gap, and macroRegime is a QQQ-vs-XLP 20-day rate-of-change spread. It is a risk-appetite panel, not a macroeconomic assessment."
+    },
+    {
+      "name": "get_stablecoin_stress",
+      "description": "Stablecoin peg health as a systemic-stress signal: per-coin price, deviation from peg, peg status, market cap and 24h/7d change, plus an aggregate with a depegged count and health status, alongside crypto sector-level 24h moves for breadth context. A depeg or a rising depegged count is a funding-stress indicator, not a trading quote — for spot prices use get_market_data."
+    },
+    {
       "name": "get_procurement_opportunities",
       "description": "Search open global public-procurement opportunities through the canonical Pro route. Default output is 10 compact records (maximum 25), without descriptions or submission/eligibility payloads. automationFit is keyword relevance evidence only, never bidding eligibility; participationMode \"unknown\" remains unknown."
     },
@@ -206,9 +229,13 @@
   ],
   "authentication": {
     "type": "oauth2",
-    "authorization_servers": ["https://api.worldmonitor.app"],
+    "authorization_servers": [
+      "https://api.worldmonitor.app"
+    ],
     "resource": "https://worldmonitor.app",
-    "scopes": ["mcp"],
+    "scopes": [
+      "mcp"
+    ],
     "alternative_methods": [
       {
         "type": "api_key",

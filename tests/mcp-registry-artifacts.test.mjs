@@ -17,7 +17,11 @@ const ROOT = resolve(dirname(__filename), '..');
 //   too and republish (`mcp-publisher publish` with the domain key at
 //   ~/.config/worldmonitor/mcp-registry-ed25519.pem).
 describe('mcp registry publication artifacts', () => {
-  const authFile = readFileSync(join(ROOT, 'public/.well-known/mcp-registry-auth'), 'utf-8');
+  // Normalise CRLF: on a Windows checkout with core.autocrlf=true every tracked
+  // file materialises with \r\n in the working tree (`git ls-files --eol` reports
+  // `i/lf w/crlf`), so the \n-anchored regex below fails on content that is
+  // correct in the index. Same fix as tests/docker-compose-no-default-secrets.test.mts.
+  const authFile = readFileSync(join(ROOT, 'public/.well-known/mcp-registry-auth'), 'utf-8').replace(/\r\n/g, '\n');
   const serverJson = JSON.parse(readFileSync(join(ROOT, 'server.json'), 'utf-8'));
   const serverCard = JSON.parse(
     readFileSync(join(ROOT, 'public/.well-known/mcp/server-card.json'), 'utf-8'),

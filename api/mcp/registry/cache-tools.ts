@@ -1964,4 +1964,475 @@ export const CACHE_TOOLS: ToolDef[] = [
     ],
   },
 
+  // ---------------------------------------------------------------------------
+  // Surface expansion, 2026-07-30. Every tool below was authored from a payload
+  // OBSERVED on a live seeded instance, never from a hosted schema or a producer
+  // read alone. Each one also DELETES its matching `deferred-to-future-tool`
+  // entries in tests/mcp-api-parity.test.mjs and/or EXCLUDED_FROM_MCP in
+  // tests/mcp-bootstrap-parity.test.mjs — coverage is exclusive there and both
+  // suites assert exact equality, so the deletions ship in the same commit.
+  // ---------------------------------------------------------------------------
+  {
+    name: 'get_security_advisories',
+    _outputBudgetBytes: 131072,
+    description: 'Government travel and health security advisories aggregated from national foreign-ministry, embassy, CDC/ECDC and WHO feeds. Each record carries the issuing source, the issuing government (sourceCountry), the subject country as ISO2, a publication date and a level. Also returns byCountry — the ISO2→level map that feeds the country-risk advisory floor. NOTE: the payload also contains a byCountryName field upstream, which despite its name is a static ISO2→display-name dictionary carrying no advisory data; this tool strips it.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        country: {
+          type: 'string',
+          description: 'Filter advisories to one subject country by ISO2 code (e.g. "UA"). Case-insensitive. Also narrows the byCountry level map.',
+        },
+        level: {
+          type: 'string',
+          description: 'Filter to one advisory level. Observed values: "do-not-travel", "caution", "info", "normal". Not enum-constrained — upstream feeds may introduce levels.',
+        },
+        source_country: {
+          type: 'string',
+          description: 'Filter to the issuing government/body. Observed values: "US", "UK", "EU", "INT".',
+        },
+        since: {
+          type: 'string',
+          description: 'Keep advisories published on or after this ISO-8601 date (compared against pubDate).',
+        },
+        limit: { type: 'number', description: 'Cap the advisory list to at most this many items (default 50, pass 0 for no cap). The full list runs to a few hundred records / ~70 KB.' },
+      },
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      advisories: {
+        type: ['object', 'null'],
+        properties: {
+          byCountry: {
+            type: 'object',
+            description: 'ISO2 → advisory level, for subject countries currently carrying a tracked level. Sparse: countries with no active advisory are absent, NOT present-with-"normal".',
+          },
+          advisories: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                link: { type: 'string' },
+                pubDate: { type: 'string' },
+                source: { type: 'string', description: 'Issuing feed, e.g. "UK FCDO", "US State Dept", "WHO News".' },
+                sourceCountry: { type: 'string', description: 'Issuing government/body: US, UK, EU or INT.' },
+                level: { type: 'string' },
+                country: { type: 'string', description: 'Subject country ISO2.' },
+              },
+            },
+          },
+          fetchedAt: { type: 'string' },
+        },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _postFilter: (data, params) => {
+      // byCountryName is a static ISO2→display-name dictionary (~239 entries)
+      // with no advisory content — pure weight against a ~70 KB payload.
+      const advisories = data.advisories;
+      if (advisories && typeof advisories === 'object') {
+        delete (advisories as Record<string, unknown>).byCountryName;
+      }
+      const country = argStr(params.country).toLowerCase();
+      if (country) {
+        narrowNested(data, 'advisories', 'advisories', (a) => argStr(a.country).toLowerCase() === country);
+        // NOT pickNestedMap: its pickMapKeys helper returns the ORIGINAL map on
+        // zero matches, so filtering to a country with no tracked level would
+        // hand back all ~14 unrelated entries — which an LLM consumer can easily
+        // misread as that country's levels. Narrow explicitly, empty on no match.
+        const adv = data.advisories;
+        if (adv && typeof adv === 'object') {
+          const byCountry = (adv as Record<string, unknown>).byCountry;
+          if (byCountry && typeof byCountry === 'object') {
+            (adv as Record<string, unknown>).byCountry = Object.fromEntries(
+              Object.entries(byCountry as Record<string, unknown>)
+                .filter(([code]) => code.toLowerCase() === country),
+            );
+          }
+        }
+      }
+      const level = argStr(params.level).toLowerCase();
+      if (level) narrowNested(data, 'advisories', 'advisories', (a) => argStr(a.level).toLowerCase() === level);
+      const sourceCountry = argStr(params.source_country).toLowerCase();
+      if (sourceCountry) {
+        narrowNested(data, 'advisories', 'advisories', (a) => argStr(a.sourceCountry).toLowerCase() === sourceCountry);
+      }
+      const since = argStr(params.since);
+      if (since) {
+        const cutoff = Date.parse(since);
+        if (Number.isFinite(cutoff)) {
+          narrowNested(data, 'advisories', 'advisories', (a) => {
+            const t = Date.parse(argStr(a.pubDate));
+            return Number.isFinite(t) && t >= cutoff;
+          });
+        }
+      }
+      capNested(data, 'advisories', 'advisories', (argNum(params.limit) ?? 50));
+      return data;
+    },
+    _cacheKeys: ['intelligence:advisories:v1'],
+    _seedMetaKey: 'seed-meta:intelligence:advisories',
+    _maxStaleMin: 120,
+    _apiPaths: [
+      "GET /api/intelligence/v1/list-security-advisories",
+    ],
+  },
+  {
+    name: 'get_sovereign_stress_screen',
+    _outputBudgetBytes: 131072,
+    description: 'Sovereign balance-sheet stress inputs, per country: IMF-derived fiscal space (revenue, balance, debt/GDP, a derived debt-sustainability gap), World Bank reserve adequacy in months of imports, short-term-debt-to-reserves ratios, IEA-derived strategic fuel-stock days, and sovereign-wealth buffer months. Coverage differs sharply by dataset — fiscal space spans ~190 countries, fuel stocks ~26 (IEA members) and sovereign wealth single digits — so read each dataset\'s own country set rather than assuming global coverage. Vintages also differ per dataset and per country; every record carries its own year.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        countries: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'ISO2 codes to keep, e.g. ["TR","AR","EG"]. Applied to every dataset. Omit for all.',
+        },
+        datasets: {
+          type: 'array',
+          items: { type: 'string', enum: ['fiscal-space', 'reserve-adequacy', 'external-debt', 'fuel-stocks', 'sovereign-wealth', 'wb-external-debt'] },
+          description: 'Restrict the response to one or more datasets. Omit for all six.',
+        },
+        limit: { type: 'number', description: 'Cap each dataset\'s country map to at most this many entries (default 40, pass 0 for no cap). Ignored when `countries` is supplied.' },
+      },
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      'fiscal-space': {
+        type: ['object', 'null'],
+        properties: { countries: { type: 'object', description: 'ISO2 → { govRevenuePct, fiscalBalancePct, debtToGdpPct, primaryBalancePct, realGdpGrowthPct, inflationPct, debtSustainabilityGapPct, gapYear, year }. debtSustainabilityGapPct is DERIVED, not a published IMF series, and carries its own gapYear.' }, seededAt: { type: 'string' } },
+      },
+      'reserve-adequacy': {
+        type: ['object', 'null'],
+        properties: { countries: { type: 'object', description: 'ISO2 → { reserveMonths, year }.' }, seededAt: { type: 'string' } },
+      },
+      'external-debt': {
+        type: ['object', 'null'],
+        properties: { countries: { type: 'object', description: 'ISO2 → { debtToReservesRatio, year }.' }, seededAt: { type: 'string' } },
+      },
+      'fuel-stocks': {
+        type: ['object', 'null'],
+        properties: { countries: { type: 'object', description: 'ISO2 → { fuelStockDays, meetsObligation, belowObligation }. IEA members only.' }, dataMonth: { type: 'string' }, seededAt: { type: 'string' } },
+      },
+      'sovereign-wealth': {
+        type: ['object', 'null'],
+        properties: { countries: { type: 'object', description: 'ISO2 → { funds[], totalEffectiveMonths, annualImports, expectedFunds, matchedFunds, completeness }. Single-digit country count — never present as global.' }, summary: { type: 'object' }, seededAt: { type: 'string' } },
+      },
+      'wb-external-debt': {
+        type: ['object', 'null'],
+        properties: { countries: { type: 'object', description: 'ISO2 → { value, year, yearMismatch, shortTermDebtUsd, gniUsd, shortTermDebtUsdYear, gniUsdYear }. value is short-term debt as % of GNI.' }, sources: { type: 'array', items: { type: 'string' } }, seededAt: { type: 'string' } },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _postFilter: (data, params) => {
+      const datasets = argStrList(params.datasets);
+      const out = datasets.length ? selectDatasets(data, datasets) : data;
+      const codes = argStrList(params.countries);
+      const labels = ['fiscal-space', 'reserve-adequacy', 'external-debt', 'fuel-stocks', 'sovereign-wealth', 'wb-external-debt'];
+      if (codes.length) {
+        for (const label of labels) pickNestedMap(out, label, 'countries', codes);
+      } else {
+        const cap = argNum(params.limit) ?? 40;
+        for (const label of labels) capNestedMap(out, label, 'countries', cap);
+      }
+      return out;
+    },
+    _cacheKeys: [
+      'resilience:recovery:fiscal-space:v1',
+      'resilience:recovery:reserve-adequacy:v1',
+      'resilience:recovery:external-debt:v1',
+      'resilience:recovery:fuel-stocks:v1',
+      'resilience:recovery:sovereign-wealth:v1',
+      'economic:wb-external-debt:v1',
+    ],
+    _seedMetaKey: 'seed-meta:resilience:recovery:fiscal-space',
+    _maxStaleMin: 129600,
+    // Per-key budgets: these six ride different crons (monthly bundle vs annual
+    // WB IDS publication), so one _seedMetaKey would either mask a dead dataset
+    // or mark the whole tool stale on the slowest one. Values mirror api/health.js.
+    _freshnessChecks: [
+      { key: 'seed-meta:resilience:recovery:fiscal-space', maxStaleMin: 129600 },
+      { key: 'seed-meta:resilience:recovery:reserve-adequacy', maxStaleMin: 86400 },
+      { key: 'seed-meta:resilience:recovery:external-debt', maxStaleMin: 86400 },
+      // fuel-stocks has no api/health.js entry; 86400 matches its monthly-cron siblings.
+      { key: 'seed-meta:resilience:recovery:fuel-stocks', maxStaleMin: 86400 },
+      { key: 'seed-meta:resilience:recovery:sovereign-wealth', maxStaleMin: 86400 },
+      { key: 'seed-meta:economic:wb-external-debt', maxStaleMin: 100800 },
+    ],
+    // No OpenAPI operation serves these keys (the resilience service exposes
+    // ranking/score/runtime-manifest only), so nothing to declare or un-exclude
+    // in mcp-api-parity. The EXCLUDED_FROM_MCP deletions are in bootstrap-parity.
+    _apiPaths: [],
+  },
+  {
+    name: 'get_rates_fx_credit_pressure',
+    _outputBudgetBytes: 131072,
+    description: 'BIS-sourced monetary and credit pressure: central-bank policy rates, real effective exchange rates, credit-to-GDP ratios with their previous reading, and consolidated cross-border banking claims. The banking-claims dataset is DEBTOR-KEYED — countries[XX] is the counterparty/borrower economy and its parents map holds the CREDITOR banking systems (where the lending bank group is headquartered), in USD millions, with self-claims excluded. Country codes include non-ISO aggregates such as XM (euro area).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        countries: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Country codes to keep, e.g. ["TR","BR","XM"]. Applied to all four datasets. Omit for all.',
+        },
+        datasets: {
+          type: 'array',
+          items: { type: 'string', enum: ['policy', 'eer', 'credit', 'bis-lbs'] },
+          description: 'Restrict the response to one or more datasets. Omit for all four.',
+        },
+        limit: { type: 'number', description: 'Cap the bis-lbs country map to at most this many entries (default 40, pass 0 for no cap). Ignored when `countries` is supplied.' },
+      },
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      policy: {
+        type: ['object', 'null'],
+        properties: { rates: { type: 'array', items: { type: 'object', properties: {
+          countryCode: { type: 'string' }, countryName: { type: 'string' }, date: { type: 'string' },
+        } } } },
+      },
+      eer: {
+        type: ['object', 'null'],
+        // nominalEer is deliberately NOT declared: it is present in the payload
+        // but reads 0 for every row, so declaring it invites a real/nominal
+        // spread computed from a dead field.
+        properties: { rates: { type: 'array', items: { type: 'object', properties: {
+          countryCode: { type: 'string' }, countryName: { type: 'string' },
+          realEer: { type: 'number' }, realChange: { type: 'number' }, date: { type: 'string' },
+        } } } },
+      },
+      credit: {
+        type: ['object', 'null'],
+        properties: { entries: { type: 'array', items: { type: 'object', properties: {
+          countryCode: { type: 'string' }, countryName: { type: 'string' },
+          creditGdpRatio: { type: 'number' }, previousRatio: { type: 'number' }, date: { type: 'string' },
+        } } } },
+      },
+      'bis-lbs': {
+        type: ['object', 'null'],
+        properties: {
+          countries: { type: 'object', description: 'DEBTOR ISO2 → { totalXborderPctGdp, parentCount, parents, gdpYear }. parents maps CREDITOR banking-system ISO2 → claims in USD MILLIONS. Self-claims (creditor === debtor) are excluded upstream.' },
+          bisQuarter: { type: 'string' },
+          successfulParents: { type: 'number' },
+          sources: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _postFilter: (data, params) => {
+      const datasets = argStrList(params.datasets);
+      const out = datasets.length ? selectDatasets(data, datasets) : data;
+      const codes = argStrList(params.countries);
+      if (codes.length) {
+        narrowNested(out, 'policy', 'rates', (r) => matchesCode(r.countryCode, codes));
+        narrowNested(out, 'eer', 'rates', (r) => matchesCode(r.countryCode, codes));
+        narrowNested(out, 'credit', 'entries', (r) => matchesCode(r.countryCode, codes));
+        pickNestedMap(out, 'bis-lbs', 'countries', codes);
+      } else {
+        capNestedMap(out, 'bis-lbs', 'countries', (argNum(params.limit) ?? 40));
+      }
+      return out;
+    },
+    _cacheKeys: [
+      'economic:bis:policy:v1',
+      'economic:bis:eer:v1',
+      'economic:bis:credit:v1',
+      'economic:bis-lbs:v1',
+    ],
+    _seedMetaKey: 'seed-meta:economic:bis',
+    _maxStaleMin: 10080,
+    // policy/eer/credit share seed-meta:economic:bis; bis-lbs is quarterly and
+    // has its own. eer and credit are ALSO stored bare (no {_seed,data} wrapper),
+    // so they carry no in-payload state/fetchedAt — these checks are the only
+    // freshness signal for them.
+    _freshnessChecks: [
+      { key: 'seed-meta:economic:bis', maxStaleMin: 10080 },
+      { key: 'seed-meta:economic:bis-lbs', maxStaleMin: 14400 },
+    ],
+    _apiPaths: [
+      "GET /api/economic/v1/get-bis-policy-rates",
+      "GET /api/economic/v1/get-bis-exchange-rates",
+      "GET /api/economic/v1/get-bis-credit",
+    ],
+  },
+  {
+    name: 'get_financial_conditions_regime',
+    _outputBudgetBytes: 131072,
+    description: 'Financial-conditions regime read: the ECB CISS composite systemic-stress indicator for the euro area with its history, the NY Fed Global Supply Chain Pressure Index series, and a seven-signal risk-appetite panel with an overall verdict. READ THE PANEL\'S ASSIGNMENTS, NOT ITS FIELD NAMES: four of its seven signals are crypto- or single-ETF-derived — technicalTrend is Bitcoin price vs its SMAs and Mayer multiple, hashRate is Bitcoin mining, flowStructure is a BTC-vs-QQQ 5-day return gap, and macroRegime is a QQQ-vs-XLP 20-day rate-of-change spread. It is a risk-appetite panel, not a macroeconomic assessment.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        datasets: {
+          type: 'array',
+          items: { type: 'string', enum: ['fsi-eu', 'GSCPI', 'macro-signals'] },
+          description: 'Restrict the response to one or more datasets. Omit for all three.',
+        },
+        history_limit: { type: 'number', description: 'Cap the fsi-eu history and GSCPI observation series to their most recent N points (default 60, pass 0 for no cap). The full series run to several hundred points each.' },
+      },
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      'fsi-eu': {
+        type: ['object', 'null'],
+        properties: {
+          latestValue: { type: 'number', description: 'ECB CISS composite, 0-1.' },
+          latestDate: { type: 'string' },
+          label: { type: 'string', description: 'Free-text band, e.g. "Low". Not enum-constrained.' },
+          history: { type: 'array', items: { type: 'object' } },
+          unavailable: { type: 'boolean' },
+        },
+      },
+      GSCPI: {
+        type: ['object', 'null'],
+        properties: { series: { type: 'object', properties: {
+          series_id: { type: 'string' }, title: { type: 'string' }, units: { type: 'string' },
+          frequency: { type: 'string' }, observations: { type: 'array', items: { type: 'object' } },
+        } } },
+      },
+      'macro-signals': {
+        type: ['object', 'null'],
+        properties: {
+          timestamp: { type: 'string' },
+          verdict: { type: 'string', description: 'Free-text overall call, e.g. "CASH". Deliberately NOT enum-constrained — observed values are inconsistently cased and the producer may add more.' },
+          bullishCount: { type: 'number' },
+          totalCount: { type: 'number' },
+          signals: {
+            type: 'object',
+            description: 'Seven signals, each with a free-text `status`. liquidity{status,value,sparkline}; flowStructure{status,btcReturn5,qqqReturn5}; macroRegime{status,qqqRoc20,xlpRoc20}; technicalTrend{status,btcPrice,sma50,sma200,vwap30d,mayerMultiple,sparkline}; hashRate{status,change30d}; priceMomentum{status} — status only, no numeric evidence; fearGreed{status,value,history}. Sparklines are bare number arrays with NO dates; only fearGreed.history carries {value,date}.',
+          },
+          unavailable: { type: 'boolean' },
+        },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _postFilter: (data, params) => {
+      const datasets = argStrList(params.datasets);
+      const out = datasets.length ? selectDatasets(data, datasets) : data;
+      const cap = argNum(params.history_limit) ?? 60;
+      if (cap > 0) {
+        const fsi = out['fsi-eu'];
+        if (fsi && typeof fsi === 'object') {
+          const hist = (fsi as Record<string, unknown>).history;
+          if (Array.isArray(hist)) (fsi as Record<string, unknown>).history = hist.slice(-cap);
+        }
+        const gscpi = out.GSCPI;
+        if (gscpi && typeof gscpi === 'object') {
+          const series = (gscpi as Record<string, unknown>).series;
+          if (series && typeof series === 'object') {
+            const obs = (series as Record<string, unknown>).observations;
+            if (Array.isArray(obs)) (series as Record<string, unknown>).observations = obs.slice(-cap);
+          }
+        }
+      }
+      return out;
+    },
+    _cacheKeys: [
+      'economic:fsi-eu:v1',
+      'economic:fred:v1:GSCPI:0',
+      'economic:macro-signals:v1',
+    ],
+    _seedMetaKey: 'seed-meta:economic:macro-signals',
+    _maxStaleMin: 150,
+    _freshnessChecks: [
+      { key: 'seed-meta:economic:fsi-eu', maxStaleMin: 5760 },
+      { key: 'seed-meta:economic:gscpi', maxStaleMin: 2880 },
+      { key: 'seed-meta:economic:macro-signals', maxStaleMin: 150 },
+    ],
+    // GSCPI is served by GET /api/economic/v1/get-fred-series, which is
+    // manual-mapping-excluded in mcp-api-parity — declaring it here would trip
+    // the double-coverage assertion. Only the two dedicated ops are claimed.
+    _apiPaths: [
+      "GET /api/economic/v1/get-eu-fsi",
+      "GET /api/economic/v1/get-macro-signals",
+    ],
+  },
+  {
+    name: 'get_stablecoin_stress',
+    _outputBudgetBytes: 65536,
+    description: 'Stablecoin peg health as a systemic-stress signal: per-coin price, deviation from peg, peg status, market cap and 24h/7d change, plus an aggregate with a depegged count and health status, alongside crypto sector-level 24h moves for breadth context. A depeg or a rising depegged count is a funding-stress indicator, not a trading quote — for spot prices use get_market_data.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        depegged_only: {
+          type: 'boolean',
+          description: 'Keep only coins whose pegStatus is not "ON PEG".',
+        },
+        datasets: {
+          type: 'array',
+          items: { type: 'string', enum: ['stablecoins', 'crypto-sectors'] },
+          description: 'Restrict the response to one or both datasets. Omit for both.',
+        },
+        limit: { type: 'number', description: 'Cap each list to at most this many items (default 30, pass 0 for no cap).' },
+      },
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      stablecoins: {
+        type: ['object', 'null'],
+        properties: {
+          timestamp: { type: 'string' },
+          summary: { type: 'object', properties: {
+            totalMarketCap: { type: 'number' }, totalVolume24h: { type: 'number' },
+            coinCount: { type: 'number', description: 'Number of coins IN THIS SAMPLE, not the stablecoin universe.' },
+            depeggedCount: { type: 'number' },
+            healthStatus: { type: 'string', description: 'Free-text, e.g. "HEALTHY". Not enum-constrained.' },
+          } },
+          stablecoins: { type: 'array', items: { type: 'object', properties: {
+            id: { type: 'string' }, symbol: { type: 'string' }, name: { type: 'string' },
+            price: { type: 'number' }, deviation: { type: 'number', description: 'Deviation from peg, in percent.' },
+            pegStatus: { type: 'string' }, marketCap: { type: 'number' }, volume24h: { type: 'number' },
+            change24h: { type: 'number' }, change7d: { type: 'number' },
+          } } },
+        },
+      },
+      'crypto-sectors': {
+        type: ['object', 'null'],
+        properties: { sectors: { type: 'array', items: { type: 'object', properties: {
+          id: { type: 'string' }, name: { type: 'string' },
+          change: { type: 'number', description: 'Mean 24h price change in PERCENT across the sector\'s tokens (CoinGecko price_change_percentage_24h).' },
+        } } } },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _postFilter: (data, params) => {
+      const datasets = argStrList(params.datasets);
+      const out = datasets.length ? selectDatasets(data, datasets) : data;
+      // `image` is a remote CDN URL — weight on the wire and an external fetch
+      // handed to any downstream renderer.
+      const sc = out.stablecoins;
+      if (sc && typeof sc === 'object') {
+        const list = (sc as Record<string, unknown>).stablecoins;
+        if (Array.isArray(list)) {
+          for (const coin of list) {
+            if (coin && typeof coin === 'object') delete (coin as Record<string, unknown>).image;
+          }
+        }
+      }
+      if (argBool(params.depegged_only)) {
+        narrowNested(out, 'stablecoins', 'stablecoins', (c) => argStr(c.pegStatus).toUpperCase() !== 'ON PEG');
+      }
+      const cap = argNum(params.limit) ?? DEFAULT_LIST_LIMIT;
+      capNested(out, 'stablecoins', 'stablecoins', cap);
+      capNested(out, 'crypto-sectors', 'sectors', cap);
+      return out;
+    },
+    _cacheKeys: [
+      'market:stablecoins:v1',
+      'market:crypto-sectors:v1',
+    ],
+    _seedMetaKey: 'seed-meta:market:stablecoins',
+    _maxStaleMin: 60,
+    _freshnessChecks: [
+      { key: 'seed-meta:market:stablecoins', maxStaleMin: 60 },
+      { key: 'seed-meta:market:crypto-sectors', maxStaleMin: 120 },
+    ],
+    _apiPaths: [
+      "GET /api/market/v1/list-stablecoin-markets",
+      "GET /api/market/v1/list-crypto-sectors",
+    ],
+  },
+
 ];

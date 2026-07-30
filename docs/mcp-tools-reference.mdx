@@ -1435,6 +1435,87 @@ curl -s https://worldmonitor.app/mcp \
 
 ## Meta
 
+### `get_security_advisories`
+
+Government travel and health security advisories aggregated from national foreign-ministry, embassy, CDC/ECDC and WHO feeds. Each record carries the issuing source, the issuing government (sourceCountry), the subject country as ISO2, a publication date and a level. Also returns byCountry — the ISO2→level map that feeds the country-risk advisory floor. NOTE: the payload also contains a byCountryName field upstream, which despite its name is a static ISO2→display-name dictionary carrying no advisory data; this tool strips it.
+
+**Parameters (tool-specific):**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `country` | `string` | Filter advisories to one subject country by ISO2 code (e.g. "UA"). Case-insensitive. Also narrows the byCountry level map. |
+| `level` | `string` | Filter to one advisory level. Observed values: "do-not-travel", "caution", "info", "normal". Not enum-constrained — upstream feeds may introduce levels. |
+| `source_country` | `string` | Filter to the issuing government/body. Observed values: "US", "UK", "EU", "INT". |
+| `since` | `string` | Keep advisories published on or after this ISO-8601 date (compared against pubDate). |
+| `limit` | `number` | Cap the advisory list to at most this many items (default 50, pass 0 for no cap). The full list runs to a few hundred records / ~70 KB. |
+
+- **API endpoints:** `GET /api/intelligence/v1/list-security-advisories`
+- **Kind:** cache read — sub-second response from Redis bootstrap cache.
+- **Freshness budget:** up to **120 min** before `stale: true` is flagged (set by the seeder cron's expected interval).
+
+### `get_sovereign_stress_screen`
+
+Sovereign balance-sheet stress inputs, per country: IMF-derived fiscal space (revenue, balance, debt/GDP, a derived debt-sustainability gap), World Bank reserve adequacy in months of imports, short-term-debt-to-reserves ratios, IEA-derived strategic fuel-stock days, and sovereign-wealth buffer months. Coverage differs sharply by dataset — fiscal space spans ~190 countries, fuel stocks ~26 (IEA members) and sovereign wealth single digits — so read each dataset's own country set rather than assuming global coverage. Vintages also differ per dataset and per country; every record carries its own year.
+
+**Parameters (tool-specific):**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `countries` | `array<string>` | ISO2 codes to keep, e.g. ["TR","AR","EG"]. Applied to every dataset. Omit for all. |
+| `datasets` | `array<string: fiscal-space / reserve-adequacy / external-debt / fuel-stocks / sovereign-wealth / wb-external-debt>` | Restrict the response to one or more datasets. Omit for all six. |
+| `limit` | `number` | Cap each dataset's country map to at most this many entries (default 40, pass 0 for no cap). Ignored when `countries` is supplied. |
+
+- **API endpoints:** _none — these cache keys are not served by an OpenAPI operation._
+- **Kind:** cache read — sub-second response from Redis bootstrap cache.
+- **Freshness budget:** per-key — `resilience:recovery:fiscal-space` **129600 min**, `resilience:recovery:reserve-adequacy` **86400 min**, `resilience:recovery:external-debt` **86400 min**, `resilience:recovery:fuel-stocks` **86400 min**, `resilience:recovery:sovereign-wealth` **86400 min**, `economic:wb-external-debt` **100800 min**. Any key past its own budget flags `stale: true`.
+
+### `get_rates_fx_credit_pressure`
+
+BIS-sourced monetary and credit pressure: central-bank policy rates, real effective exchange rates, credit-to-GDP ratios with their previous reading, and consolidated cross-border banking claims. The banking-claims dataset is DEBTOR-KEYED — countries[XX] is the counterparty/borrower economy and its parents map holds the CREDITOR banking systems (where the lending bank group is headquartered), in USD millions, with self-claims excluded. Country codes include non-ISO aggregates such as XM (euro area).
+
+**Parameters (tool-specific):**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `countries` | `array<string>` | Country codes to keep, e.g. ["TR","BR","XM"]. Applied to all four datasets. Omit for all. |
+| `datasets` | `array<string: policy / eer / credit / bis-lbs>` | Restrict the response to one or more datasets. Omit for all four. |
+| `limit` | `number` | Cap the bis-lbs country map to at most this many entries (default 40, pass 0 for no cap). Ignored when `countries` is supplied. |
+
+- **API endpoints:** `GET /api/economic/v1/get-bis-policy-rates`, `GET /api/economic/v1/get-bis-exchange-rates`, `GET /api/economic/v1/get-bis-credit`
+- **Kind:** cache read — sub-second response from Redis bootstrap cache.
+- **Freshness budget:** per-key — `economic:bis` **10080 min**, `economic:bis-lbs` **14400 min**. Any key past its own budget flags `stale: true`.
+
+### `get_financial_conditions_regime`
+
+Financial-conditions regime read: the ECB CISS composite systemic-stress indicator for the euro area with its history, the NY Fed Global Supply Chain Pressure Index series, and a seven-signal risk-appetite panel with an overall verdict. READ THE PANEL'S ASSIGNMENTS, NOT ITS FIELD NAMES: four of its seven signals are crypto- or single-ETF-derived — technicalTrend is Bitcoin price vs its SMAs and Mayer multiple, hashRate is Bitcoin mining, flowStructure is a BTC-vs-QQQ 5-day return gap, and macroRegime is a QQQ-vs-XLP 20-day rate-of-change spread. It is a risk-appetite panel, not a macroeconomic assessment.
+
+**Parameters (tool-specific):**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `datasets` | `array<string: fsi-eu / GSCPI / macro-signals>` | Restrict the response to one or more datasets. Omit for all three. |
+| `history_limit` | `number` | Cap the fsi-eu history and GSCPI observation series to their most recent N points (default 60, pass 0 for no cap). The full series run to several hundred points each. |
+
+- **API endpoints:** `GET /api/economic/v1/get-eu-fsi`, `GET /api/economic/v1/get-macro-signals`
+- **Kind:** cache read — sub-second response from Redis bootstrap cache.
+- **Freshness budget:** per-key — `economic:fsi-eu` **5760 min**, `economic:gscpi` **2880 min**, `economic:macro-signals` **150 min**. Any key past its own budget flags `stale: true`.
+
+### `get_stablecoin_stress`
+
+Stablecoin peg health as a systemic-stress signal: per-coin price, deviation from peg, peg status, market cap and 24h/7d change, plus an aggregate with a depegged count and health status, alongside crypto sector-level 24h moves for breadth context. A depeg or a rising depegged count is a funding-stress indicator, not a trading quote — for spot prices use get_market_data.
+
+**Parameters (tool-specific):**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `depegged_only` | `boolean` | Keep only coins whose pegStatus is not "ON PEG". |
+| `datasets` | `array<string: stablecoins / crypto-sectors>` | Restrict the response to one or both datasets. Omit for both. |
+| `limit` | `number` | Cap each list to at most this many items (default 30, pass 0 for no cap). |
+
+- **API endpoints:** `GET /api/market/v1/list-stablecoin-markets`, `GET /api/market/v1/list-crypto-sectors`
+- **Kind:** cache read — sub-second response from Redis bootstrap cache.
+- **Freshness budget:** per-key — `market:stablecoins` **60 min**, `market:crypto-sectors` **120 min**. Any key past its own budget flags `stale: true`.
+
 ### `describe_tool`
 
 Returns the full uncompressed definition of any other tool by name. Use when the compressed `tools/list` entry is ambiguous about behaviour or argument semantics — since v1.5.0, `tools/list` returns each tool's `description` truncated to the first sentence (≤120 UTF-8 bytes); `describe_tool` returns the full long-form text plus the same `inputSchema` (every property's full description).
