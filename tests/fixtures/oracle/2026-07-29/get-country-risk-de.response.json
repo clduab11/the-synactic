@@ -1,0 +1,27 @@
+{
+  "countryCode": "DE",
+  "countryName": "Germany",
+  "cii": {
+    "region": "DE",
+    "staticBaseline": 5,
+    "dynamicScore": 0,
+    "combinedScore": 11,
+    "trend": "TREND_DIRECTION_STABLE",
+    "components": {
+      "newsActivity": 0,
+      "ciiContribution": 0,
+      "geoConvergence": 0,
+      "militaryActivity": 0
+    },
+    "computedAt": 1785375301394,
+    "eventMultiplier": 0.5,
+    "methodologyVersion": "v8",
+    "advisoryLevel": "",
+    "advisoryProvenance": "absent"
+  },
+  "advisoryLevel": "",
+  "sanctionsActive": true,
+  "sanctionsCount": 128,
+  "fetchedAt": 1785375301394,
+  "upstreamUnavailable": false
+}

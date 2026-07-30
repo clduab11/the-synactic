@@ -1,23 +1,38 @@
-// Per-tool output-shape contract regression. For every tool in
-// `__testing__.TOOL_REGISTRY`, dispatch a `tools/call` through the public
-// handler with default-ish arguments and assert the returned `content[0].text`
-// JSON validates against that tool's declared `outputSchema`.
+// TRUTH-IN-NAMING: declared outputSchema internal self-consistency ONLY.
 //
-// Coverage scope (documented intent — see PR body):
-//   • Cache tools (no `_execute`): real dispatch pipeline. fetch is stubbed
-//     so every cache-key read returns a non-null `{}` payload, executeTool
-//     assembles the envelope, and the test validates the response. This
-//     catches envelope-shape regression (missing `cached_at` / `stale`,
-//     wrong `data` shape, executeTool stripping the envelope, etc.).
+// WHAT THIS SUITE PROVES:
+//   Each tool's declared `outputSchema` is internally self-consistent: a
+//   payload SYNTHESIZED FROM the declared schema validates AGAINST that same
+//   schema, and (for cache tools) the executeTool envelope keys are present.
+//   A `required` field of an impossible type would fail. Nothing more.
+//
+// WHAT THIS SUITE DOES NOT PROVE:
+//   • That any tool works. ZERO real handler code executes for RPC tools:
+//     `_execute` is replaced with a stub whose return value is synthesized
+//     from the declared schema (minimalShape(tool.outputSchema)) and then
+//     validated against that SAME schema — the test is circular.
+//   • That declared schemas match real payloads. Cache tools are validated
+//     against Redis mocked to return `{}` for every read, which trivially
+//     satisfies any schema whose fields are not all required. The shared
+//     validator (tests/helpers/json-schema-mini.mjs) is ONE-DIRECTIONAL:
+//     undeclared extra payload fields pass, missing non-required declared
+//     fields pass, and no tool sets `additionalProperties: false`.
+//   • A green run is NOT evidence of working tools or of declared==actual.
+//
+// WHERE REAL COVERAGE MUST COME FROM:
+//   Captured real payloads under tests/fixtures/oracle/<capture-date>/
+//   asserted against declared schemas. (The per-fixture parity test in
+//   `mcp-output-schema-coverage.test.mjs`, 3 cache tools today, is the only
+//   existing step in that direction.)
+//
+// Mechanics (for readers):
+//   • Cache tools (no `_execute`): real dispatch pipeline; fetch is stubbed
+//     so every cache-key read returns a non-null `{}` payload; executeTool
+//     assembles the envelope; the test validates the response. This catches
+//     envelope-shape regression (missing `cached_at` / `stale`, executeTool
+//     stripping the envelope) — the only non-circular assertion here.
 //   • RPC tools (has `_execute`): `_execute` is monkey-patched to return a
-//     minimal-shape object derived from the declared `outputSchema`. This
-//     proves the schema declaration is internally consistent (a `required`
-//     field whose type allows no concrete value would fail) and that the
-//     dispatch pipeline preserves the response unchanged through
-//     `applyJmespath` and `rpcOk`. It does NOT exercise the real `_execute`
-//     body — field-level shape drift for RPC tools is OUT OF SCOPE and is
-//     covered indirectly by the per-fixture parity test in
-//     `mcp-output-schema-coverage.test.mjs` (3 cache tools today).
+//     minimal-shape object derived from the declared `outputSchema`.
 //
 // One `it()` per tool so a failure names the offending tool.
 
@@ -81,7 +96,7 @@ function minimalShape(schema) {
   return null;
 }
 
-describe('api/mcp.ts — per-tool output contract (envelope-shape, all 41 tools)', () => {
+describe('api/mcp.ts — declared outputSchema is internally self-consistent (synthetic stubs, no real handler code; all 41 tools)', () => {
   let mod;
   let mcpHandler;
   let originalExecutes;
@@ -145,7 +160,7 @@ describe('api/mcp.ts — per-tool output contract (envelope-shape, all 41 tools)
   assert.ok(TOOL_NAMES.length >= 41, `expected >= 41 tools, got ${TOOL_NAMES.length}`);
 
   for (const name of TOOL_NAMES) {
-    it(`${name} — tools/call response validates against declared outputSchema`, async () => {
+    it(`${name} — declared outputSchema self-consistency only (RPC: _execute stubbed from schema; cache: Redis mocked to {})`, async () => {
       const tool = mod.__testing__.TOOL_REGISTRY.find((t) => t.name === name);
       assert.ok(tool, `tool ${name} not found in fresh module registry`);
       const isCacheTool = typeof tool._execute !== 'function';

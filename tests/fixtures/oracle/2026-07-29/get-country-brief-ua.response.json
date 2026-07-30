@@ -1,0 +1,33 @@
+{
+  "countryCode": "UA",
+  "countryName": "Ukraine",
+  "brief": "SITUATION NOW\nRussian ballistic missile and air strikes targeted Kyiv following explicit warnings from President Zelenskyy, killing at least one person and causing widespread alarms across the capital [1][2]. The strikes represent an escalation in",
+  "model": "gemini-3.6-flash",
+  "generatedAt": 1785380379085,
+  "sources": [
+    {
+      "title": "Explosions in Kyiv after Zelenskyy warns of Russian strikes",
+      "source": "DW News",
+      "url": "https://www.dw.com/en/explosions-in-kyiv-after-zelenskyy-warns-of-russian-strikes/a-78167375?maca=en-rss-en-all-1573-xml-mrss",
+      "publishedAt": "2026-07-29T22:38:00.000Z"
+    },
+    {
+      "title": "One killed in Russian missile strikes on Kyiv, day after Zelenskyy warning",
+      "source": "Al Jazeera",
+      "url": "https://www.aljazeera.com/news/2026/7/30/russia-ballistic-missile-strikes-on-kyiv-come-after-zelenskyys-warning?traffic_source=rss",
+      "publishedAt": "2026-07-30T00:23:13.000Z"
+    },
+    {
+      "title": "‘They targeted us directly’: how the Israel-Lebanon war became deadly for healthcare workers",
+      "source": "Guardian ME",
+      "url": "https://www.theguardian.com/global-development/2026/jul/29/they-targeted-us-directly-how-the-israel-lebanon-war-became-deadly-for-healthcare-workers",
+      "publishedAt": "2026-07-29T09:00:28.000Z"
+    },
+    {
+      "title": "Zelensky and Netanyahu meet Trump as wars in Ukraine and Iran drag on",
+      "source": "BBC Middle East",
+      "url": "https://www.bbc.co.uk/news/articles/cj4k2z8z45ro?at_medium=RSS&at_campaign=rss",
+      "publishedAt": "2026-07-29T12:17:42.000Z"
+    }
+  ]
+}

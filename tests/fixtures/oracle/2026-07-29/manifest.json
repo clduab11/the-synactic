@@ -1,0 +1,43 @@
+{
+  "capturedAt": "2026-07-30T01:37:00Z",
+  "endpoint": "http://127.0.0.1:3000/api/mcp (local docker self-host, session-02 stack)",
+  "authClass": "env_key (operator-owned, unmetered)",
+  "instanceState": {
+    "description": "Fully seeded local stack (147 seed-meta keys) with KNOWN degraded inputs. Component values reflect this honestly — do not read zeros as the Trap-1 contamination class.",
+    "degradedInputs": {
+      "acledLive": "absent by policy — ACLED_MODE=fixture pre-licence; the server CII path's live ACLED fetch returns [] without credentials, so unrest/conflict realtime terms are 0",
+      "ucdpEvents": "absent — UCDP API now requires an access token (HTTP 401, token requested 2026-07-29); war/minor floors (70/50) have no input",
+      "llm": "absent — no LLM provider configured at capture time; news insights / threat summaries unseeded, information component 0",
+      "oref": "dark — empty PROXY_URL breaks the retained OREF path's fetch; orefBoost contributes 0"
+    },
+    "consequence": "UA combinedScore 60 == the do-not-travel ADVISORY FLOOR via the embedded fallback table (advisoryProvenance: fallback), not an event-driven blend. Top-level advisoryLevel '' with populated cii.advisoryLevel confirms the two-advisory-paths asymmetry (recon OQ6)."
+  },
+  "captures": [
+    {
+      "file": "get-country-risk-ua.response.json",
+      "tool": "get_country_risk",
+      "args": { "country_code": "UA" },
+      "capturedAt": "2026-07-30T01:37:00Z"
+    },
+    {
+      "file": "get-country-risk-de.response.json",
+      "tool": "get_country_risk",
+      "args": { "country_code": "DE" },
+      "capturedAt": "2026-07-30T01:37:00Z"
+    },
+    {
+      "file": "get-conflict-events-limit30.response.json",
+      "tool": "get_conflict_events",
+      "args": { "limit": 30 },
+      "capturedAt": "2026-07-30T01:37:00Z"
+    },
+    {
+      "file": "get-country-brief-ua.response.json",
+      "tool": "get_country_brief",
+      "args": { "country_code": "UA" },
+      "capturedAt": "2026-07-30T03:19:00Z",
+      "notes": "LLM live via LiteLLM proxy (gemini-3.6-flash). Captured AFTER three self-host fixes the earlier pending entry gated on: RPC loopback auth (sidecar token), in-process fetch Content-Length (chunked POST 405'd the gateway's POST-to-GET compat), LLM provider SSRF allowlist (docker mode). News-digest grounding still sparse at capture (LLM-backed digest seeders had not re-run)."
+    }
+  ],
+  "pending": []
+}

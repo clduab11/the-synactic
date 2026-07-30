@@ -1,4 +1,5 @@
 {
+  "_fixtureNotice": "SHAPE-ONLY fixture — captured 2026-05-17 from an already-degraded upstream instance. Use only for JMESPath projection/shape assertions; never assert VALUES from this file (see tests/fixtures/AGENTS.md). Fresh value-assertable captures belong in tests/fixtures/oracle/<capture-date>/.",
   "cached_at": "2026-05-17T10:34:00.852Z",
   "stale": false,
   "data": {

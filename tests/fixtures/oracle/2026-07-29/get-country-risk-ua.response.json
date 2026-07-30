@@ -1,0 +1,27 @@
+{
+  "countryCode": "UA",
+  "countryName": "Ukraine",
+  "cii": {
+    "region": "UA",
+    "staticBaseline": 50,
+    "dynamicScore": 0,
+    "combinedScore": 60,
+    "trend": "TREND_DIRECTION_STABLE",
+    "components": {
+      "newsActivity": 0,
+      "ciiContribution": 0,
+      "geoConvergence": 0,
+      "militaryActivity": 0
+    },
+    "computedAt": 1785375301394,
+    "eventMultiplier": 0.8,
+    "methodologyVersion": "v8",
+    "advisoryLevel": "do-not-travel",
+    "advisoryProvenance": "fallback"
+  },
+  "advisoryLevel": "",
+  "sanctionsActive": true,
+  "sanctionsCount": 250,
+  "fetchedAt": 1785375301394,
+  "upstreamUnavailable": false
+}

@@ -1,4 +1,5 @@
 {
+  "_fixtureNotice": "SHAPE-ONLY fixture — captured 2026-04-05 (older than the 2026-05-17 pair in this directory, and already stale:true at capture). Shape assertions only; never assert chokepoint VALUES from this file (see tests/fixtures/AGENTS.md).",
   "cached_at": "2026-04-05T18:19:45.192Z",
   "stale": true,
   "data": {

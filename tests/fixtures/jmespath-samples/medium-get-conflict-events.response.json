@@ -1,4 +1,5 @@
 {
+  "_fixtureNotice": "SHAPE-ONLY fixture — captured 2026-05-17 from an already-degraded upstream instance: ciiContribution is zero in all 31 entries, ciiScores lack the current emitter's disclosure fields (eventMultiplier, methodologyVersion, advisoryLevel, advisoryProvenance), and it retains a sunset iran-events dataset. Shape assertions only; never assert CII/conflict/unrest/information VALUES from this file (see tests/fixtures/AGENTS.md).",
   "cached_at": "2026-05-17T10:30:42.462Z",
   "stale": false,
   "data": {
