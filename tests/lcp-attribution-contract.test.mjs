@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-const repoRoot = resolve(new URL('..', import.meta.url).pathname);
+// fileURLToPath, not URL.pathname: on Windows .pathname is "/C:/..." and
+// resolve() prepends the CWD drive, yielding "C:\C:\..." (ENOENT).
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 const readSrc = (path) => readFileSync(join(repoRoot, path), 'utf8');
 
 describe('LCP attribution debug contract', () => {

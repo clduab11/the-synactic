@@ -1,0 +1,6 @@
+# Shell scripts are executed inside Linux containers (docker/entrypoint.sh is
+# the app image's ENTRYPOINT) and by host-side bash. A Windows checkout with
+# core.autocrlf=true materializes CRLF, which breaks the shebang inside the
+# image ("exec: /app/entrypoint.sh: not found" — the kernel resolves
+# "/bin/sh\r") and breaks bash on the host. Force LF regardless of autocrlf.
+*.sh text eol=lf

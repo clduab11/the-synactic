@@ -12,8 +12,11 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('../', import.meta.url).pathname;
+// fileURLToPath, not URL.pathname: on Windows .pathname is "/C:/..." and any
+// later resolve/join prepends the CWD drive, yielding "C:\C:\..." (ENOENT).
+const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DOCS_JSON = join(ROOT, 'docs', 'docs.json');
 const DOCS_DIR = join(ROOT, 'docs');
 

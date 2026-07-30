@@ -19,7 +19,12 @@ import { describe, it } from 'node:test';
 const REPO_ROOT = new URL('..', import.meta.url);
 
 async function read(rel: string): Promise<string> {
-  return readFile(new URL(rel, REPO_ROOT), 'utf8');
+  // Normalize CRLF: Windows checkouts with core.autocrlf=true materialize
+  // tracked files with \r\n, which the line-anchored serviceBlock/regex
+  // assertions below (written against \n) would never match — the suite
+  // would fail on any Windows working tree regardless of file content.
+  // Content-neutral for every assertion in this file.
+  return (await readFile(new URL(rel, REPO_ROOT), 'utf8')).replace(/\r\n/g, '\n');
 }
 
 function serviceBlock(compose: string, serviceName: string): string {
