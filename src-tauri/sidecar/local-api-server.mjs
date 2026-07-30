@@ -215,6 +215,17 @@ globalThis.fetch = async function ipv4Fetch(input, init) {
         : Array.isArray(rawHeaders) ? Object.fromEntries(rawHeaders) : rawHeaders;
       Object.assign(headers, h);
     }
+    // node's http.request sends bodies chunked (no Content-Length) unless one
+    // is set — real undici fetch always sets it for in-memory bodies. That
+    // difference is load-bearing: the gateway's POST→GET compatibility path
+    // (server/gateway.ts isPostToGetCompatibleBodySize) requires a parseable
+    // Content-Length, so a chunked in-process POST to a GET-declared route
+    // 405s while the byte-identical out-of-process request succeeds (bit the
+    // MCP get_country_brief downstream on self-host). Match undici here.
+    if (body != null && (typeof body === 'string' || Buffer.isBuffer(body) || body instanceof Uint8Array)
+      && !Object.keys(headers).some((k) => k.toLowerCase() === 'content-length')) {
+      headers['Content-Length'] = String(Buffer.byteLength(body));
+    }
     const pinned = isAllowedPrivateSidecarFetch(url) ? null : pickPinnedAddress(safety.resolvedAddresses);
     const requestOptions = {
       hostname: url.hostname,
@@ -1857,6 +1868,27 @@ export async function createLocalApiServer(options = {}) {
           context.logger.warn(
             `[local-api] UPSTASH_REDIS_REST_URL is not a valid URL; not added to the private-fetch allowlist (Redis calls will be SSRF-blocked): ${err.message}`,
           );
+        }
+      }
+      // Docker self-host ONLY, same containment rationale as the Redis proxy
+      // above: a self-hosted LLM provider (LLM_API_URL / OLLAMA_API_URL, e.g.
+      // a LiteLLM proxy at http://host.docker.internal:4000) is a private
+      // origin the operator explicitly configured. Without trusting it the
+      // SSRF guard blocks every LLM call — the health gate then reports
+      // "Provider unreachable" and all LLM features silently degrade to
+      // empty output. Only the configured origin is trusted, and only in
+      // docker mode; the allowlist itself stays env-free otherwise.
+      if (context.mode === 'docker') {
+        for (const envName of ['LLM_API_URL', 'OLLAMA_API_URL']) {
+          const value = process.env[envName];
+          if (!value) continue;
+          try {
+            extraAllowedPrivateOrigins.push(new URL(value).origin);
+          } catch (err) {
+            context.logger.warn(
+              `[local-api] ${envName} is not a valid URL; not added to the private-fetch allowlist (LLM calls will be SSRF-blocked): ${err.message}`,
+            );
+          }
         }
       }
       if (context.allowPrivateRemoteBase) {

@@ -102,6 +102,30 @@ function getMcpAnonRatelimit(): Ratelimit | null {
  * signed payload matches the wire bytes. For JSON, pre-stringify on the
  * caller side and pass the same string here.
  */
+/**
+ * Self-host / desktop sidecar: RPC-tool downstream fetches loop back to the
+ * local API server's own port (nginx rewrites Host to the proxy upstream, so
+ * the derived downstream origin is the sidecar itself). That server's global
+ * auth gate (src-tauri/sidecar/local-api-server.mjs, header
+ * `x-worldmonitor-local-token`) rejects credential-less loopback fetches —
+ * nginx injects the per-session token for outside traffic
+ * (docker/nginx.conf), but the MCP handler's own fetches bypass nginx.
+ * The handler RUNS INSIDE that same process, so presenting the token from
+ * our own env is self-authorization within one trust domain, not a bypass.
+ * Never fires on Vercel/hosted (LOCAL_API_TOKEN unset) and never fires for
+ * non-loopback targets.
+ */
+function addLocalSidecarTransportToken(url: string, headers: Record<string, string>): void {
+  const token = process.env.LOCAL_API_TOKEN;
+  if (!token) return;
+  try {
+    const hostname = new URL(url).hostname;
+    if (hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1' || hostname === '[::1]') {
+      headers['x-worldmonitor-local-token'] = token;
+    }
+  } catch { /* malformed URL — the downstream fetch itself will fail loudly */ }
+}
+
 export async function buildAuthHeaders(
   context: McpAuthContext,
   method: string,
@@ -113,7 +137,9 @@ export async function buildAuthHeaders(
     // itself (Convex hash lookup + the #4611 apiAccess gate + per-account
     // limits), so usage attributes to the key owner exactly like a direct
     // REST call — no internal-HMAC identity smuggling needed.
-    return { 'X-WorldMonitor-Key': context.apiKey };
+    const headers: Record<string, string> = { 'X-WorldMonitor-Key': context.apiKey };
+    addLocalSidecarTransportToken(url, headers);
+    return headers;
   }
   // context.kind === 'pro'
   const secret = process.env.MCP_INTERNAL_HMAC_SECRET ?? '';
@@ -130,7 +156,9 @@ export async function buildAuthHeaders(
     userId: context.userId,
     secret,
   });
-  return buildInternalMcpHeaders(signed);
+  const headers = buildInternalMcpHeaders(signed);
+  addLocalSidecarTransportToken(url, headers);
+  return headers;
 }
 
 export const PRODUCTION_DEPS: McpHandlerDeps = {
