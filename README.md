@@ -29,7 +29,7 @@ being able to say where a number came from.
 
 150+ autonomous collectors sweeping conflict events, sanctions programs,
 maritime chokepoints, energy flows, airspace, cyber threat feeds,
-macroeconomics, and climate anomalies. 40+ typed MCP tools any agent can
+macroeconomics, and climate anomalies. 50+ typed MCP tools any agent can
 call — composite country-risk scoring, conflict-event retrieval,
 LLM-grounded country briefs, chokepoint status — with server-side projection
 keeping context windows lean. 190+ routed model endpoints behind one
@@ -71,7 +71,7 @@ API. Machines collect and compute — a human signs every conclusion.
 flowchart LR
   W((World)) --> C[Collection fleet<br/>150+ autonomous seeders]
   C --> D[(Self-hosted<br/>data plane)]
-  D --> I[The instrument<br/>40+ MCP tools · risk scoring · briefs]
+  D --> I[The instrument<br/>50+ MCP tools · risk scoring · briefs]
   I --> O[Orchestration ring<br/>contracts · tool policy · model router]
   O --> A[Analyst]
   A --> R[[Human-authored<br/>client reports]]

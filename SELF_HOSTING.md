@@ -115,7 +115,12 @@ The seed scripts fetch upstream data and write it to Redis. They run **on the ho
 
 **⚠️ Important:** Redis data persists across container restarts via the `redis-data` volume, but is lost on `docker compose down -v`. Re-run the seeders if you remove volumes or see stale data.
 
-To automate, add a cron job:
+The compose stack automates the most perishable slice for you: the `seed-loop`
+service re-runs the six short-TTL seeders (security advisories, aviation, cyber
+threats, prediction markets, radiation, internet outages — all 2-3h TTLs) every
+45 minutes, so those keys no longer lapse between manual runs. Inspect it with
+`docker compose logs seed-loop`. Everything else (the long-TTL majority) still
+comes from `run-seeders.sh`; to automate the full sweep too, add a cron job:
 
 ```bash
 # Re-seed every 30 minutes
@@ -152,10 +157,11 @@ node scripts/seed-military-flights.mjs
 
 `get_country_risk` (the per-country risk RPC / MCP tool) reads **only** the Redis key `risk:scores:sebuf:stale:v8`. **No seeder writes that key** — it is written by the app's own `/api/intelligence/v1/get-risk-scores` handler, with a 3600s TTL. So a fresh stack with every seeder green still returns `upstreamUnavailable: true` from `get_country_risk` — until something requests the **local** get-risk-scores endpoint once.
 
-The compose stack does this automatically: the one-shot `cii-warmer` service runs on every `docker compose up -d`, waits for the app, and GETs the local endpoint. Inspect it with:
+The compose stack does this automatically, twice over. The one-shot `cii-warmer` service runs on every `docker compose up -d`, waits for the app, and GETs the local endpoint. And because the stale key's 3600s TTL means a single warm silently lapses an hour later, the companion `cii-warmer-loop` service re-warms every 45 minutes (retrying in 5 on any failure) so the key stays present continuously. Inspect either with:
 
 ```bash
 docker compose logs cii-warmer
+docker compose logs cii-warmer-loop
 ```
 
 The endpoint is auth-gated even on self-host, so the warmer authenticates via the gateway's relay warm-ping path: set `WORLDMONITOR_RELAY_KEY` in `.env` (`openssl rand -hex 32`) **before** `up -d` (see Quick Start step 2). Without it the warmer exits with `AUTH REQUIRED` and the deadlock remains.
