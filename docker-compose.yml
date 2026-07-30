@@ -129,6 +129,41 @@ services:
         condition: service_started
     restart: "no"
 
+  # ADV-28: the stale CII key expires hourly (RISK_STALE_TTL = 3600,
+  # get-risk-scores.ts:1417) and the one-shot cii-warmer above is a bootstrap
+  # step, not a keeper — a few hours after any warm the key is gone and
+  # get_country_risk fails closed again. This sibling keeps it warm as a
+  # recurring job: re-warm every 45 min on success (15-min margin inside the
+  # 60-min TTL), retry in 5 min on any non-zero exit (a transient failure must
+  # not open an hour-long cold window; exit 2 = warmed-but-unverified also
+  # retries until verification passes). The one-shot service above stays for
+  # on-demand verified warms (`docker compose run --rm cii-warmer`, exit 0 =
+  # warmed+verified). Inline `sh -c` loop on purpose: a bind-mounted .sh
+  # entrypoint would be CRLF on a Windows checkout and exit 127.
+  cii-warmer-loop:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: worldmonitor:latest
+    container_name: worldmonitor-cii-warmer-loop
+    command: ["sh", "-c", "while true; do if node /tmp/warm-cii-stale.mjs; then sleep 2700; else sleep 300; fi; done"]
+    volumes:
+      - ./scripts/warm-cii-stale.mjs:/tmp/warm-cii-stale.mjs:ro
+    environment:
+      CII_WARM_URL: "http://worldmonitor:8080/api/intelligence/v1/get-risk-scores"
+      WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
+      # Same CII_WARM_* isolation rule as the one-shot above: the script
+      # deliberately ignores UPSTASH_* so hosted creds in a hybrid .env can
+      # never point verification at production Redis.
+      CII_WARM_REDIS_URL: "http://redis-rest:80"
+      CII_WARM_REDIS_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
+    depends_on:
+      worldmonitor:
+        condition: service_started
+      redis-rest:
+        condition: service_started
+    restart: unless-stopped
+
   ais-relay:
     build:
       context: .
