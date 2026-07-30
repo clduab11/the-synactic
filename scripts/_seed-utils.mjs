@@ -15,9 +15,24 @@ import { resolveRecordCount } from './_seed-contract.mjs';
 // llm_call telemetry first (bounded by its 1.5s fetch timeout; a no-op when
 // nothing is pending). Used by every runSeed exit reachable after fetchFn,
 // where seeder LLM calls may have emitted events (#4954 review).
+//
+// Exit via exitCode + natural drain, NOT a synchronous process.exit(): on
+// Windows hosts a process.exit() while an undici fetch handle is still
+// tearing down trips a libuv assertion (src\win\async.c, exit 0xC0000409)
+// AFTER all seed writes completed — run-seeders.sh then counts a successful
+// seed as FAIL (29 of 41 "failures" in the 2026-07-29 sweep were this).
+// All handles here are drained or unref'd so the loop empties promptly; the
+// unref'd timer is a hard backstop that only fires if something unexpectedly
+// keeps the loop alive. Same pattern as scripts/warm-cii-stale.mjs.
 async function exitAfterTelemetryFlush(code) {
   try { await flushPendingLlmEvents(); } catch { /* never block exit */ }
-  process.exit(code);
+  process.exitCode = code;
+  setTimeout(() => process.exit(code), 3_000).unref();
+  // Callers rely on process.exit's never-return semantics — suspend them on a
+  // never-resolving promise so no post-exit code runs. A pending promise does
+  // not keep the event loop alive, so the process still exits (with exitCode)
+  // the moment remaining handles drain.
+  return new Promise(() => {});
 }
 
 const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36';
