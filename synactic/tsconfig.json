@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/contracts" },
+    { "path": "packages/event-envelope" },
+    { "path": "packages/tool-policy" },
+    { "path": "services/briefing-service" },
+    { "path": "services/mcp-gateway" },
+    { "path": "services/model-router" }
+  ]
+}

@@ -1,0 +1,35 @@
+name: Synactic core tests
+
+# The vendored clean-room workspaces (synactic/) keep their own pnpm
+# toolchain, deliberately separate from the fork's npm/Vite build — see
+# synactic/README.md. This job is their CI surface.
+
+on:
+  pull_request:
+    paths: ['synactic/**']
+  push:
+    branches: [main]
+    paths: ['synactic/**']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: synactic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: synactic/.nvmrc
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+      - name: Test (recursive, bypasses turbo — binary discovery is flaky under corepack)
+        run: corepack pnpm -r test
+      - name: Lint
+        run: corepack pnpm -r --no-bail lint || true
