@@ -213,6 +213,26 @@
       "description": "Global mining sites with coordinates, operator, mineral type, and production status. Covers 71 major mines spanning gold, silver, copper, lithium, uranium, coal, and other minerals worldwide."
     },
     {
+      "name": "get_chokepoint_history",
+      "description": "Daily vessel-transit history for one of 13 maritime chokepoints (IMF PortWatch daily counts, ~6 months of rows): per-day transits by vessel type (container, dryBulk, generalCargo, roro, tanker) plus per-type capacity figures. Field semantics from the producer (scripts/seed-portwatch.mjs): `cargo` is a DERIVED aggregate (container+dryBulk+generalCargo+roro) overlapping the type columns; `other` is always 0 from the current producer; `total` is upstream's own daily total — do NOT assume total equals the sum of the type columns. An empty `history` with `fetchedAt: \"0\"` means the relay/PortWatch pipeline has not published within the key's 1-hour TTL (relay-down), not zero transits."
+    },
+    {
+      "name": "get_regional_snapshot",
+      "description": "Precomputed 6-hourly intelligence snapshot for one of 8 regions: regime label, balance-of-pressure axes, scenario sets, and evidence records, with an explicit self-discount (meta.snapshotConfidence, meta.missingInputs, meta.staleInputs — currently 8 missing inputs on every region; read them before trusting any axis). Narrative text, leverage edges, transmission paths, mobility and trigger ladders exist in the underlying payload but are UNPOPULATED husks on this deployment and are deliberately not part of this tool's declared contract."
+    },
+    {
+      "name": "get_gold_intelligence",
+      "description": "Gold market intelligence from the seeded cache (no live fetch): spot prices for gold/silver/platinum/palladium, gold-silver ratio, gold price in 6 non-USD currencies, CFTC COT positioning (managed money + producer/swap), gold ETF flows, and central-bank reserve holders. TRAP: COT position counts (`longPositions`, `shortPositions`, `openInterest`, `wowNetDelta`) are STRINGS on the wire — cast before arithmetic or \"+\" concatenates. `unavailable: false` with `updatedAt: \"\"` is a VALID healthy state: updatedAt reflects only the optional enrichment layer (market:gold-extended:v1), which is unseeded on this deployment — session ranges, period returns, 52-week range and macro drivers are absent for the same reason. `cbReserves.totalTonnes` is 0 while topHolders is populated (producer gap, not an error)."
+    },
+    {
+      "name": "get_population_exposure",
+      "description": "Population exposure ESTIMATE near a point, or reference population data for 20 priority countries. The estimate is a coarse approximation: the point snaps to the nearest of 20 country centroids (raw-degree Euclidean, no distance cutoff — EVERY point on Earth resolves to one of the 20), then multiplies that country's uniform national density by the pi*r^2 disc. It is NOT gridded population data; treat results as order-of-magnitude. mode=\"exposure\" requires lat and lon — this tool rejects the call otherwise, because the underlying route silently defaults missing coordinates to (0,0), which resolves to Nigeria with a confident number at HTTP 200. radius must be > 0 (the route silently rewrites 0 to 50 km; this wrapper rejects it instead)."
+    },
+    {
+      "name": "classify_event_keyword",
+      "description": "Deterministic KEYWORD classifier for a news headline / event title: threat level, category, numeric severity and confidence from tiered keyword lists — pure in-process compute, no LLM, no network, no Redis. This is NOT the hosted LLM classify_event tool: on live headline traffic ~76% of titles fall through to info/general at confidence 0.3, so treat it as coarse triage, not semantic understanding. Headlines whose CRITICAL/HIGH keywords appear in a historical-retrospective context (\"5 years ago\", anniversary dates) are downgraded to info with source \"keyword-historical-downgrade\". Same-input calls always return the same result."
+    },
+    {
       "name": "describe_tool",
       "description": "Return the full uncompressed definition of one tool by name. Use when the compressed tools/list entry is ambiguous about behaviour or argument semantics."
     }

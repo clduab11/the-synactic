@@ -3,6 +3,8 @@ import COUNTRY_BBOXES from '../../../shared/country-bboxes.js';
 import MINING_SITES_RAW from '../../../shared/mining-sites.js';
 // @ts-expect-error — JS module, no declaration file
 import { readJsonFromUpstash } from '../../_upstash-json.js';
+import { classifyByKeyword, SEVERITY_VALUES } from '../../../server/worldmonitor/news/v1/_classifier';
+import { CANONICAL_CHOKEPOINTS } from '../../../server/worldmonitor/supply-chain/v1/_chokepoint-ids';
 import { buildAuthHeaders } from '../auth';
 import { assertToolFetchOk, BillingDenialError, throwIfBillingDenial } from '../billing-denial';
 import { SUPPORTED_CONSUMER_PRICES_COUNTRIES } from '../constants';
@@ -1239,6 +1241,464 @@ export const RPC_TOOLS: ToolDef[] = [
       if (params.country) sites = sites.filter((s) => s.country.toLowerCase().includes(String(params.country).toLowerCase()));
       return { sites, total: sites.length };
     },
+    _apiPaths: [],
+  },
+  {
+    name: 'get_chokepoint_history',
+    _outputBudgetBytes: 262144,
+    description: 'Daily vessel-transit history for one of 13 maritime chokepoints (IMF PortWatch daily counts, ~6 months of rows): per-day transits by vessel type (container, dryBulk, generalCargo, roro, tanker) plus per-type capacity figures. Field semantics from the producer (scripts/seed-portwatch.mjs): `cargo` is a DERIVED aggregate (container+dryBulk+generalCargo+roro) overlapping the type columns; `other` is always 0 from the current producer; `total` is upstream\'s own daily total — do NOT assume total equals the sum of the type columns. An empty `history` with `fetchedAt: "0"` means the relay/PortWatch pipeline has not published within the key\'s 1-hour TTL (relay-down), not zero transits.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        chokepoint_id: {
+          type: 'string',
+          description: 'Canonical chokepoint id. One of: suez, malacca_strait, hormuz_strait, bab_el_mandeb, panama, taiwan_strait, cape_of_good_hope, gibraltar, bosphorus, korea_strait, dover_strait, kerch_strait, lombok_strait.',
+        },
+      },
+      required: ['chokepoint_id'],
+    },
+    outputSchema: {
+      type: 'object',
+      // Handler ground truth: server/worldmonitor/supply-chain/v1/get-chokepoint-history.ts
+      // (:21-55). History rows are written by scripts/seed-portwatch.mjs (:91-104) and
+      // re-published per-id by scripts/ais-relay.cjs seedTransitSummaries (~:7942).
+      properties: {
+        chokepointId: { type: 'string' },
+        history: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              date: { type: 'string', description: 'ISO date (YYYY-MM-DD), one row per day.' },
+              container: { type: 'number' },
+              dryBulk: { type: 'number' },
+              generalCargo: { type: 'number' },
+              roro: { type: 'number' },
+              tanker: { type: 'number' },
+              cargo: { type: 'number', description: 'Derived: container+dryBulk+generalCargo+roro. Overlaps the type columns — not an independent category.' },
+              other: { type: 'number', description: 'Always 0 from the current producer.' },
+              total: { type: 'number', description: "Upstream PortWatch daily total — may differ from the sum of the type columns." },
+              capContainer: { type: 'number' },
+              capDryBulk: { type: 'number' },
+              capGeneralCargo: { type: 'number' },
+              capRoro: { type: 'number' },
+              capTanker: { type: 'number' },
+            },
+          },
+        },
+        fetchedAt: { type: 'string', description: 'Relay publish time in epoch ms as a string. "0" together with an empty history is the relay-down / key-expired signature.' },
+        error: { type: 'string', description: 'Present only on user-input failure (unknown chokepoint_id).' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _execute: async (params, base, context) => {
+      const id = String(params.chokepoint_id ?? '').trim();
+      const validIds = CANONICAL_CHOKEPOINTS.map((c) => c.id);
+      if (!validIds.includes(id)) {
+        // Result-level error (not a throw): the route answers unknown ids with
+        // an empty-history HTTP 200 that is byte-identical to the relay-down
+        // shape — surfacing the id mistake here keeps the two distinguishable.
+        return { error: `Unknown chokepoint_id "${id}". Valid ids: ${validIds.join(', ')}` };
+      }
+      // NOTE: the route's query param is camelCase `chokepointId` (snake_case
+      // silently yields the empty invalid-id shape) — verified live. The MCP
+      // arg stays snake_case per surface convention; the mapping happens here.
+      const url = `${base}/api/supply-chain/v1/get-chokepoint-history?chokepointId=${encodeURIComponent(id)}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(8_000),
+      });
+      assertToolFetchOk(res, 'get-chokepoint-history');
+      return res.json();
+    },
+    _apiPaths: [
+      'GET /api/supply-chain/v1/get-chokepoint-history',
+    ],
+  },
+  {
+    name: 'get_regional_snapshot',
+    _outputBudgetBytes: 262144,
+    description: 'Precomputed 6-hourly intelligence snapshot for one of 8 regions: regime label, balance-of-pressure axes, scenario sets, and evidence records, with an explicit self-discount (meta.snapshotConfidence, meta.missingInputs, meta.staleInputs — currently 8 missing inputs on every region; read them before trusting any axis). Narrative text, leverage edges, transmission paths, mobility and trigger ladders exist in the underlying payload but are UNPOPULATED husks on this deployment and are deliberately not part of this tool\'s declared contract.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        region_id: {
+          type: 'string',
+          description: 'Region id. One of: east-asia, europe, global, latam, mena, north-america, south-asia, sub-saharan-africa.',
+        },
+      },
+      required: ['region_id'],
+    },
+    outputSchema: {
+      type: 'object',
+      // Handler ground truth: server/worldmonitor/intelligence/v1/get-regional-snapshot.ts
+      // (:479-516) — returns {} (never an error status) when the region has no
+      // snapshot; the wrapper converts that to a result-level `error` so an
+      // empty object is never served as if it were data. Husk fields
+      // (narrative.*, leverageEdges, transmissionPaths, mobility.*,
+      // triggers.active/watching — all empty on every region, verified live)
+      // are deliberately NOT declared: the one-directional validator cannot
+      // catch a declared-but-never-filled field, so declaring them would be
+      // unfalsifiable schema fiction.
+      properties: {
+        snapshot: {
+          type: 'object',
+          required: ['meta', 'regime'],
+          properties: {
+            regionId: { type: 'string' },
+            generatedAt: { type: 'number', description: 'Epoch ms when the snapshot was computed (6-hourly cadence).' },
+            meta: {
+              type: 'object',
+              required: ['snapshotConfidence', 'missingInputs', 'staleInputs'],
+              properties: {
+                snapshotId: { type: 'string' },
+                snapshotConfidence: { type: 'number', description: '0-1. The snapshot\'s own confidence after input degradation — read this first.' },
+                missingInputs: { type: 'array', items: { type: 'string' }, description: 'Redis keys the compute wanted and could not read. Non-empty on every region today.' },
+                staleInputs: { type: 'array', items: { type: 'string' } },
+                validUntil: { type: 'number' },
+                triggerReason: { type: 'string' },
+              },
+            },
+            regime: {
+              type: 'object',
+              properties: {
+                label: { type: 'string', description: 'Free-text regime label (e.g. "calm") — no enum; producer vocabulary may grow.' },
+                previousLabel: { type: 'string' },
+                transitionedAt: { type: 'number' },
+                transitionDriver: { type: 'string' },
+              },
+            },
+            balance: {
+              type: 'object',
+              description: 'Balance-of-pressure axes, each 0-1.',
+              properties: {
+                coercivePressure: { type: 'number' },
+                domesticFragility: { type: 'number' },
+                capitalStress: { type: 'number' },
+                energyVulnerability: { type: 'number' },
+                allianceCohesion: { type: 'number' },
+                maritimeAccess: { type: 'number' },
+                energyLeverage: { type: 'number' },
+                netBalance: { type: 'number' },
+                pressures: { type: 'array', items: { type: 'object' } },
+              },
+            },
+            actors: { type: 'array', items: { type: 'object' }, description: 'Scored actors. Empty for most regions today (only "global" carries entries).' },
+            scenarioSets: { type: 'array', items: { type: 'object' } },
+            evidence: { type: 'array', items: { type: 'object' } },
+          },
+        },
+        error: { type: 'string', description: 'Present only on user-input failure (unknown region_id) or when the region has no persisted snapshot.' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _execute: async (params, base, context) => {
+      const REGION_IDS = ['east-asia', 'europe', 'global', 'latam', 'mena', 'north-america', 'south-asia', 'sub-saharan-africa'];
+      const regionId = String(params.region_id ?? '').trim();
+      if (!REGION_IDS.includes(regionId)) {
+        return { error: `Unknown region_id "${regionId}". Valid ids: ${REGION_IDS.join(', ')}` };
+      }
+      // NOTE: the route's query param is snake_case `region_id`; `regionId=`
+      // silently returns {} at HTTP 200 — verified live. Sibling routes differ
+      // (get-chokepoint-history is camelCase). Do not assume one convention.
+      const url = `${base}/api/intelligence/v1/get-regional-snapshot?region_id=${encodeURIComponent(regionId)}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(8_000),
+      });
+      assertToolFetchOk(res, 'get-regional-snapshot');
+      const body = await res.json() as { snapshot?: unknown };
+      if (!body || typeof body !== 'object' || !body.snapshot) {
+        // The route answers "no snapshot" with a bare {} at HTTP 200. Convert
+        // to a result-level error so downstream consumers never mistake an
+        // empty object for a calm region.
+        return { error: `No persisted snapshot for region "${regionId}" — the regional-snapshot seed has not run or the snapshot expired.` };
+      }
+      return body;
+    },
+    _apiPaths: [
+      'GET /api/intelligence/v1/get-regional-snapshot',
+    ],
+  },
+  {
+    name: 'get_gold_intelligence',
+    _outputBudgetBytes: 262144,
+    description: 'Gold market intelligence from the seeded cache (no live fetch): spot prices for gold/silver/platinum/palladium, gold-silver ratio, gold price in 6 non-USD currencies, CFTC COT positioning (managed money + producer/swap), gold ETF flows, and central-bank reserve holders. TRAP: COT position counts (`longPositions`, `shortPositions`, `openInterest`, `wowNetDelta`) are STRINGS on the wire — cast before arithmetic or "+" concatenates. `unavailable: false` with `updatedAt: ""` is a VALID healthy state: updatedAt reflects only the optional enrichment layer (market:gold-extended:v1), which is unseeded on this deployment — session ranges, period returns, 52-week range and macro drivers are absent for the same reason. `cbReserves.totalTonnes` is 0 while topHolders is populated (producer gap, not an error).',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: 'object',
+      // Handler ground truth: server/worldmonitor/market/v1/get-gold-intelligence.ts
+      // (:184-304). COT numerics stringified at mapCategory (:135-139) and
+      // openInterest (:178). updatedAt deliberately '' when the gold-extended
+      // enrichment key is absent (:294-298). session/returns/range52w/drivers
+      // are NOT declared — they are empty/absent unless market:gold-extended:v1
+      // is seeded, and declaring never-filled fields is drift the
+      // one-directional validator cannot catch.
+      required: ['goldPrice', 'unavailable', 'updatedAt'],
+      properties: {
+        goldPrice: { type: 'number' },
+        goldChangePct: { type: 'number' },
+        goldSparkline: { type: 'array', items: { type: 'number' } },
+        silverPrice: { type: 'number' },
+        platinumPrice: { type: 'number' },
+        palladiumPrice: { type: 'number' },
+        goldSilverRatio: { type: 'number', description: 'Absent when either leg price is 0.' },
+        goldPlatinumPremiumPct: { type: 'number', description: 'Absent when either leg price is 0.' },
+        crossCurrencyPrices: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              currency: { type: 'string' },
+              flag: { type: 'string' },
+              price: { type: 'number' },
+            },
+          },
+        },
+        cot: {
+          type: 'object',
+          description: 'CFTC Commitments of Traders for GC (gold futures). Absent when the COT seed is missing.',
+          properties: {
+            reportDate: { type: 'string' },
+            nextReleaseDate: { type: 'string' },
+            openInterest: { type: 'string', description: 'STRING — cast before arithmetic.' },
+            managedMoney: {
+              type: 'object',
+              properties: {
+                longPositions: { type: 'string', description: 'STRING — cast before arithmetic.' },
+                shortPositions: { type: 'string', description: 'STRING — cast before arithmetic.' },
+                netPct: { type: 'number' },
+                oiSharePct: { type: 'number' },
+                wowNetDelta: { type: 'string', description: 'STRING — cast before arithmetic.' },
+              },
+            },
+            producerSwap: {
+              type: 'object',
+              properties: {
+                longPositions: { type: 'string' },
+                shortPositions: { type: 'string' },
+                netPct: { type: 'number' },
+                oiSharePct: { type: 'number' },
+                wowNetDelta: { type: 'string' },
+              },
+            },
+          },
+        },
+        etfFlows: {
+          type: 'object',
+          description: 'Gold ETF holdings and flow deltas. Absent when the ETF-flows seed is missing.',
+          properties: {
+            asOfDate: { type: 'string' },
+            tonnes: { type: 'number' },
+            aumUsd: { type: 'number' },
+            nav: { type: 'number' },
+            changeW1Tonnes: { type: 'number' },
+            changeM1Tonnes: { type: 'number' },
+            changeY1Tonnes: { type: 'number' },
+            changeW1Pct: { type: 'number' },
+            changeM1Pct: { type: 'number' },
+            changeY1Pct: { type: 'number' },
+            sparkline90d: { type: 'array', items: { type: 'number' } },
+          },
+        },
+        cbReserves: {
+          type: 'object',
+          description: 'Central-bank gold reserves. totalTonnes is 0 while topHolders is populated on this deployment (producer gap); topBuyers12m/topSellers12m are empty for the same reason.',
+          properties: {
+            asOfMonth: { type: 'string' },
+            totalTonnes: { type: 'number' },
+            topHolders: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  iso3: { type: 'string' },
+                  name: { type: 'string' },
+                  tonnes: { type: 'number' },
+                  pctOfReserves: { type: 'number' },
+                },
+              },
+            },
+            topBuyers12m: { type: 'array', items: { type: 'object' } },
+            topSellers12m: { type: 'array', items: { type: 'object' } },
+          },
+        },
+        updatedAt: { type: 'string', description: 'Enrichment-layer freshness only. Empty string is VALID (gold-extended key unseeded) — do not treat "" as an error while unavailable is false.' },
+        unavailable: { type: 'boolean', description: 'True only when the core commodities bootstrap is missing — the handler collapses all failure modes into this one flag.' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _execute: async (_params, base, context) => {
+      const url = `${base}/api/market/v1/get-gold-intelligence`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(8_000),
+      });
+      assertToolFetchOk(res, 'get-gold-intelligence');
+      return res.json();
+    },
+    _apiPaths: [
+      'GET /api/market/v1/get-gold-intelligence',
+    ],
+  },
+  {
+    name: 'get_population_exposure',
+    _outputBudgetBytes: 65536,
+    description: 'Population exposure ESTIMATE near a point, or reference population data for 20 priority countries. The estimate is a coarse approximation: the point snaps to the nearest of 20 country centroids (raw-degree Euclidean, no distance cutoff — EVERY point on Earth resolves to one of the 20), then multiplies that country\'s uniform national density by the pi*r^2 disc. It is NOT gridded population data; treat results as order-of-magnitude. mode="exposure" requires lat and lon — this tool rejects the call otherwise, because the underlying route silently defaults missing coordinates to (0,0), which resolves to Nigeria with a confident number at HTTP 200. radius must be > 0 (the route silently rewrites 0 to 50 km; this wrapper rejects it instead).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['countries', 'exposure'], description: 'Default "countries": population/density for the 20 priority countries. "exposure": estimate population within radius km of (lat, lon) — requires lat and lon.' },
+        lat: { type: 'number', description: 'Latitude in decimal degrees (-90..90). REQUIRED when mode="exposure".' },
+        lon: { type: 'number', description: 'Longitude in decimal degrees (-180..180). REQUIRED when mode="exposure".' },
+        radius: { type: 'number', description: 'Exposure radius in km. Default 50. Must be > 0.' },
+      },
+      required: [],
+    },
+    outputSchema: {
+      type: 'object',
+      // Handler ground truth: server/worldmonitor/displacement/v1/get-population-exposure.ts
+      // (:49-94). 20-country table + centroids (:16-45), nearest-centroid by
+      // raw-degree Euclidean (:60-66), pi*r^2 at :70. The two input hazards
+      // (missing lat/lon -> Null Island -> Nigeria; radius=0 silently -> 50)
+      // are fixed in this wrapper's arg validation, not documented away.
+      properties: {
+        success: { type: 'boolean' },
+        countries: {
+          type: 'array',
+          description: 'Populated in countries mode (exactly 20 entries); empty in exposure mode.',
+          items: {
+            type: 'object',
+            properties: {
+              code: { type: 'string', description: 'ISO 3166-1 alpha-3.' },
+              name: { type: 'string' },
+              population: { type: 'number' },
+              densityPerKm2: { type: 'number', description: 'Uniform national average (population/area) — not local density.' },
+            },
+          },
+        },
+        exposure: {
+          type: 'object',
+          description: 'Present in exposure mode only.',
+          properties: {
+            exposedPopulation: { type: 'number', description: 'Order-of-magnitude estimate: nearest-country uniform density x pi*r^2.' },
+            exposureRadiusKm: { type: 'number' },
+            nearestCountry: { type: 'string', description: 'ISO alpha-3 of the snapped centroid — may be far from the query point (no distance cutoff).' },
+            densityPerKm2: { type: 'number' },
+          },
+        },
+        error: { type: 'string', description: 'Present only on user-input failure (missing/invalid lat, lon, radius, or mode).' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _execute: async (params, base, context) => {
+      const mode = params.mode === undefined ? 'countries' : String(params.mode);
+      if (mode !== 'countries' && mode !== 'exposure') {
+        return { error: 'mode must be "countries" or "exposure"' };
+      }
+      let query = '';
+      if (mode === 'exposure') {
+        const lat = Number(params.lat);
+        const lon = Number(params.lon);
+        // Reject-don't-default: the route maps absent coordinates to (0,0)
+        // (Null Island), which snaps to Nigeria and returns a confident
+        // number at HTTP 200 — verified live.
+        if (params.lat === undefined || params.lon === undefined || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+          return { error: 'mode="exposure" requires numeric lat and lon' };
+        }
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          return { error: 'lat must be in [-90, 90] and lon in [-180, 180]' };
+        }
+        const radius = params.radius === undefined ? 50 : Number(params.radius);
+        // The route's `req.radius || 50` silently rewrites 0 to 50 and would
+        // then echo exposureRadiusKm: 50 — reject non-positive radii here.
+        if (!Number.isFinite(radius) || radius <= 0) {
+          return { error: 'radius must be a number > 0 (km)' };
+        }
+        query = `?mode=exposure&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&radius=${encodeURIComponent(String(radius))}`;
+      }
+      const url = `${base}/api/displacement/v1/get-population-exposure${query}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(8_000),
+      });
+      assertToolFetchOk(res, 'get-population-exposure');
+      return res.json();
+    },
+    _apiPaths: [
+      'GET /api/displacement/v1/get-population-exposure',
+    ],
+  },
+  {
+    name: 'classify_event_keyword',
+    _outputBudgetBytes: 4096,
+    description: 'Deterministic KEYWORD classifier for a news headline / event title: threat level, category, numeric severity and confidence from tiered keyword lists — pure in-process compute, no LLM, no network, no Redis. This is NOT the hosted LLM classify_event tool: on live headline traffic ~76% of titles fall through to info/general at confidence 0.3, so treat it as coarse triage, not semantic understanding. Headlines whose CRITICAL/HIGH keywords appear in a historical-retrospective context ("5 years ago", anniversary dates) are downgraded to info with source "keyword-historical-downgrade". Same-input calls always return the same result.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'The headline / event title to classify. Evaluated case-insensitively; truncated to 500 characters.' },
+      },
+      required: ['title'],
+    },
+    outputSchema: {
+      type: 'object',
+      // Ground truth: server/worldmonitor/news/v1/_classifier.ts —
+      // classifyByKeyword (:346-400, terminal info/general fallback :399 means
+      // classification is never null), ThreatLevel (:1), SEVERITY_VALUES (:3-9),
+      // EventCategory (:11-14). These enums are closed sets in code (not
+      // observed samples), so declaring them is correct here. The hosted
+      // contract's `subcategory`/`analysis`/`entities` fields are deliberately
+      // NOT declared — the local proto hardcodes them to husks.
+      properties: {
+        classification: {
+          type: 'object',
+          required: ['level', 'category', 'severity', 'confidence', 'source'],
+          properties: {
+            level: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'info'] },
+            category: {
+              type: 'string',
+              enum: ['conflict', 'protest', 'disaster', 'diplomatic', 'economic', 'terrorism', 'cyber', 'health', 'environmental', 'military', 'crime', 'infrastructure', 'tech', 'general'],
+            },
+            severity: { type: 'number', description: 'Numeric mapping of level: critical=100, high=75, medium=50, low=25, info=0.' },
+            confidence: { type: 'number', description: '0.3 (no-match fallback) to 0.9 (critical keyword hit).' },
+            source: {
+              type: 'string',
+              enum: ['keyword', 'keyword-historical-downgrade'],
+              description: '"keyword-historical-downgrade" = a critical/high keyword matched but the title reads as a historical retrospective, so level was forced to info.',
+            },
+          },
+        },
+        error: { type: 'string', description: 'Present only on user-input failure (missing/empty title).' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _execute: async (params: Record<string, unknown>) => {
+      const title = typeof params.title === 'string' ? params.title.trim() : '';
+      if (!title) {
+        return { error: 'title is required (non-empty string)' };
+      }
+      const result = classifyByKeyword(title.slice(0, 500));
+      return {
+        classification: {
+          level: result.level,
+          category: result.category,
+          severity: SEVERITY_VALUES[result.level],
+          confidence: result.confidence,
+          source: result.source,
+        },
+      };
+    },
+    // The pre-existing GET /api/intelligence/v1/classify-event route stays
+    // excluded (llm-passthrough) — this tool deliberately does NOT wire it:
+    // that route's maxTokens:50 is consumed by reasoning tokens and returns {}.
     _apiPaths: [],
   },
   {
