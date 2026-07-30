@@ -1,0 +1,477 @@
+{
+  "cached_at": "2026-07-30T06:20:56.881Z",
+  "stale": false,
+  "data": {
+    "advisories": {
+      "byCountry": {
+        "MN": "normal",
+        "UY": "caution",
+        "BS": "caution",
+        "KE": "caution",
+        "LA": "caution",
+        "BE": "caution",
+        "CD": "do-not-travel",
+        "AR": "normal",
+        "SZ": "caution",
+        "LC": "caution",
+        "HT": "do-not-travel",
+        "NE": "do-not-travel",
+        "MT": "normal",
+        "FM": "normal"
+      },
+      "advisories": [
+        {
+          "title": "Democratic Republic of the Congo",
+          "link": "https://www.gov.uk/foreign-travel-advice/democratic-republic-of-the-congo",
+          "pubDate": "2026-07-29T15:56:43.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "CD"
+        },
+        {
+          "title": "Honduras",
+          "link": "https://www.gov.uk/foreign-travel-advice/honduras",
+          "pubDate": "2026-07-29T15:40:19.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "HN"
+        },
+        {
+          "title": "Guatemala",
+          "link": "https://www.gov.uk/foreign-travel-advice/guatemala",
+          "pubDate": "2026-07-29T15:39:54.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "GT"
+        },
+        {
+          "title": "Mongolia - Level 1: Exercise Normal Precautions",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/mongolia-travel-advisory.html",
+          "pubDate": "2026-07-29T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "normal",
+          "country": "MN"
+        },
+        {
+          "title": "U.S. Social Security &#8211; Federal Benefits Services Visit",
+          "link": "https://co.usembassy.gov/u-s-social-security-federal-benefits-services-visit-10/",
+          "pubDate": "2026-07-28T18:31:26.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Cape Verde",
+          "link": "https://www.gov.uk/foreign-travel-advice/cape-verde",
+          "pubDate": "2026-07-28T15:13:41.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "CV"
+        },
+        {
+          "title": "Slovenia",
+          "link": "https://www.gov.uk/foreign-travel-advice/slovenia",
+          "pubDate": "2026-07-28T14:59:27.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "SI"
+        },
+        {
+          "title": "Japan",
+          "link": "https://www.gov.uk/foreign-travel-advice/japan",
+          "pubDate": "2026-07-28T09:16:33.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "JP"
+        },
+        {
+          "title": "Euro-GASP external quality assessment scheme for Neisseria gonorrhoeae antimicrobial susceptibility testing – 2025",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/euro-gasp-external-quality-assessment-scheme-neisseria-gonorrhoeae-4",
+          "pubDate": "2026-07-28T07:48:30.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Progress in the prevention of vertical transmission of viral hepatitis B in the EU/EEA",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/progress-prevention-vertical-transmission-viral-hepatitis-b-eueea",
+          "pubDate": "2026-07-28T07:15:43.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Prevention of hepatitis B and C in the European Union and European Economic Area, 2026",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/prevention-hepatitis-b-and-c-european-union-and-european-economic-area-2026",
+          "pubDate": "2026-07-28T07:03:24.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Survey on testing strategies for hepatitis B virus in blood, and tissues and cell donors within the EU/EEA",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/survey-testing-strategies-hepatitis-b-virus-blood-and-tissues-and-cell-donors-0",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Survey on testing strategies for hepatitis C virus in blood, and tissues and cell donors within the EU/EEA",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/survey-testing-strategies-hepatitis-c-virus-blood-and-tissues-and-cell-donors",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Hepatitis C - Annual Epidemiological Report for 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/hepatitis-c-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Hepatitis B - Annual Epidemiological Report for 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/hepatitis-b-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Uruguay - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/uruguay-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "UY"
+        },
+        {
+          "title": "The Bahamas - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/the-bahamas-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "BS"
+        },
+        {
+          "title": "Kenya - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/kenya-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "KE"
+        },
+        {
+          "title": "Laos - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/laos-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "LA"
+        },
+        {
+          "title": "WHO: Integration, innovation and community leadership key to ending HIV, hepatitis and STIs",
+          "link": "https://www.who.int/news/item/27-07-2026-who--integration--innovation-and-community-leadership-key-to-ending-hiv--hepatitis-and-stis",
+          "pubDate": "2026-07-27T15:45:12.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Germany",
+          "link": "https://www.gov.uk/foreign-travel-advice/germany",
+          "pubDate": "2026-07-27T14:32:10.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Eritrea",
+          "link": "https://www.gov.uk/foreign-travel-advice/eritrea",
+          "pubDate": "2026-07-27T14:03:05.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "ER"
+        },
+        {
+          "title": "Djibouti",
+          "link": "https://www.gov.uk/foreign-travel-advice/djibouti",
+          "pubDate": "2026-07-27T14:03:02.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "DJ"
+        },
+        {
+          "title": "Uganda",
+          "link": "https://www.gov.uk/foreign-travel-advice/uganda",
+          "pubDate": "2026-07-27T14:00:28.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "UG"
+        },
+        {
+          "title": "Georgia",
+          "link": "https://www.gov.uk/foreign-travel-advice/georgia",
+          "pubDate": "2026-07-27T12:40:10.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "GE"
+        },
+        {
+          "title": "Tetanus - Annual Epidemiological Report 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/tetanus-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-27T11:53:59.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Diphtheria - Annual Epidemiological Report for 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/diphtheria-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-27T09:58:54.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "France",
+          "link": "https://www.gov.uk/foreign-travel-advice/france",
+          "pubDate": "2026-07-26T10:36:19.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "FR"
+        },
+        {
+          "title": "Saudi Arabia",
+          "link": "https://www.gov.uk/foreign-travel-advice/saudi-arabia",
+          "pubDate": "2026-07-25T17:34:42.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "SA"
+        },
+        {
+          "title": "Algeria",
+          "link": "https://www.gov.uk/foreign-travel-advice/algeria",
+          "pubDate": "2026-07-24T16:25:37.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "DZ"
+        },
+        {
+          "title": "Tunisia",
+          "link": "https://www.gov.uk/foreign-travel-advice/tunisia",
+          "pubDate": "2026-07-24T16:07:53.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "TN"
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Abu Dhabi and U.S. Consulate General Dubai &#8211; July 24, 2026",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-embassy-abu-dhabi-and-u-s-consulate-general-dubai-july-24-2026/",
+          "pubDate": "2026-07-24T14:30:28.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Communicable disease threats report, 18 - 24 July 2026, week 30",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-18-24-july-2026-week-30",
+          "pubDate": "2026-07-24T13:55:28.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "WHO launches seven strategies to prevent drowning",
+          "link": "https://www.who.int/news/item/23-07-2026-who-launches-seven-strategies-to-prevent-drowning",
+          "pubDate": "2026-07-23T08:00:24.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Belgium - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/belgium-travel-advisory.html",
+          "pubDate": "2026-07-23T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "BE"
+        },
+        {
+          "title": "Security Alert &#8211; July 22, 2026 &#8211; Worldwide Caution for U.S. Citizens",
+          "link": "https://pk.usembassy.gov/security-alert-july-22-2026-worldwide-caution-for-u-s-citizens/",
+          "pubDate": "2026-07-23T04:24:22.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Straight Talk About Crime in Colombia",
+          "link": "https://co.usembassy.gov/straight-talk-about-crime-in-colombia/",
+          "pubDate": "2026-07-22T18:39:43.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Ebola disease outbreak in the Democratic Republic of the Congo and Uganda",
+          "link": "https://www.ecdc.europa.eu/en/ebola-outbreak-democratic-republic-congo-and-uganda",
+          "pubDate": "2026-07-21T15:36:21.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "UN report: Global hunger levels ease for third consecutive year as regional disparities persist",
+          "link": "https://www.who.int/news/item/21-07-2026-un-report--global-hunger-levels-ease-for-third-consecutive-year-as-regional-disparities-persist",
+          "pubDate": "2026-07-21T08:26:17.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "WHO marks 25 years of Research4Life, advancing access to scientific knowledge in more than 120 countries",
+          "link": "https://www.who.int/news/item/21-07-2026-who-marks-25-years-of-research4life--advancing-access-to-scientific-knowledge-in-more-than-120-countries",
+          "pubDate": "2026-07-20T15:34:49.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Road deaths fall by 21% globally but stronger action is needed to save lives",
+          "link": "https://www.who.int/news/item/20-07-2026-road-deaths-fall-by-21--globally-but-stronger-action-is-needed-to-save-lives",
+          "pubDate": "2026-07-20T07:09:01.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert: Worldwide Caution",
+          "link": "https://th.usembassy.gov/security-alert-worldwide-caution/",
+          "pubDate": "2026-07-19T01:42:24.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "WHO Member States continue negotiations on the Pathogen Access and Benefit Sharing Annex",
+          "link": "https://www.who.int/news/item/20-07-2026-who-member-states-continue-negotiations-on-the-pathogen-access-and-benefit-sharing-annex",
+          "pubDate": "2026-07-18T07:27:54.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Natural Disaster Alert: Earthquake in Southwestern Mexico",
+          "link": "https://mx.usembassy.gov/natural-disaster-alert-earthquake-in-southwestern-mexico/",
+          "pubDate": "2026-07-17T20:00:07.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Abu Dhabi and U.S. Consulate General Dubai &#8211; July 17, 2026",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-embassy-abu-dhabi-and-u-s-consulate-general-dubai-july-17-2026/",
+          "pubDate": "2026-07-17T19:59:00.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Security Alert: Temporary Airspace Closure in Bogota (July 20, 2026)",
+          "link": "https://co.usembassy.gov/security-alert-temporary-airspace-closure-in-bogota-july-20-2026/",
+          "pubDate": "2026-07-17T19:34:06.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Demonstration Alert: Nationwide Celebrations and Possible Protests &#8211; July 20, 2026",
+          "link": "https://co.usembassy.gov/demonstration-alert-nationwide-celebrations-and-possible-protests-july-20-2026/",
+          "pubDate": "2026-07-17T19:06:57.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Demonstration Alert: U.S. Embassy New Delhi, India (July 17, 2026)",
+          "link": "https://in.usembassy.gov/demonstration-alert-u-s-embassy-new-delhi-india-july-17-2026/",
+          "pubDate": "2026-07-17T16:05:49.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Communicable disease threats report, 13 - 17 July 2026, week 29",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-13-17-july-2026-week-29",
+          "pubDate": "2026-07-17T14:46:54.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 2 - Chikungunya in Costa Rica",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/chikungunya-costa-rica",
+          "pubDate": "2026-07-16T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CR"
+        }
+      ],
+      "fetchedAt": "2026-07-30T06:20:56.862Z"
+    }
+  }
+}

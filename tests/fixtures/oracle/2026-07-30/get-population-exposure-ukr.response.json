@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "countries": [],
+  "exposure": {
+    "exposedPopulation": 481480,
+    "exposureRadiusKm": 50,
+    "nearestCountry": "UKR",
+    "densityPerKm2": 61
+  }
+}

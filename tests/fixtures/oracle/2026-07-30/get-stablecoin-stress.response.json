@@ -1,0 +1,122 @@
+{
+  "cached_at": "2026-07-30T06:39:42.016Z",
+  "stale": false,
+  "data": {
+    "stablecoins": {
+      "timestamp": "2026-07-30T06:39:42.014Z",
+      "summary": {
+        "totalMarketCap": 264570556935,
+        "totalVolume24h": 54704445050,
+        "coinCount": 5,
+        "depeggedCount": 0,
+        "healthStatus": "HEALTHY"
+      },
+      "stablecoins": [
+        {
+          "id": "tether",
+          "symbol": "USDT",
+          "name": "Tether",
+          "price": 0.998925,
+          "deviation": 0.108,
+          "pegStatus": "ON PEG",
+          "marketCap": 183748570822,
+          "volume24h": 42597998501,
+          "change24h": 0,
+          "change7d": 0
+        },
+        {
+          "id": "usd-coin",
+          "symbol": "USDC",
+          "name": "USDC",
+          "price": 0.999483,
+          "deviation": 0.052,
+          "pegStatus": "ON PEG",
+          "marketCap": 72039805437,
+          "volume24h": 11807064353,
+          "change24h": 0,
+          "change7d": 0
+        },
+        {
+          "id": "dai",
+          "symbol": "DAI",
+          "name": "Dai",
+          "price": 0.999967,
+          "deviation": 0.003,
+          "pegStatus": "ON PEG",
+          "marketCap": 4586641117,
+          "volume24h": 122497089,
+          "change24h": 0,
+          "change7d": 0
+        },
+        {
+          "id": "ethena-usde",
+          "symbol": "USDE",
+          "name": "Ethena USDe",
+          "price": 0.999271,
+          "deviation": 0.073,
+          "pegStatus": "ON PEG",
+          "marketCap": 3846462955,
+          "volume24h": 47855477,
+          "change24h": 0,
+          "change7d": 0
+        },
+        {
+          "id": "first-digital-usd",
+          "symbol": "FDUSD",
+          "name": "First Digital USD",
+          "price": 0.996865,
+          "deviation": 0.313,
+          "pegStatus": "ON PEG",
+          "marketCap": 349076604,
+          "volume24h": 129029630,
+          "change24h": 0,
+          "change7d": -0.1
+        }
+      ]
+    },
+    "crypto-sectors": {
+      "sectors": [
+        {
+          "id": "layer-1",
+          "name": "Layer 1",
+          "change": -0.5772499999999999
+        },
+        {
+          "id": "defi",
+          "name": "DeFi",
+          "change": -0.571256
+        },
+        {
+          "id": "layer-2",
+          "name": "Layer 2",
+          "change": -1.5337774999999998
+        },
+        {
+          "id": "ai",
+          "name": "AI",
+          "change": 0.43518999999999997
+        },
+        {
+          "id": "memes",
+          "name": "Memes",
+          "change": -1.2034099999999999
+        },
+        {
+          "id": "gaming",
+          "name": "Gaming",
+          "change": 1.085664
+        },
+        {
+          "id": "privacy",
+          "name": "Privacy",
+          "change": -0.45384599999999997
+        },
+        {
+          "id": "infra",
+          "name": "Infra",
+          "change": -0.734894
+        }
+      ]
+    }
+  }
+}

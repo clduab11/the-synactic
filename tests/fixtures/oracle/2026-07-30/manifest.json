@@ -1,0 +1,128 @@
+{
+  "capturedAt": "2026-07-30T07:10:00Z",
+  "endpoint": "http://127.0.0.1:3000/api/mcp (local docker self-host, session-04 stack, image at 51 tools)",
+  "authClass": "env_key (operator-owned, unmetered)",
+  "instanceState": {
+    "description": "Fully seeded local stack with KNOWN degraded inputs, captured minutes after: container rebuild to the 51-tool registry, intelligence:advisories:v1 re-seed (221 records), and a verified CII warm (loop warmer live, TTL 3259s at capture). Zeros and empty strings below are honest degradations — do not read them as the Trap-1 contamination class.",
+    "degradedInputs": {
+      "acledLive": "absent by policy — ACLED_MODE=fixture pre-licence; unrest/conflict realtime terms are 0",
+      "ucdpEvents": "absent — UCDP API requires an access token (requested 2026-07-29, not yet arrived); war/minor floors have no input",
+      "goldExtended": "market:gold-extended:v1 unseeded on this deployment — get_gold_intelligence updatedAt is the empty string BY DESIGN while unavailable stays false; session/returns/range52w/drivers absent/empty for the same reason",
+      "crossSourceSignals": "intelligence:cross-source-signals:v1 absent (seeder failing, ADV plan §T2) — appears in every regional snapshot's meta.missingInputs",
+      "oref": "dark — empty PROXY_URL breaks the retained OREF path's fetch"
+    },
+    "consequence": "Regional snapshots carry 8 missingInputs + risk:scores:sebuf:stale:v8 in staleInputs (staleness recorded at snapshot GENERATION time, 6h cadence — not at capture time). Narrative/leverage/transmission/mobility/trigger fields are producer husks on every region, pinned empty by the teeth."
+  },
+  "captures": [
+    {
+      "file": "get-security-advisories-full.response.json",
+      "tool": "get_security_advisories",
+      "args": { "limit": 0 },
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "Uncapped list: 221 records. 154 records carry an ISO2 subject country, 67 carry the empty string (unmapped WHO/ECDC-class notices) — the empty-country share is real data, not drift. byCountryName stripped by _postFilter."
+    },
+    {
+      "file": "get-security-advisories-default.response.json",
+      "tool": "get_security_advisories",
+      "args": {},
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "Default limit=50 capture — pins the cap and the output-budget headroom."
+    },
+    {
+      "file": "get-sovereign-stress-screen.response.json",
+      "tool": "get_sovereign_stress_screen",
+      "args": {},
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "Default limit=40 capture — pins the per-dataset country cap (40/40/40/26/8/40)."
+    },
+    {
+      "file": "get-sovereign-stress-screen-full.response.json",
+      "tool": "get_sovereign_stress_screen",
+      "args": { "limit": 0 },
+      "capturedAt": "2026-07-30T07:10:00Z",
+      "notes": "Uncapped: coverage 191/163/100/26/8/119 — the US debt-gap and TR vintage-skew teeth run here."
+    },
+    {
+      "file": "get-rates-fx-credit-pressure.response.json",
+      "tool": "get_rates_fx_credit_pressure",
+      "args": {},
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "eer rows carry nominalEer: 0 on 12/12 while realEer is populated 12/12 — the payload keeps the dead field; the declared schema must not."
+    },
+    {
+      "file": "get-financial-conditions-regime.response.json",
+      "tool": "get_financial_conditions_regime",
+      "args": {},
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "bullishCount 1 / totalCount 7 at capture; priceMomentum carries only {status} — 1 of 7 signals has no numeric evidence."
+    },
+    {
+      "file": "get-stablecoin-stress.response.json",
+      "tool": "get_stablecoin_stress",
+      "args": {},
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "5 tracked stablecoins; summary.coinCount === list length (aggregate computed over the same set it ships). Benign state only: ON PEG / HEALTHY / depeggedCount 0."
+    },
+    {
+      "file": "get-chokepoint-history-hormuz.response.json",
+      "tool": "get_chokepoint_history",
+      "args": { "chokepoint_id": "hormuz_strait" },
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "174 daily rows. cargo is the derived non-tanker aggregate; other is 0 from the current producer; total is upstream's own figure."
+    },
+    {
+      "file": "get-chokepoint-history-bad-id.response.json",
+      "tool": "get_chokepoint_history",
+      "args": { "chokepoint_id": "bogus" },
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "Wrapper-level rejection fixture: result-level error naming the 13 valid ids, no fetch performed. The route's own bad-id answer (empty history at HTTP 200) is byte-identical to relay-down and is deliberately unreachable through this tool."
+    },
+    {
+      "file": "get-regional-snapshot-mena.response.json",
+      "tool": "get_regional_snapshot",
+      "args": { "region_id": "mena" },
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "snapshotConfidence 0.673, 8 missingInputs. Husk fields (narrative.*, leverageEdges, transmissionPaths, mobility lists, triggers.active/watching) captured empty and pinned empty by the teeth — if a producer starts filling them, the teeth fail and the schema should be extended THEN, not before."
+    },
+    {
+      "file": "get-gold-intelligence.response.json",
+      "tool": "get_gold_intelligence",
+      "args": {},
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "unavailable:false with updatedAt:'' is the VALID healthy-unenriched pair (see degradedInputs.goldExtended). COT position counts are strings on the wire."
+    },
+    {
+      "file": "get-population-exposure-ukr.response.json",
+      "tool": "get_population_exposure",
+      "args": { "mode": "exposure", "lat": 48.4, "lon": 31.2, "radius": 50 },
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "Deterministic over a static 20-country table: 481480 exposed at the UKR centroid, radius 50."
+    },
+    {
+      "file": "get-population-exposure-countries.response.json",
+      "tool": "get_population_exposure",
+      "args": {},
+      "capturedAt": "2026-07-30T07:05:00Z"
+    },
+    {
+      "file": "get-population-exposure-no-latlon.response.json",
+      "tool": "get_population_exposure",
+      "args": { "mode": "exposure" },
+      "capturedAt": "2026-07-30T07:05:00Z",
+      "notes": "Wrapper-level rejection fixture: exposure mode without lat/lon must be REJECTED, never answered — the route itself would default to (0,0) and confidently report Nigeria."
+    },
+    {
+      "file": "classify-event-keyword-invasion.response.json",
+      "tool": "classify_event_keyword",
+      "args": { "title": "Russia launches invasion of northern Ukraine" },
+      "capturedAt": "2026-07-30T07:05:00Z"
+    },
+    {
+      "file": "classify-event-keyword-ransomware.response.json",
+      "tool": "classify_event_keyword",
+      "args": { "title": "Ransomware attack cripples German hospital network" },
+      "capturedAt": "2026-07-30T07:05:00Z"
+    }
+  ],
+  "pending": []
+}

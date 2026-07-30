@@ -19,10 +19,11 @@
 // or summary call shrinks the response further, so testing the unprojected
 // path is the bound the runtime gate cares about.
 //
-// Coverage caveat: only 3/41 tools have captured fixtures today
-// (`tests/fixtures/jmespath-samples/`). Each new fixture added there will be
-// picked up by this test the next CI run. Mocked-response contract coverage
-// for the other tools is a separate follow-up.
+// Coverage caveat: only 3/51 tools have captured fixtures in
+// `tests/fixtures/jmespath-samples/` (the shape-only projection set). Each new
+// fixture added there will be picked up by this test the next CI run. Value
+// coverage lives separately in `tests/fixtures/oracle/<date>/` +
+// tests/mcp-oracle-contracts.test.mjs (13 tools as of 2026-07-30).
 //
 // `KNOWN_OVER_BUDGET` (in `tests/helpers/mcp-output-budget.mjs`) documents
 // tools that currently exceed their declared budget on default args. The

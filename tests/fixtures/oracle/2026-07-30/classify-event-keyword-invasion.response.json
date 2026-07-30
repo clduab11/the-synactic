@@ -1,0 +1,9 @@
+{
+  "classification": {
+    "level": "critical",
+    "category": "conflict",
+    "severity": 100,
+    "confidence": 0.9,
+    "source": "keyword"
+  }
+}

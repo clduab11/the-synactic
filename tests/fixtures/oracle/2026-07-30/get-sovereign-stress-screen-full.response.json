@@ -1,0 +1,4697 @@
+{
+  "cached_at": "2026-07-30T02:33:36.705Z",
+  "stale": false,
+  "data": {
+    "fiscal-space": {
+      "countries": {
+        "AW": {
+          "govRevenuePct": 23.26663,
+          "fiscalBalancePct": 1.865255,
+          "debtToGdpPct": 60.261055,
+          "year": 2026,
+          "primaryBalancePct": 5.362947,
+          "realGdpGrowthPct": 2.250139,
+          "inflationPct": 1.192825,
+          "debtSustainabilityGapPct": 4.003370280131246,
+          "gapYear": 2026
+        },
+        "AF": {
+          "govRevenuePct": 19.121044,
+          "fiscalBalancePct": -0.890761,
+          "debtToGdpPct": 7.976094,
+          "year": 2025,
+          "primaryBalancePct": -0.853714,
+          "realGdpGrowthPct": 3.004095,
+          "inflationPct": 2.897715,
+          "debtSustainabilityGapPct": -0.437981524386191,
+          "gapYear": 2025
+        },
+        "AO": {
+          "govRevenuePct": 14.381111,
+          "fiscalBalancePct": -2.445145,
+          "debtToGdpPct": 51.578659,
+          "year": 2026,
+          "primaryBalancePct": 1.29102,
+          "realGdpGrowthPct": 2.293825,
+          "inflationPct": 12.896688,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "AL": {
+          "govRevenuePct": 29.008046,
+          "fiscalBalancePct": -2.021592,
+          "debtToGdpPct": 51.539671,
+          "year": 2026,
+          "primaryBalancePct": 0.212105,
+          "realGdpGrowthPct": 3.408897,
+          "inflationPct": 3.375993,
+          "debtSustainabilityGapPct": 1.449268033462995,
+          "gapYear": 2026
+        },
+        "AD": {
+          "govRevenuePct": 40.078399,
+          "fiscalBalancePct": 2.238497,
+          "debtToGdpPct": 28.046411,
+          "year": 2026,
+          "primaryBalancePct": 2.701262,
+          "realGdpGrowthPct": 2.1,
+          "inflationPct": 2.966538,
+          "debtSustainabilityGapPct": 3.629351067499366,
+          "gapYear": 2026
+        },
+        "AE": {
+          "govRevenuePct": 27.361253,
+          "fiscalBalancePct": 4.892363,
+          "debtToGdpPct": 31.360432,
+          "year": 2026,
+          "primaryBalancePct": 5.639565,
+          "realGdpGrowthPct": 3.143003,
+          "inflationPct": 2.5,
+          "debtSustainabilityGapPct": 6.630005760158208,
+          "gapYear": 2026
+        },
+        "AR": {
+          "govRevenuePct": 31.78827,
+          "fiscalBalancePct": 0.450542,
+          "debtToGdpPct": 70.413536,
+          "year": 2026,
+          "primaryBalancePct": 1.885186,
+          "realGdpGrowthPct": 3.5,
+          "inflationPct": 30.360278,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "AM": {
+          "govRevenuePct": 25.795644,
+          "fiscalBalancePct": -4.508021,
+          "debtToGdpPct": 50.594032,
+          "year": 2026,
+          "primaryBalancePct": -1.358956,
+          "realGdpGrowthPct": 5.3,
+          "inflationPct": 3.620221,
+          "debtSustainabilityGapPct": -0.019865101131378404,
+          "gapYear": 2026
+        },
+        "AG": {
+          "govRevenuePct": 21.645918,
+          "fiscalBalancePct": -0.64908,
+          "debtToGdpPct": 66.481949,
+          "year": 2026,
+          "primaryBalancePct": 1.441712,
+          "realGdpGrowthPct": 2.593362,
+          "inflationPct": 2.603,
+          "debtSustainabilityGapPct": 2.7799960220306934,
+          "gapYear": 2026
+        },
+        "AU": {
+          "govRevenuePct": 36.620375,
+          "fiscalBalancePct": -2.43368,
+          "debtToGdpPct": 50.645277,
+          "year": 2026,
+          "primaryBalancePct": -1.34072,
+          "realGdpGrowthPct": 2.008565,
+          "inflationPct": 4.019315,
+          "debtSustainabilityGapPct": 0.5448599973623274,
+          "gapYear": 2026
+        },
+        "AT": {
+          "govRevenuePct": 50.98122,
+          "fiscalBalancePct": -4.185067,
+          "debtToGdpPct": 82.050187,
+          "year": 2026,
+          "primaryBalancePct": -2.700485,
+          "realGdpGrowthPct": 0.681765,
+          "inflationPct": 2.450892,
+          "debtSustainabilityGapPct": -1.634575438736232,
+          "gapYear": 2026
+        },
+        "AZ": {
+          "govRevenuePct": 38.778511,
+          "fiscalBalancePct": 1.77702,
+          "debtToGdpPct": 20.042935,
+          "year": 2026,
+          "primaryBalancePct": 2.466414,
+          "realGdpGrowthPct": 2.216725,
+          "inflationPct": 6,
+          "debtSustainabilityGapPct": 3.3747103746710994,
+          "gapYear": 2026
+        },
+        "BI": {
+          "govRevenuePct": 17.403118,
+          "fiscalBalancePct": -2.538765,
+          "debtToGdpPct": 36.995737,
+          "year": 2026,
+          "primaryBalancePct": -1.41128,
+          "realGdpGrowthPct": 3.819271,
+          "inflationPct": 14.493384,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "BE": {
+          "govRevenuePct": 49.80604,
+          "fiscalBalancePct": -5.128316,
+          "debtToGdpPct": 109.199155,
+          "year": 2026,
+          "primaryBalancePct": -3.295935,
+          "realGdpGrowthPct": 0.661073,
+          "inflationPct": 2.844234,
+          "debtSustainabilityGapPct": -1.3486429485532,
+          "gapYear": 2026
+        },
+        "BJ": {
+          "govRevenuePct": 15.902851,
+          "fiscalBalancePct": -2.9,
+          "debtToGdpPct": 57.230448,
+          "year": 2026,
+          "primaryBalancePct": -1.128846,
+          "realGdpGrowthPct": 6.972272,
+          "inflationPct": 2,
+          "debtSustainabilityGapPct": 2.02711450744935,
+          "gapYear": 2026
+        },
+        "BF": {
+          "govRevenuePct": 21.186329,
+          "fiscalBalancePct": -3.5,
+          "debtToGdpPct": 48.846977,
+          "year": 2026,
+          "primaryBalancePct": -1.400118,
+          "realGdpGrowthPct": 4.858076,
+          "inflationPct": 1.531154,
+          "debtSustainabilityGapPct": -0.40691637617248866,
+          "gapYear": 2026
+        },
+        "BD": {
+          "govRevenuePct": 7.839133,
+          "fiscalBalancePct": -4.300484,
+          "debtToGdpPct": 41.797353,
+          "year": 2026,
+          "primaryBalancePct": -1.99963,
+          "realGdpGrowthPct": 4.692694,
+          "inflationPct": 9.173148,
+          "debtSustainabilityGapPct": 1.2153688624454977,
+          "gapYear": 2026
+        },
+        "BG": {
+          "govRevenuePct": 34.547113,
+          "fiscalBalancePct": -3.272787,
+          "debtToGdpPct": 28.212997,
+          "year": 2026,
+          "primaryBalancePct": -2.612849,
+          "realGdpGrowthPct": 2.773087,
+          "inflationPct": 3.764599,
+          "debtSustainabilityGapPct": -1.4744688541769284,
+          "gapYear": 2026
+        },
+        "BH": {
+          "govRevenuePct": 19.992067,
+          "fiscalBalancePct": -10.627169,
+          "debtToGdpPct": 152.360244,
+          "year": 2026,
+          "primaryBalancePct": -3.504294,
+          "realGdpGrowthPct": -0.498944,
+          "inflationPct": 2.4,
+          "debtSustainabilityGapPct": -7.6702615393403315,
+          "gapYear": 2026
+        },
+        "BS": {
+          "govRevenuePct": 21.988106,
+          "fiscalBalancePct": -0.313304,
+          "debtToGdpPct": 71.887482,
+          "year": 2026,
+          "primaryBalancePct": 3.719714,
+          "realGdpGrowthPct": 2.1,
+          "inflationPct": 1.588735,
+          "debtSustainabilityGapPct": 2.4111257839915505,
+          "gapYear": 2026
+        },
+        "BA": {
+          "govRevenuePct": 41.395582,
+          "fiscalBalancePct": -3.950692,
+          "debtToGdpPct": 30.75318,
+          "year": 2026,
+          "primaryBalancePct": -2.922764,
+          "realGdpGrowthPct": 2.2,
+          "inflationPct": 4.540717,
+          "debtSustainabilityGapPct": -1.915864159611767,
+          "gapYear": 2026
+        },
+        "BY": {
+          "govRevenuePct": 41.136846,
+          "fiscalBalancePct": -0.179271,
+          "debtToGdpPct": 33.070077,
+          "year": 2026,
+          "primaryBalancePct": 1.035737,
+          "realGdpGrowthPct": 1.220262,
+          "inflationPct": 6.390695,
+          "debtSustainabilityGapPct": 2.2686681156372606,
+          "gapYear": 2026
+        },
+        "BZ": {
+          "govRevenuePct": 24.556633,
+          "fiscalBalancePct": -1.498635,
+          "debtToGdpPct": 63.195546,
+          "year": 2026,
+          "primaryBalancePct": 1.105993,
+          "realGdpGrowthPct": 2.192348,
+          "inflationPct": 1.470017,
+          "debtSustainabilityGapPct": 0.8457963549803171,
+          "gapYear": 2026
+        },
+        "BO": {
+          "govRevenuePct": 19.703639,
+          "fiscalBalancePct": -9.298761,
+          "debtToGdpPct": 102.702083,
+          "year": 2026,
+          "primaryBalancePct": -5.977206,
+          "realGdpGrowthPct": -3.284629,
+          "inflationPct": 20.691638,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "BR": {
+          "govRevenuePct": 40.17029,
+          "fiscalBalancePct": -7.706219,
+          "debtToGdpPct": 96.540306,
+          "year": 2026,
+          "primaryBalancePct": -0.452359,
+          "realGdpGrowthPct": 1.91098,
+          "inflationPct": 3.996773,
+          "debtSustainabilityGapPct": -1.845739372036389,
+          "gapYear": 2026
+        },
+        "BB": {
+          "govRevenuePct": 26.120193,
+          "fiscalBalancePct": -0.057223,
+          "debtToGdpPct": 89.519229,
+          "year": 2026,
+          "primaryBalancePct": 4.122559,
+          "realGdpGrowthPct": 2.465414,
+          "inflationPct": 2.254303,
+          "debtSustainabilityGapPct": 4.213253260154472,
+          "gapYear": 2026
+        },
+        "BN": {
+          "govRevenuePct": 18.358234,
+          "fiscalBalancePct": -10.69901,
+          "debtToGdpPct": 1.481543,
+          "year": 2026,
+          "primaryBalancePct": -10.69901,
+          "realGdpGrowthPct": 2.6,
+          "inflationPct": 1.6,
+          "debtSustainabilityGapPct": -10.638725883209773,
+          "gapYear": 2026
+        },
+        "BT": {
+          "govRevenuePct": 32.103352,
+          "fiscalBalancePct": -2.882309,
+          "debtToGdpPct": 120.281853,
+          "year": 2026,
+          "primaryBalancePct": -1.024571,
+          "realGdpGrowthPct": 7.478447,
+          "inflationPct": 3.958543,
+          "debtSustainabilityGapPct": 9.943506396787132,
+          "gapYear": 2026
+        },
+        "BW": {
+          "govRevenuePct": 25.002015,
+          "fiscalBalancePct": -10.688185,
+          "debtToGdpPct": 47.014893,
+          "year": 2026,
+          "primaryBalancePct": -8.138326,
+          "realGdpGrowthPct": 4.749433,
+          "inflationPct": 5.084524,
+          "debtSustainabilityGapPct": -6.151416192078542,
+          "gapYear": 2026
+        },
+        "CF": {
+          "govRevenuePct": 14.310388,
+          "fiscalBalancePct": -4.983518,
+          "debtToGdpPct": 63.961898,
+          "year": 2026,
+          "primaryBalancePct": -3.503511,
+          "realGdpGrowthPct": 2.613399,
+          "inflationPct": 1.477889,
+          "debtSustainabilityGapPct": -2.388017348036699,
+          "gapYear": 2026
+        },
+        "CA": {
+          "govRevenuePct": 41.897085,
+          "fiscalBalancePct": -2.671754,
+          "debtToGdpPct": 110.732864,
+          "year": 2026,
+          "primaryBalancePct": -2.431095,
+          "realGdpGrowthPct": 1.499992,
+          "inflationPct": 2.536798,
+          "debtSustainabilityGapPct": 1.6731917993882366,
+          "gapYear": 2026
+        },
+        "CH": {
+          "govRevenuePct": 31.673267,
+          "fiscalBalancePct": 0.218464,
+          "debtToGdpPct": 38.501243,
+          "year": 2026,
+          "primaryBalancePct": 0.335922,
+          "realGdpGrowthPct": 1.342177,
+          "inflationPct": 0.475203,
+          "debtSustainabilityGapPct": 0.9101607980853701,
+          "gapYear": 2026
+        },
+        "CL": {
+          "govRevenuePct": 23.596071,
+          "fiscalBalancePct": -2.465379,
+          "debtToGdpPct": 42.465045,
+          "year": 2026,
+          "primaryBalancePct": -1.68105,
+          "realGdpGrowthPct": 2.395931,
+          "inflationPct": 2.905372,
+          "debtSustainabilityGapPct": -0.26089345914483464,
+          "gapYear": 2026
+        },
+        "CN": {
+          "govRevenuePct": 24.665376,
+          "fiscalBalancePct": -8.153034,
+          "debtToGdpPct": 106.895126,
+          "year": 2026,
+          "primaryBalancePct": -7.037862,
+          "realGdpGrowthPct": 4.41261,
+          "inflationPct": 1.215749,
+          "debtSustainabilityGapPct": -2.3458478091297232,
+          "gapYear": 2026
+        },
+        "CI": {
+          "govRevenuePct": 17.578721,
+          "fiscalBalancePct": -3.041255,
+          "debtToGdpPct": 55.065896,
+          "year": 2026,
+          "primaryBalancePct": -0.289781,
+          "realGdpGrowthPct": 6.2,
+          "inflationPct": 1.8,
+          "debtSustainabilityGapPct": 1.296775132677713,
+          "gapYear": 2026
+        },
+        "CM": {
+          "govRevenuePct": 14.988463,
+          "fiscalBalancePct": -1.668852,
+          "debtToGdpPct": 39.301867,
+          "year": 2026,
+          "primaryBalancePct": -0.199077,
+          "realGdpGrowthPct": 3.344467,
+          "inflationPct": 3.507862,
+          "debtSustainabilityGapPct": 0.9876399056375116,
+          "gapYear": 2026
+        },
+        "CD": {
+          "govRevenuePct": 14.590453,
+          "fiscalBalancePct": -3.455231,
+          "debtToGdpPct": 24.613205,
+          "year": 2026,
+          "primaryBalancePct": -3.123574,
+          "realGdpGrowthPct": 5.900775,
+          "inflationPct": 3.251432,
+          "debtSustainabilityGapPct": -1.323551969952062,
+          "gapYear": 2026
+        },
+        "CG": {
+          "govRevenuePct": 25.150902,
+          "fiscalBalancePct": 0.400913,
+          "debtToGdpPct": 91.278536,
+          "year": 2026,
+          "primaryBalancePct": 4.386745,
+          "realGdpGrowthPct": 2.836568,
+          "inflationPct": 2.8,
+          "debtSustainabilityGapPct": 5.5517926958757355,
+          "gapYear": 2026
+        },
+        "CO": {
+          "govRevenuePct": 27.850833,
+          "fiscalBalancePct": -5.150463,
+          "debtToGdpPct": 60.876745,
+          "year": 2026,
+          "primaryBalancePct": -2.363305,
+          "realGdpGrowthPct": 2.341661,
+          "inflationPct": 5.907707,
+          "debtSustainabilityGapPct": -0.2237591464211608,
+          "gapYear": 2026
+        },
+        "KM": {
+          "govRevenuePct": 17.643981,
+          "fiscalBalancePct": -1.109847,
+          "debtToGdpPct": 32.379134,
+          "year": 2026,
+          "primaryBalancePct": -0.782175,
+          "realGdpGrowthPct": 4.08286,
+          "inflationPct": 3.73025,
+          "debtSustainabilityGapPct": 1.3031771935356957,
+          "gapYear": 2026
+        },
+        "CV": {
+          "govRevenuePct": 26.58381,
+          "fiscalBalancePct": -0.875014,
+          "debtToGdpPct": 95.921137,
+          "year": 2026,
+          "primaryBalancePct": 1.203786,
+          "realGdpGrowthPct": 4.78714,
+          "inflationPct": 2.2,
+          "debtSustainabilityGapPct": 5.615268938377076,
+          "gapYear": 2026
+        },
+        "CR": {
+          "govRevenuePct": 14.226671,
+          "fiscalBalancePct": -3.641616,
+          "debtToGdpPct": 61.10066,
+          "year": 2026,
+          "primaryBalancePct": 0.865369,
+          "realGdpGrowthPct": 3.560304,
+          "inflationPct": -0.439985,
+          "debtSustainabilityGapPct": -1.6660596882541252,
+          "gapYear": 2026
+        },
+        "CY": {
+          "govRevenuePct": 42.760569,
+          "fiscalBalancePct": 2.637825,
+          "debtToGdpPct": 50.882285,
+          "year": 2026,
+          "primaryBalancePct": 3.723069,
+          "realGdpGrowthPct": 2.953367,
+          "inflationPct": 2.591345,
+          "debtSustainabilityGapPct": 5.403576907332073,
+          "gapYear": 2026
+        },
+        "CZ": {
+          "govRevenuePct": 41.066807,
+          "fiscalBalancePct": -2.270024,
+          "debtToGdpPct": 46.405655,
+          "year": 2026,
+          "primaryBalancePct": -1.599276,
+          "realGdpGrowthPct": 2.233791,
+          "inflationPct": 2.438315,
+          "debtSustainabilityGapPct": -0.1453478768769585,
+          "gapYear": 2026
+        },
+        "DE": {
+          "govRevenuePct": 47.890849,
+          "fiscalBalancePct": -3.777521,
+          "debtToGdpPct": 64.609044,
+          "year": 2026,
+          "primaryBalancePct": -2.834566,
+          "realGdpGrowthPct": 0.790622,
+          "inflationPct": 2.651394,
+          "debtSustainabilityGapPct": -1.5834495869137886,
+          "gapYear": 2026
+        },
+        "DJ": {
+          "govRevenuePct": 19.075897,
+          "fiscalBalancePct": -0.459709,
+          "debtToGdpPct": 29.604879,
+          "year": 2026,
+          "primaryBalancePct": -0.217191,
+          "realGdpGrowthPct": 6,
+          "inflationPct": 1.452597,
+          "debtSustainabilityGapPct": 1.632931068432044,
+          "gapYear": 2026
+        },
+        "DM": {
+          "govRevenuePct": 46.551548,
+          "fiscalBalancePct": -1.033346,
+          "debtToGdpPct": 98.297997,
+          "year": 2026,
+          "primaryBalancePct": 0.985748,
+          "realGdpGrowthPct": 3.136824,
+          "inflationPct": 3,
+          "debtSustainabilityGapPct": 4.850709151831427,
+          "gapYear": 2026
+        },
+        "DK": {
+          "govRevenuePct": 49.052006,
+          "fiscalBalancePct": 0.161785,
+          "debtToGdpPct": 27.377576,
+          "year": 2026,
+          "primaryBalancePct": -0.438215,
+          "realGdpGrowthPct": 2,
+          "inflationPct": 2,
+          "debtSustainabilityGapPct": 0.6248896428296808,
+          "gapYear": 2026
+        },
+        "DO": {
+          "govRevenuePct": 15.933968,
+          "fiscalBalancePct": -3.485429,
+          "debtToGdpPct": 58.272423,
+          "year": 2026,
+          "primaryBalancePct": 0.176118,
+          "realGdpGrowthPct": 3.719669,
+          "inflationPct": 5.070679,
+          "debtSustainabilityGapPct": 1.6174153128618867,
+          "gapYear": 2026
+        },
+        "DZ": {
+          "govRevenuePct": 23.562967,
+          "fiscalBalancePct": -10.24219,
+          "debtToGdpPct": 59.159343,
+          "year": 2026,
+          "primaryBalancePct": -9.435205,
+          "realGdpGrowthPct": 3.7772,
+          "inflationPct": 2.924989,
+          "debtSustainabilityGapPct": -6.4174480630489805,
+          "gapYear": 2026
+        },
+        "EC": {
+          "govRevenuePct": 35.505033,
+          "fiscalBalancePct": -2.881429,
+          "debtToGdpPct": 54.415899,
+          "year": 2025,
+          "primaryBalancePct": -1.742942,
+          "realGdpGrowthPct": 3.725948,
+          "inflationPct": 0.711098,
+          "debtSustainabilityGapPct": -0.5076889869460275,
+          "gapYear": 2025
+        },
+        "EG": {
+          "govRevenuePct": 16.634529,
+          "fiscalBalancePct": -12.129453,
+          "debtToGdpPct": 87.005127,
+          "year": 2026,
+          "primaryBalancePct": 2.571353,
+          "realGdpGrowthPct": 4.239706,
+          "inflationPct": 13.161152,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "ES": {
+          "govRevenuePct": 43.227661,
+          "fiscalBalancePct": -2.067276,
+          "debtToGdpPct": 98.173408,
+          "year": 2026,
+          "primaryBalancePct": 0.290158,
+          "realGdpGrowthPct": 2.089681,
+          "inflationPct": 3.042728,
+          "debtSustainabilityGapPct": 2.8982884704140197,
+          "gapYear": 2026
+        },
+        "EE": {
+          "govRevenuePct": 42.811153,
+          "fiscalBalancePct": -4.470351,
+          "debtToGdpPct": 27.827203,
+          "year": 2026,
+          "primaryBalancePct": -4.197336,
+          "realGdpGrowthPct": 1.429183,
+          "inflationPct": 3.799627,
+          "debtSustainabilityGapPct": -3.060280197377269,
+          "gapYear": 2026
+        },
+        "ET": {
+          "govRevenuePct": 11.310213,
+          "fiscalBalancePct": -1.75658,
+          "debtToGdpPct": 40.440615,
+          "year": 2026,
+          "primaryBalancePct": -0.570734,
+          "realGdpGrowthPct": 9.203676,
+          "inflationPct": 11.776883,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "FI": {
+          "govRevenuePct": 53.863251,
+          "fiscalBalancePct": -4.788324,
+          "debtToGdpPct": 93.107415,
+          "year": 2026,
+          "primaryBalancePct": -4.009856,
+          "realGdpGrowthPct": 1.046725,
+          "inflationPct": 2.505601,
+          "debtSustainabilityGapPct": -1.5446449171870986,
+          "gapYear": 2026
+        },
+        "FJ": {
+          "govRevenuePct": 28.222102,
+          "fiscalBalancePct": -6.373816,
+          "debtToGdpPct": 82.525639,
+          "year": 2026,
+          "primaryBalancePct": -2.159948,
+          "realGdpGrowthPct": 2.429719,
+          "inflationPct": 2.2,
+          "debtSustainabilityGapPct": -2.4933823974060187,
+          "gapYear": 2026
+        },
+        "FR": {
+          "govRevenuePct": 52.422866,
+          "fiscalBalancePct": -4.940652,
+          "debtToGdpPct": 118.403952,
+          "year": 2026,
+          "primaryBalancePct": -2.711158,
+          "realGdpGrowthPct": 0.858141,
+          "inflationPct": 1.843886,
+          "debtSustainabilityGapPct": -1.7487663846027997,
+          "gapYear": 2026
+        },
+        "FM": {
+          "govRevenuePct": 62.369329,
+          "fiscalBalancePct": 0.391324,
+          "debtToGdpPct": 7.482819,
+          "year": 2026,
+          "primaryBalancePct": 0.551568,
+          "realGdpGrowthPct": 0.665801,
+          "inflationPct": 3.195413,
+          "debtSustainabilityGapPct": 0.6769747288590423,
+          "gapYear": 2026
+        },
+        "GA": {
+          "govRevenuePct": 19.582768,
+          "fiscalBalancePct": -9.970446,
+          "debtToGdpPct": 86.06241,
+          "year": 2026,
+          "primaryBalancePct": -6.382129,
+          "realGdpGrowthPct": 2.664926,
+          "inflationPct": 2.459108,
+          "debtSustainabilityGapPct": -5.547493206807585,
+          "gapYear": 2026
+        },
+        "GB": {
+          "govRevenuePct": 39.951268,
+          "fiscalBalancePct": -3.904681,
+          "debtToGdpPct": 103.56451,
+          "year": 2026,
+          "primaryBalancePct": -1.231436,
+          "realGdpGrowthPct": 0.79678,
+          "inflationPct": 3.202959,
+          "debtSustainabilityGapPct": 0.20619109373934497,
+          "gapYear": 2026
+        },
+        "GE": {
+          "govRevenuePct": 26.57055,
+          "fiscalBalancePct": -2.32691,
+          "debtToGdpPct": 35.112097,
+          "year": 2026,
+          "primaryBalancePct": -0.673648,
+          "realGdpGrowthPct": 5.306465,
+          "inflationPct": 4.378297,
+          "debtSustainabilityGapPct": 0.9901859544759304,
+          "gapYear": 2026
+        },
+        "GH": {
+          "govRevenuePct": 16.79031,
+          "fiscalBalancePct": -2.255853,
+          "debtToGdpPct": 53.011181,
+          "year": 2026,
+          "primaryBalancePct": 1.479763,
+          "realGdpGrowthPct": 4.750424,
+          "inflationPct": 5.780799,
+          "debtSustainabilityGapPct": 3.2781204489300713,
+          "gapYear": 2026
+        },
+        "GN": {
+          "govRevenuePct": 17.810818,
+          "fiscalBalancePct": -4.961464,
+          "debtToGdpPct": 44.690064,
+          "year": 2026,
+          "primaryBalancePct": -3.371447,
+          "realGdpGrowthPct": 8.677144,
+          "inflationPct": 4.132842,
+          "debtSustainabilityGapPct": 0.4238091191811937,
+          "gapYear": 2026
+        },
+        "GM": {
+          "govRevenuePct": 24.482537,
+          "fiscalBalancePct": -0.991827,
+          "debtToGdpPct": 68.263123,
+          "year": 2026,
+          "primaryBalancePct": 2.364705,
+          "realGdpGrowthPct": 5.112454,
+          "inflationPct": 5.801671,
+          "debtSustainabilityGapPct": 6.2278791624652285,
+          "gapYear": 2026
+        },
+        "GW": {
+          "govRevenuePct": 13.73465,
+          "fiscalBalancePct": -3.985138,
+          "debtToGdpPct": 73.59759,
+          "year": 2026,
+          "primaryBalancePct": -0.310219,
+          "realGdpGrowthPct": 4.9,
+          "inflationPct": 2.5,
+          "debtSustainabilityGapPct": 1.421009075751578,
+          "gapYear": 2026
+        },
+        "GR": {
+          "govRevenuePct": 50.928604,
+          "fiscalBalancePct": 0.597812,
+          "debtToGdpPct": 136.926902,
+          "year": 2026,
+          "primaryBalancePct": 3.776289,
+          "realGdpGrowthPct": 1.802145,
+          "inflationPct": 3.466977,
+          "debtSustainabilityGapPct": 7.689568874540345,
+          "gapYear": 2026
+        },
+        "GD": {
+          "govRevenuePct": 31.723093,
+          "fiscalBalancePct": -5.148427,
+          "debtToGdpPct": 68.985977,
+          "year": 2026,
+          "primaryBalancePct": -3.342211,
+          "realGdpGrowthPct": 3.111502,
+          "inflationPct": 1.33151,
+          "debtSustainabilityGapPct": -2.1100465981585534,
+          "gapYear": 2026
+        },
+        "GT": {
+          "govRevenuePct": 12.855565,
+          "fiscalBalancePct": -2.167309,
+          "debtToGdpPct": 27.645944,
+          "year": 2026,
+          "primaryBalancePct": -0.458771,
+          "realGdpGrowthPct": 3.94,
+          "inflationPct": 2.571121,
+          "debtSustainabilityGapPct": -0.34665573017374623,
+          "gapYear": 2026
+        },
+        "GY": {
+          "govRevenuePct": 16.034262,
+          "fiscalBalancePct": -6.407333,
+          "debtToGdpPct": 29.173817,
+          "year": 2026,
+          "primaryBalancePct": -5.916688,
+          "realGdpGrowthPct": 16.167833,
+          "inflationPct": 4.069794,
+          "debtSustainabilityGapPct": -1.2801213126833986,
+          "gapYear": 2026
+        },
+        "HK": {
+          "govRevenuePct": 17.739392,
+          "fiscalBalancePct": -5.164665,
+          "debtToGdpPct": 14.075688,
+          "year": 2026,
+          "primaryBalancePct": -5.839583,
+          "realGdpGrowthPct": 2.420369,
+          "inflationPct": 2.1,
+          "debtSustainabilityGapPct": -5.224282217127842,
+          "gapYear": 2026
+        },
+        "HN": {
+          "govRevenuePct": 24.005833,
+          "fiscalBalancePct": -1.453117,
+          "debtToGdpPct": 43.790298,
+          "year": 2026,
+          "primaryBalancePct": -0.868568,
+          "realGdpGrowthPct": 3.3,
+          "inflationPct": 4.395559,
+          "debtSustainabilityGapPct": 1.7731812361391326,
+          "gapYear": 2026
+        },
+        "HR": {
+          "govRevenuePct": 47.29192,
+          "fiscalBalancePct": -2.907504,
+          "debtToGdpPct": 56.485182,
+          "year": 2026,
+          "primaryBalancePct": -1.778839,
+          "realGdpGrowthPct": 2.637537,
+          "inflationPct": 4.360805,
+          "debtSustainabilityGapPct": 0.9186109344850735,
+          "gapYear": 2026
+        },
+        "HT": {
+          "govRevenuePct": 5.10022,
+          "fiscalBalancePct": -0.702769,
+          "debtToGdpPct": 10.666848,
+          "year": 2026,
+          "primaryBalancePct": -0.377924,
+          "realGdpGrowthPct": -1.7,
+          "inflationPct": 23.507419,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "HU": {
+          "govRevenuePct": 42.628907,
+          "fiscalBalancePct": -5.495455,
+          "debtToGdpPct": 77.861353,
+          "year": 2026,
+          "primaryBalancePct": -1.780275,
+          "realGdpGrowthPct": 1.66215,
+          "inflationPct": 3.752612,
+          "debtSustainabilityGapPct": -1.2594111926406768,
+          "gapYear": 2026
+        },
+        "ID": {
+          "govRevenuePct": 13.841043,
+          "fiscalBalancePct": -2.939492,
+          "debtToGdpPct": 41.479875,
+          "year": 2026,
+          "primaryBalancePct": -0.667015,
+          "realGdpGrowthPct": 4.950261,
+          "inflationPct": 2.986911,
+          "debtSustainabilityGapPct": 0.33329383362201537,
+          "gapYear": 2026
+        },
+        "IN": {
+          "govRevenuePct": 21.227386,
+          "fiscalBalancePct": -7.413775,
+          "debtToGdpPct": 83.361777,
+          "year": 2026,
+          "primaryBalancePct": -1.922566,
+          "realGdpGrowthPct": 6.478172,
+          "inflationPct": 4.714761,
+          "debtSustainabilityGapPct": 1.7492645750119993,
+          "gapYear": 2026
+        },
+        "IE": {
+          "govRevenuePct": 23.118514,
+          "fiscalBalancePct": 0.554828,
+          "debtToGdpPct": 31.625199,
+          "year": 2026,
+          "primaryBalancePct": 0.836659,
+          "realGdpGrowthPct": 2.51583,
+          "inflationPct": 3.133843,
+          "debtSustainabilityGapPct": 2.283594405730727,
+          "gapYear": 2026
+        },
+        "IR": {
+          "govRevenuePct": 7.892098,
+          "fiscalBalancePct": -5.185442,
+          "debtToGdpPct": 37.254361,
+          "year": 2026,
+          "primaryBalancePct": -3.044575,
+          "realGdpGrowthPct": -6.06952,
+          "inflationPct": 68.914882,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "IS": {
+          "govRevenuePct": 43.07378,
+          "fiscalBalancePct": -1.135619,
+          "debtToGdpPct": 53.576786,
+          "year": 2026,
+          "primaryBalancePct": 1.280988,
+          "realGdpGrowthPct": 1.901657,
+          "inflationPct": 4.750237,
+          "debtSustainabilityGapPct": 2.4011273089779492,
+          "gapYear": 2026
+        },
+        "IL": {
+          "govRevenuePct": 38.357906,
+          "fiscalBalancePct": -5.858635,
+          "debtToGdpPct": 69.829245,
+          "year": 2026,
+          "primaryBalancePct": -3.105736,
+          "realGdpGrowthPct": 3.529977,
+          "inflationPct": 2.288331,
+          "debtSustainabilityGapPct": -1.8154624345157786,
+          "gapYear": 2026
+        },
+        "IT": {
+          "govRevenuePct": 47.786235,
+          "fiscalBalancePct": -2.822277,
+          "debtToGdpPct": 138.383811,
+          "year": 2026,
+          "primaryBalancePct": 0.786814,
+          "realGdpGrowthPct": 0.520816,
+          "inflationPct": 2.636585,
+          "debtSustainabilityGapPct": 1.5421060468552297,
+          "gapYear": 2026
+        },
+        "JM": {
+          "govRevenuePct": 28.262926,
+          "fiscalBalancePct": -4.885413,
+          "debtToGdpPct": 65.793217,
+          "year": 2026,
+          "primaryBalancePct": 0.603511,
+          "realGdpGrowthPct": -1.152,
+          "inflationPct": 6.090841,
+          "debtSustainabilityGapPct": -1.5760401616313144,
+          "gapYear": 2026
+        },
+        "JO": {
+          "govRevenuePct": 28.239985,
+          "fiscalBalancePct": -5.445189,
+          "debtToGdpPct": 81.769591,
+          "year": 2026,
+          "primaryBalancePct": 0.219735,
+          "realGdpGrowthPct": 2.748012,
+          "inflationPct": 2.250667,
+          "debtSustainabilityGapPct": -1.2336664958348034,
+          "gapYear": 2026
+        },
+        "JP": {
+          "govRevenuePct": 35.56963,
+          "fiscalBalancePct": -2.045489,
+          "debtToGdpPct": 204.351077,
+          "year": 2026,
+          "primaryBalancePct": -1.737916,
+          "realGdpGrowthPct": 0.718768,
+          "inflationPct": 2.243277,
+          "debtSustainabilityGapPct": 3.873319271986478,
+          "gapYear": 2026
+        },
+        "KZ": {
+          "govRevenuePct": 19.395021,
+          "fiscalBalancePct": -1.343847,
+          "debtToGdpPct": 24.931411,
+          "year": 2026,
+          "primaryBalancePct": -0.965172,
+          "realGdpGrowthPct": 4.609374,
+          "inflationPct": 10.688503,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "KE": {
+          "govRevenuePct": 17.240772,
+          "fiscalBalancePct": -6.424899,
+          "debtToGdpPct": 71.582592,
+          "year": 2026,
+          "primaryBalancePct": -0.927368,
+          "realGdpGrowthPct": 4.473594,
+          "inflationPct": 5.948752,
+          "debtSustainabilityGapPct": 1.0182295708307494,
+          "gapYear": 2026
+        },
+        "KG": {
+          "govRevenuePct": 34.164238,
+          "fiscalBalancePct": -3.631486,
+          "debtToGdpPct": 37.383569,
+          "year": 2026,
+          "primaryBalancePct": -2.317047,
+          "realGdpGrowthPct": 6.074873,
+          "inflationPct": 10.550333,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "KH": {
+          "govRevenuePct": 15.149495,
+          "fiscalBalancePct": -3.676855,
+          "debtToGdpPct": 27.093966,
+          "year": 2026,
+          "primaryBalancePct": -3.318115,
+          "realGdpGrowthPct": 4.022111,
+          "inflationPct": 2.982102,
+          "debtSustainabilityGapPct": -1.8511475305826501,
+          "gapYear": 2026
+        },
+        "KI": {
+          "govRevenuePct": 99.531588,
+          "fiscalBalancePct": -16.746606,
+          "debtToGdpPct": 7.745305,
+          "year": 2026,
+          "primaryBalancePct": -16.645,
+          "realGdpGrowthPct": 3.101642,
+          "inflationPct": 4.5,
+          "debtSustainabilityGapPct": -16.182804750693197,
+          "gapYear": 2026
+        },
+        "KN": {
+          "govRevenuePct": 32.159086,
+          "fiscalBalancePct": -8.666786,
+          "debtToGdpPct": 64.01969,
+          "year": 2026,
+          "primaryBalancePct": -7.485929,
+          "realGdpGrowthPct": 2.039371,
+          "inflationPct": 2.208759,
+          "debtSustainabilityGapPct": -5.982839085258311,
+          "gapYear": 2026
+        },
+        "KR": {
+          "govRevenuePct": 23.770763,
+          "fiscalBalancePct": -1.460378,
+          "debtToGdpPct": 54.440601,
+          "year": 2026,
+          "primaryBalancePct": -1.434825,
+          "realGdpGrowthPct": 1.862322,
+          "inflationPct": 2.496378,
+          "debtSustainabilityGapPct": 0.837724116070945,
+          "gapYear": 2026
+        },
+        "KW": {
+          "govRevenuePct": 76.450973,
+          "fiscalBalancePct": 27.579535,
+          "debtToGdpPct": 22.296203,
+          "year": 2026,
+          "primaryBalancePct": -0.989902,
+          "realGdpGrowthPct": -0.56128,
+          "inflationPct": 2.7544,
+          "debtSustainabilityGapPct": -0.5147144522778937,
+          "gapYear": 2026
+        },
+        "LA": {
+          "govRevenuePct": 19.208399,
+          "fiscalBalancePct": 0.358632,
+          "debtToGdpPct": 74.617264,
+          "year": 2026,
+          "primaryBalancePct": 3.336427,
+          "realGdpGrowthPct": 4.013175,
+          "inflationPct": 9.6478,
+          "debtSustainabilityGapPct": 9.91659132710413,
+          "gapYear": 2026
+        },
+        "LB": {
+          "govRevenuePct": 18.748563,
+          "fiscalBalancePct": 3.254025,
+          "debtToGdpPct": 139.398326,
+          "year": 2025,
+          "primaryBalancePct": 3.908307,
+          "realGdpGrowthPct": 4,
+          "inflationPct": 14.597696,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2025
+        },
+        "LR": {
+          "govRevenuePct": 20.689381,
+          "fiscalBalancePct": -1.628405,
+          "debtToGdpPct": 53.800885,
+          "year": 2026,
+          "primaryBalancePct": -0.389722,
+          "realGdpGrowthPct": 5.110616,
+          "inflationPct": 5.665415,
+          "debtSustainabilityGapPct": 3.8552396917425833,
+          "gapYear": 2026
+        },
+        "LY": {
+          "govRevenuePct": 67.871124,
+          "fiscalBalancePct": -20.908405,
+          "debtToGdpPct": null,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "LC": {
+          "govRevenuePct": 22.190053,
+          "fiscalBalancePct": -2.931572,
+          "debtToGdpPct": 77.452736,
+          "year": 2026,
+          "primaryBalancePct": 0.413708,
+          "realGdpGrowthPct": 1.962995,
+          "inflationPct": 2.5,
+          "debtSustainabilityGapPct": 0.5566977700791976,
+          "gapYear": 2026
+        },
+        "LI": {
+          "govRevenuePct": 28.5,
+          "fiscalBalancePct": 3.001336,
+          "debtToGdpPct": 0.524114,
+          "year": 2026,
+          "primaryBalancePct": 3.006682,
+          "realGdpGrowthPct": -0.4,
+          "inflationPct": 0.455549,
+          "debtSustainabilityGapPct": 3.001620309186219,
+          "gapYear": 2026
+        },
+        "LK": {
+          "govRevenuePct": 13.682275,
+          "fiscalBalancePct": -5.425596,
+          "debtToGdpPct": 100.840033,
+          "year": 2024,
+          "primaryBalancePct": 2.175045,
+          "realGdpGrowthPct": 5.008733,
+          "inflationPct": 1.242398,
+          "debtSustainabilityGapPct": 1.0140927866493414,
+          "gapYear": 2024
+        },
+        "LS": {
+          "govRevenuePct": 56.815034,
+          "fiscalBalancePct": 4.191241,
+          "debtToGdpPct": 49.01172,
+          "year": 2026,
+          "primaryBalancePct": 6.086992,
+          "realGdpGrowthPct": 1.110799,
+          "inflationPct": 4.247806,
+          "debtSustainabilityGapPct": 6.802056569901814,
+          "gapYear": 2026
+        },
+        "LT": {
+          "govRevenuePct": 39.902678,
+          "fiscalBalancePct": -2.832498,
+          "debtToGdpPct": 45.119615,
+          "year": 2026,
+          "primaryBalancePct": -2.158812,
+          "realGdpGrowthPct": 2.912323,
+          "inflationPct": 3.965602,
+          "debtSustainabilityGapPct": 0.16069187872287127,
+          "gapYear": 2026
+        },
+        "LU": {
+          "govRevenuePct": 47.402373,
+          "fiscalBalancePct": -1.18917,
+          "debtToGdpPct": 28.040187,
+          "year": 2026,
+          "primaryBalancePct": -1.173492,
+          "realGdpGrowthPct": 1.591825,
+          "inflationPct": 2.061404,
+          "debtSustainabilityGapPct": -0.19178288510205788,
+          "gapYear": 2026
+        },
+        "LV": {
+          "govRevenuePct": 41.54391,
+          "fiscalBalancePct": -3.347307,
+          "debtToGdpPct": 47.444696,
+          "year": 2026,
+          "primaryBalancePct": -2.119347,
+          "realGdpGrowthPct": 2.218006,
+          "inflationPct": 2.992016,
+          "debtSustainabilityGapPct": -0.9078646084986226,
+          "gapYear": 2026
+        },
+        "MO": {
+          "govRevenuePct": 30.47068,
+          "fiscalBalancePct": 4.211659,
+          "debtToGdpPct": null,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "MA": {
+          "govRevenuePct": 28.127973,
+          "fiscalBalancePct": -3.533622,
+          "debtToGdpPct": 65.779108,
+          "year": 2026,
+          "primaryBalancePct": -1.254184,
+          "realGdpGrowthPct": 4.871869,
+          "inflationPct": 1.311021,
+          "debtSustainabilityGapPct": 0.46786925794114964,
+          "gapYear": 2026
+        },
+        "MD": {
+          "govRevenuePct": 35.43479,
+          "fiscalBalancePct": -4.724075,
+          "debtToGdpPct": 39.345226,
+          "year": 2026,
+          "primaryBalancePct": -3.079138,
+          "realGdpGrowthPct": 1.9,
+          "inflationPct": 6.408428,
+          "debtSustainabilityGapPct": -1.53718773544342,
+          "gapYear": 2026
+        },
+        "MG": {
+          "govRevenuePct": 12.449727,
+          "fiscalBalancePct": -4.608254,
+          "debtToGdpPct": 49.300948,
+          "year": 2026,
+          "primaryBalancePct": -3.535721,
+          "realGdpGrowthPct": 3.636497,
+          "inflationPct": 8.258164,
+          "debtSustainabilityGapPct": 0.8670631160808866,
+          "gapYear": 2026
+        },
+        "MV": {
+          "govRevenuePct": 30.914686,
+          "fiscalBalancePct": -11.215733,
+          "debtToGdpPct": 129.368393,
+          "year": 2026,
+          "primaryBalancePct": -8.229584,
+          "realGdpGrowthPct": 3.021563,
+          "inflationPct": 2.957156,
+          "debtSustainabilityGapPct": -3.643833258371327,
+          "gapYear": 2026
+        },
+        "MX": {
+          "govRevenuePct": 25.173421,
+          "fiscalBalancePct": -4.373028,
+          "debtToGdpPct": 62.680153,
+          "year": 2026,
+          "primaryBalancePct": 1.602886,
+          "realGdpGrowthPct": 1.638836,
+          "inflationPct": 3.897936,
+          "debtSustainabilityGapPct": -0.7317740656508296,
+          "gapYear": 2026
+        },
+        "MH": {
+          "govRevenuePct": 76.355823,
+          "fiscalBalancePct": -6.145568,
+          "debtToGdpPct": 16.746998,
+          "year": 2026,
+          "primaryBalancePct": -5.994911,
+          "realGdpGrowthPct": 3.670127,
+          "inflationPct": 7.403042,
+          "debtSustainabilityGapPct": -4.423874850271478,
+          "gapYear": 2026
+        },
+        "MK": {
+          "govRevenuePct": 32.018157,
+          "fiscalBalancePct": -4.169482,
+          "debtToGdpPct": 53.087365,
+          "year": 2026,
+          "primaryBalancePct": -2.283913,
+          "realGdpGrowthPct": 3.1,
+          "inflationPct": 4.5,
+          "debtSustainabilityGapPct": -0.22048443928179262,
+          "gapYear": 2026
+        },
+        "ML": {
+          "govRevenuePct": 20.215677,
+          "fiscalBalancePct": -2.415737,
+          "debtToGdpPct": 40.811446,
+          "year": 2026,
+          "primaryBalancePct": -0.85714,
+          "realGdpGrowthPct": 5.5,
+          "inflationPct": 2.2,
+          "debtSustainabilityGapPct": 0.6576541418276542,
+          "gapYear": 2026
+        },
+        "MT": {
+          "govRevenuePct": 33.066856,
+          "fiscalBalancePct": -2.880197,
+          "debtToGdpPct": 47.325119,
+          "year": 2026,
+          "primaryBalancePct": -1.644351,
+          "realGdpGrowthPct": 3.7,
+          "inflationPct": 2.494632,
+          "debtSustainabilityGapPct": -0.007787924890549025,
+          "gapYear": 2026
+        },
+        "MM": {
+          "govRevenuePct": 20.013774,
+          "fiscalBalancePct": -5.022161,
+          "debtToGdpPct": 51.907102,
+          "year": 2026,
+          "primaryBalancePct": -2.58691,
+          "realGdpGrowthPct": 2.994605,
+          "inflationPct": 19,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "ME": {
+          "govRevenuePct": 40.64717,
+          "fiscalBalancePct": -3.957509,
+          "debtToGdpPct": 62.438748,
+          "year": 2026,
+          "primaryBalancePct": -1.431335,
+          "realGdpGrowthPct": 2.8,
+          "inflationPct": 3.234525,
+          "debtSustainabilityGapPct": -0.20800831020838428,
+          "gapYear": 2026
+        },
+        "MN": {
+          "govRevenuePct": 32.979526,
+          "fiscalBalancePct": -0.547495,
+          "debtToGdpPct": 43.655315,
+          "year": 2026,
+          "primaryBalancePct": 1.316195,
+          "realGdpGrowthPct": 5.260666,
+          "inflationPct": 7.405656,
+          "debtSustainabilityGapPct": 4.7091252452627295,
+          "gapYear": 2026
+        },
+        "MZ": {
+          "govRevenuePct": 26.45391,
+          "fiscalBalancePct": -6.478898,
+          "debtToGdpPct": 106.067137,
+          "year": 2026,
+          "primaryBalancePct": -1.999944,
+          "realGdpGrowthPct": 0.519123,
+          "inflationPct": 4.36748,
+          "debtSustainabilityGapPct": -1.305845155994038,
+          "gapYear": 2026
+        },
+        "MR": {
+          "govRevenuePct": 24.50169,
+          "fiscalBalancePct": 0.529748,
+          "debtToGdpPct": 37.076753,
+          "year": 2026,
+          "primaryBalancePct": 1.424017,
+          "realGdpGrowthPct": 4.417486,
+          "inflationPct": 4.129151,
+          "debtSustainabilityGapPct": 3.5781574047632843,
+          "gapYear": 2026
+        },
+        "MU": {
+          "govRevenuePct": 28.155715,
+          "fiscalBalancePct": -3.12796,
+          "debtToGdpPct": 86.471092,
+          "year": 2026,
+          "primaryBalancePct": -0.294215,
+          "realGdpGrowthPct": 3.4,
+          "inflationPct": 3.700904,
+          "debtSustainabilityGapPct": 2.8908968571979528,
+          "gapYear": 2026
+        },
+        "MW": {
+          "govRevenuePct": 18.578805,
+          "fiscalBalancePct": -10.506151,
+          "debtToGdpPct": 74.456544,
+          "year": 2026,
+          "primaryBalancePct": -2.340637,
+          "realGdpGrowthPct": 2.226665,
+          "inflationPct": 24.390666,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "MY": {
+          "govRevenuePct": 19.222717,
+          "fiscalBalancePct": -3.305671,
+          "debtToGdpPct": 69.471668,
+          "year": 2026,
+          "primaryBalancePct": -1.179194,
+          "realGdpGrowthPct": 4.7,
+          "inflationPct": 1.894253,
+          "debtSustainabilityGapPct": 1.1796677010478243,
+          "gapYear": 2026
+        },
+        "NA": {
+          "govRevenuePct": 31.552416,
+          "fiscalBalancePct": -6.075096,
+          "debtToGdpPct": 70.47816,
+          "year": 2026,
+          "primaryBalancePct": -0.715873,
+          "realGdpGrowthPct": 2.395851,
+          "inflationPct": 3.927794,
+          "debtSustainabilityGapPct": -1.501561039635377,
+          "gapYear": 2026
+        },
+        "NE": {
+          "govRevenuePct": 11.744999,
+          "fiscalBalancePct": -3.652158,
+          "debtToGdpPct": 45.464546,
+          "year": 2026,
+          "primaryBalancePct": -1.96124,
+          "realGdpGrowthPct": 6.727714,
+          "inflationPct": 0.436742,
+          "debtSustainabilityGapPct": -0.48752831352716774,
+          "gapYear": 2026
+        },
+        "NG": {
+          "govRevenuePct": 10.595725,
+          "fiscalBalancePct": -4.38792,
+          "debtToGdpPct": 32.33152,
+          "year": 2026,
+          "primaryBalancePct": -1.647852,
+          "realGdpGrowthPct": 4.057906,
+          "inflationPct": 16.049093,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "NI": {
+          "govRevenuePct": 28.461567,
+          "fiscalBalancePct": 1.383729,
+          "debtToGdpPct": 33.195248,
+          "year": 2026,
+          "primaryBalancePct": 2.836657,
+          "realGdpGrowthPct": 3.84,
+          "inflationPct": 3.5,
+          "debtSustainabilityGapPct": 3.79336633404792,
+          "gapYear": 2026
+        },
+        "NL": {
+          "govRevenuePct": 43.499206,
+          "fiscalBalancePct": -2.656701,
+          "debtToGdpPct": 44.139241,
+          "year": 2026,
+          "primaryBalancePct": -1.975788,
+          "realGdpGrowthPct": 1.232665,
+          "inflationPct": 2.710527,
+          "debtSustainabilityGapPct": -0.9425462320119735,
+          "gapYear": 2026
+        },
+        "NO": {
+          "govRevenuePct": 59.504541,
+          "fiscalBalancePct": 10.165225,
+          "debtToGdpPct": 42.93418,
+          "year": 2026,
+          "primaryBalancePct": 6.841829,
+          "realGdpGrowthPct": 1.474649,
+          "inflationPct": 3.3,
+          "debtSustainabilityGapPct": 8.81739110286414,
+          "gapYear": 2026
+        },
+        "NP": {
+          "govRevenuePct": 19.893169,
+          "fiscalBalancePct": -2.477777,
+          "debtToGdpPct": 49.593925,
+          "year": 2026,
+          "primaryBalancePct": -0.921544,
+          "realGdpGrowthPct": 2.956156,
+          "inflationPct": 3.143759,
+          "debtSustainabilityGapPct": 0.5051472557097726,
+          "gapYear": 2026
+        },
+        "NR": {
+          "govRevenuePct": 144.725929,
+          "fiscalBalancePct": 13.1191,
+          "debtToGdpPct": 12.667449,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "NZ": {
+          "govRevenuePct": 37.235405,
+          "fiscalBalancePct": -3.917994,
+          "debtToGdpPct": 56.692097,
+          "year": 2026,
+          "primaryBalancePct": -2.988293,
+          "realGdpGrowthPct": 2.1311,
+          "inflationPct": 3.123859,
+          "debtSustainabilityGapPct": -1.0065644754521075,
+          "gapYear": 2026
+        },
+        "OM": {
+          "govRevenuePct": 31.801183,
+          "fiscalBalancePct": 5.243781,
+          "debtToGdpPct": 32.686171,
+          "year": 2026,
+          "primaryBalancePct": 5.416197,
+          "realGdpGrowthPct": 3.451743,
+          "inflationPct": 1.7,
+          "debtSustainabilityGapPct": 6.871063934961198,
+          "gapYear": 2026
+        },
+        "PK": {
+          "govRevenuePct": 15.809684,
+          "fiscalBalancePct": -3.205855,
+          "debtToGdpPct": 70.111481,
+          "year": 2026,
+          "primaryBalancePct": 2.523269,
+          "realGdpGrowthPct": 3.602952,
+          "inflationPct": 7.153931,
+          "debtSustainabilityGapPct": 4.3188882924336784,
+          "gapYear": 2026
+        },
+        "PA": {
+          "govRevenuePct": 17.961835,
+          "fiscalBalancePct": -3.387954,
+          "debtToGdpPct": 57.747453,
+          "year": 2026,
+          "primaryBalancePct": -0.37998,
+          "realGdpGrowthPct": 3.84,
+          "inflationPct": 1.440781,
+          "debtSustainabilityGapPct": -0.3102110685189387,
+          "gapYear": 2026
+        },
+        "PE": {
+          "govRevenuePct": 19.36069,
+          "fiscalBalancePct": -1.968569,
+          "debtToGdpPct": 29.981905,
+          "year": 2026,
+          "primaryBalancePct": -0.484638,
+          "realGdpGrowthPct": 2.82,
+          "inflationPct": 2.544844,
+          "debtSustainabilityGapPct": -0.3461018427277942,
+          "gapYear": 2026
+        },
+        "PH": {
+          "govRevenuePct": 20.303684,
+          "fiscalBalancePct": -3.677658,
+          "debtToGdpPct": 60.242242,
+          "year": 2026,
+          "primaryBalancePct": -0.849583,
+          "realGdpGrowthPct": 4.066021,
+          "inflationPct": 4.272679,
+          "debtSustainabilityGapPct": 1.269992179536498,
+          "gapYear": 2026
+        },
+        "PW": {
+          "govRevenuePct": 52.254957,
+          "fiscalBalancePct": 0.75208,
+          "debtToGdpPct": 56.694014,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "PG": {
+          "govRevenuePct": 18.174746,
+          "fiscalBalancePct": -1.124311,
+          "debtToGdpPct": 49.24797,
+          "year": 2026,
+          "primaryBalancePct": 1.186966,
+          "realGdpGrowthPct": 3.752655,
+          "inflationPct": 5,
+          "debtSustainabilityGapPct": 3.1069473698249332,
+          "gapYear": 2026
+        },
+        "PL": {
+          "govRevenuePct": 44.40634,
+          "fiscalBalancePct": -6.745638,
+          "debtToGdpPct": 65.730212,
+          "year": 2026,
+          "primaryBalancePct": -4.203734,
+          "realGdpGrowthPct": 3.32384,
+          "inflationPct": 3.345884,
+          "debtSustainabilityGapPct": -2.4101371540528955,
+          "gapYear": 2026
+        },
+        "PR": {
+          "govRevenuePct": 22.152945,
+          "fiscalBalancePct": -0.391436,
+          "debtToGdpPct": 18.761018,
+          "year": 2026,
+          "primaryBalancePct": 0.370508,
+          "realGdpGrowthPct": -0.1,
+          "inflationPct": 2.068129,
+          "debtSustainabilityGapPct": -0.015003573893242472,
+          "gapYear": 2026
+        },
+        "PT": {
+          "govRevenuePct": 43.772759,
+          "fiscalBalancePct": -0.139525,
+          "debtToGdpPct": 85.575286,
+          "year": 2026,
+          "primaryBalancePct": 1.693436,
+          "realGdpGrowthPct": 1.930007,
+          "inflationPct": 3.112192,
+          "debtSustainabilityGapPct": 4.103770800975188,
+          "gapYear": 2026
+        },
+        "PY": {
+          "govRevenuePct": 17.949034,
+          "fiscalBalancePct": -1.327393,
+          "debtToGdpPct": 37.766697,
+          "year": 2026,
+          "primaryBalancePct": 0.359046,
+          "realGdpGrowthPct": 4.2,
+          "inflationPct": 3.28402,
+          "debtSustainabilityGapPct": 1.4667376342317149,
+          "gapYear": 2026
+        },
+        "QA": {
+          "govRevenuePct": 25.547546,
+          "fiscalBalancePct": -3.432788,
+          "debtToGdpPct": 43.3289,
+          "year": 2026,
+          "primaryBalancePct": -2.108114,
+          "realGdpGrowthPct": -8.645722,
+          "inflationPct": 3.874623,
+          "debtSustainabilityGapPct": -5.835524696354418,
+          "gapYear": 2026
+        },
+        "RO": {
+          "govRevenuePct": 33.454673,
+          "fiscalBalancePct": -6.24727,
+          "debtToGdpPct": 61.937437,
+          "year": 2026,
+          "primaryBalancePct": -3.364286,
+          "realGdpGrowthPct": 0.693705,
+          "inflationPct": 7.752459,
+          "debtSustainabilityGapPct": -1.1692037799289356,
+          "gapYear": 2026
+        },
+        "RU": {
+          "govRevenuePct": 35.441962,
+          "fiscalBalancePct": -2.049367,
+          "debtToGdpPct": 19.094598,
+          "year": 2026,
+          "primaryBalancePct": -0.810849,
+          "realGdpGrowthPct": 1.091362,
+          "inflationPct": 5.619609,
+          "debtSustainabilityGapPct": -0.7596880682115694,
+          "gapYear": 2026
+        },
+        "RW": {
+          "govRevenuePct": 20.307067,
+          "fiscalBalancePct": -4.335674,
+          "debtToGdpPct": 66.750525,
+          "year": 2026,
+          "primaryBalancePct": -2.146942,
+          "realGdpGrowthPct": 7.233377,
+          "inflationPct": 5.6,
+          "debtSustainabilityGapPct": 3.7238558693268144,
+          "gapYear": 2026
+        },
+        "SA": {
+          "govRevenuePct": 23.20116,
+          "fiscalBalancePct": -3.472788,
+          "debtToGdpPct": 32.066086,
+          "year": 2026,
+          "primaryBalancePct": -3.023129,
+          "realGdpGrowthPct": 3.114521,
+          "inflationPct": 2.32,
+          "debtSustainabilityGapPct": -1.7756744198348564,
+          "gapYear": 2026
+        },
+        "SD": {
+          "govRevenuePct": 4.082772,
+          "fiscalBalancePct": -4.370231,
+          "debtToGdpPct": 169.077886,
+          "year": 2026,
+          "primaryBalancePct": -3.991479,
+          "realGdpGrowthPct": 0.71349,
+          "inflationPct": 75.08295,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "SN": {
+          "govRevenuePct": 22.381348,
+          "fiscalBalancePct": -6.699907,
+          "debtToGdpPct": 132.286734,
+          "year": 2026,
+          "primaryBalancePct": -1.407124,
+          "realGdpGrowthPct": 2.17335,
+          "inflationPct": 2.45742,
+          "debtSustainabilityGapPct": -0.5438000938863901,
+          "gapYear": 2026
+        },
+        "SG": {
+          "govRevenuePct": 19.394808,
+          "fiscalBalancePct": 3.313469,
+          "debtToGdpPct": 171.935583,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "SB": {
+          "govRevenuePct": 37.378688,
+          "fiscalBalancePct": -3.389324,
+          "debtToGdpPct": 29.887637,
+          "year": 2026,
+          "primaryBalancePct": -2.821312,
+          "realGdpGrowthPct": 2.784979,
+          "inflationPct": 3.221317,
+          "debtSustainabilityGapPct": -1.6394192466412791,
+          "gapYear": 2026
+        },
+        "SL": {
+          "govRevenuePct": 13.705442,
+          "fiscalBalancePct": -2.189618,
+          "debtToGdpPct": 44.310783,
+          "year": 2026,
+          "primaryBalancePct": 1.388782,
+          "realGdpGrowthPct": 4.549911,
+          "inflationPct": 7.549136,
+          "debtSustainabilityGapPct": 3.109643982850024,
+          "gapYear": 2026
+        },
+        "SV": {
+          "govRevenuePct": 27.577577,
+          "fiscalBalancePct": -1.992394,
+          "debtToGdpPct": 84.537417,
+          "year": 2026,
+          "primaryBalancePct": 2.865832,
+          "realGdpGrowthPct": 3.3,
+          "inflationPct": 2.5,
+          "debtSustainabilityGapPct": 2.9741478737515568,
+          "gapYear": 2026
+        },
+        "SM": {
+          "govRevenuePct": 21.108957,
+          "fiscalBalancePct": -1.598355,
+          "debtToGdpPct": 77.347551,
+          "year": 2026,
+          "primaryBalancePct": 1.403927,
+          "realGdpGrowthPct": 1.3,
+          "inflationPct": 2.752986,
+          "debtSustainabilityGapPct": 1.557915927151804,
+          "gapYear": 2026
+        },
+        "SO": {
+          "govRevenuePct": 7.175981,
+          "fiscalBalancePct": -0.590606,
+          "debtToGdpPct": null,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "RS": {
+          "govRevenuePct": 40.790518,
+          "fiscalBalancePct": -2.880146,
+          "debtToGdpPct": 42.640058,
+          "year": 2026,
+          "primaryBalancePct": -1.011036,
+          "realGdpGrowthPct": 2.834911,
+          "inflationPct": 5.211534,
+          "debtSustainabilityGapPct": 0.49079721186504477,
+          "gapYear": 2026
+        },
+        "SS": {
+          "govRevenuePct": 28.131541,
+          "fiscalBalancePct": 1.367626,
+          "debtToGdpPct": 57.303693,
+          "year": 2026,
+          "primaryBalancePct": 3.586453,
+          "realGdpGrowthPct": 4.140676,
+          "inflationPct": 14.020676,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "ST": {
+          "govRevenuePct": 21.626088,
+          "fiscalBalancePct": 1.019022,
+          "debtToGdpPct": 50.440072,
+          "year": 2026,
+          "primaryBalancePct": 1.893421,
+          "realGdpGrowthPct": 3.4,
+          "inflationPct": 9.557209,
+          "debtSustainabilityGapPct": 7.0355628847373755,
+          "gapYear": 2026
+        },
+        "SR": {
+          "govRevenuePct": 25.480697,
+          "fiscalBalancePct": -4.687668,
+          "debtToGdpPct": 87.083726,
+          "year": 2026,
+          "primaryBalancePct": -0.024481,
+          "realGdpGrowthPct": 3.926862,
+          "inflationPct": 11.808689,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "SK": {
+          "govRevenuePct": 44.126242,
+          "fiscalBalancePct": -4.361554,
+          "debtToGdpPct": 62.963026,
+          "year": 2026,
+          "primaryBalancePct": -3.056818,
+          "realGdpGrowthPct": 0.600588,
+          "inflationPct": 4.15918,
+          "debtSustainabilityGapPct": -1.426918730045635,
+          "gapYear": 2026
+        },
+        "SI": {
+          "govRevenuePct": 46.975,
+          "fiscalBalancePct": -2.653716,
+          "debtToGdpPct": 65.159409,
+          "year": 2026,
+          "primaryBalancePct": -1.736779,
+          "realGdpGrowthPct": 2,
+          "inflationPct": 2.943578,
+          "debtSustainabilityGapPct": 0.49424473195635366,
+          "gapYear": 2026
+        },
+        "SE": {
+          "govRevenuePct": 47,
+          "fiscalBalancePct": -2.418053,
+          "debtToGdpPct": 36.731305,
+          "year": 2026,
+          "primaryBalancePct": -2.491984,
+          "realGdpGrowthPct": 1.962872,
+          "inflationPct": 1.4578,
+          "debtSustainabilityGapPct": -1.267260199995027,
+          "gapYear": 2026
+        },
+        "SZ": {
+          "govRevenuePct": 31.462366,
+          "fiscalBalancePct": -6.876213,
+          "debtToGdpPct": 50.007292,
+          "year": 2026,
+          "primaryBalancePct": -3.010069,
+          "realGdpGrowthPct": 4.036806,
+          "inflationPct": 3.5,
+          "debtSustainabilityGapPct": -3.034713760445388,
+          "gapYear": 2026
+        },
+        "SC": {
+          "govRevenuePct": 33.258961,
+          "fiscalBalancePct": -2.078021,
+          "debtToGdpPct": 54.975265,
+          "year": 2026,
+          "primaryBalancePct": 0.100597,
+          "realGdpGrowthPct": 1.521452,
+          "inflationPct": 2.566684,
+          "debtSustainabilityGapPct": 0.1873312322657709,
+          "gapYear": 2026
+        },
+        "TD": {
+          "govRevenuePct": 17.197418,
+          "fiscalBalancePct": -1.382281,
+          "debtToGdpPct": 29.947468,
+          "year": 2026,
+          "primaryBalancePct": -0.527585,
+          "realGdpGrowthPct": 5.229568,
+          "inflationPct": 0.505867,
+          "debtSustainabilityGapPct": 0.2958156262186169,
+          "gapYear": 2026
+        },
+        "TG": {
+          "govRevenuePct": 16.708072,
+          "fiscalBalancePct": -6.698804,
+          "debtToGdpPct": 64.686329,
+          "year": 2026,
+          "primaryBalancePct": -4.153733,
+          "realGdpGrowthPct": 5,
+          "inflationPct": 2.8,
+          "debtSustainabilityGapPct": -1.753303573837309,
+          "gapYear": 2026
+        },
+        "TH": {
+          "govRevenuePct": 21.037836,
+          "fiscalBalancePct": -2.229558,
+          "debtToGdpPct": 66.798634,
+          "year": 2026,
+          "primaryBalancePct": -1.025669,
+          "realGdpGrowthPct": 1.5,
+          "inflationPct": 0.915874,
+          "debtSustainabilityGapPct": -0.6165502965839014,
+          "gapYear": 2026
+        },
+        "TJ": {
+          "govRevenuePct": 26.943272,
+          "fiscalBalancePct": -2.5,
+          "debtToGdpPct": 21.875588,
+          "year": 2026,
+          "primaryBalancePct": -1.851171,
+          "realGdpGrowthPct": 6,
+          "inflationPct": 4,
+          "debtSustainabilityGapPct": -0.4077464615384605,
+          "gapYear": 2026
+        },
+        "TM": {
+          "govRevenuePct": 13.823025,
+          "fiscalBalancePct": 0.33969,
+          "debtToGdpPct": 3.687719,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "TL": {
+          "govRevenuePct": 41.370358,
+          "fiscalBalancePct": -51.591228,
+          "debtToGdpPct": 14.939819,
+          "year": 2026,
+          "primaryBalancePct": -51.186226,
+          "realGdpGrowthPct": 4.1,
+          "inflationPct": 2.112171,
+          "debtSustainabilityGapPct": -50.68196537796814,
+          "gapYear": 2026
+        },
+        "TO": {
+          "govRevenuePct": 37.921947,
+          "fiscalBalancePct": -8.35701,
+          "debtToGdpPct": 34.416821,
+          "year": 2026,
+          "primaryBalancePct": -7.994809,
+          "realGdpGrowthPct": 2.322543,
+          "inflationPct": 3.8,
+          "debtSustainabilityGapPct": -6.323266370794414,
+          "gapYear": 2026
+        },
+        "TT": {
+          "govRevenuePct": 30.15979,
+          "fiscalBalancePct": -4.56628,
+          "debtToGdpPct": 84.137944,
+          "year": 2026,
+          "primaryBalancePct": -0.849262,
+          "realGdpGrowthPct": 0.765619,
+          "inflationPct": 1.775038,
+          "debtSustainabilityGapPct": -2.3781378010898653,
+          "gapYear": 2026
+        },
+        "TN": {
+          "govRevenuePct": 28.669625,
+          "fiscalBalancePct": -7.404436,
+          "debtToGdpPct": 84.872119,
+          "year": 2026,
+          "primaryBalancePct": -3.397177,
+          "realGdpGrowthPct": 2.113425,
+          "inflationPct": 6.460053,
+          "debtSustainabilityGapPct": -0.2832888783171299,
+          "gapYear": 2026
+        },
+        "TR": {
+          "govRevenuePct": 29.853783,
+          "fiscalBalancePct": -3.380437,
+          "debtToGdpPct": 25.537235,
+          "year": 2026,
+          "primaryBalancePct": -0.335803,
+          "realGdpGrowthPct": 3.366288,
+          "inflationPct": 28.565671,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2026
+        },
+        "TV": {
+          "govRevenuePct": 112.934135,
+          "fiscalBalancePct": -1.255805,
+          "debtToGdpPct": 3.236429,
+          "year": 2026,
+          "primaryBalancePct": -3.220095,
+          "realGdpGrowthPct": 2.536829,
+          "inflationPct": 3.074804,
+          "debtSustainabilityGapPct": -3.0458669283028286,
+          "gapYear": 2026
+        },
+        "TW": {
+          "govRevenuePct": 15.865635,
+          "fiscalBalancePct": -2.127491,
+          "debtToGdpPct": 27.559609,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "TZ": {
+          "govRevenuePct": 17.352385,
+          "fiscalBalancePct": -3.209962,
+          "debtToGdpPct": 48.714489,
+          "year": 2026,
+          "primaryBalancePct": -0.505759,
+          "realGdpGrowthPct": 5.939618,
+          "inflationPct": 4.006699,
+          "debtSustainabilityGapPct": 1.542651275844361,
+          "gapYear": 2026
+        },
+        "UG": {
+          "govRevenuePct": 15.330318,
+          "fiscalBalancePct": -5.924524,
+          "debtToGdpPct": 54.962095,
+          "year": 2026,
+          "primaryBalancePct": -1.379289,
+          "realGdpGrowthPct": 7.508112,
+          "inflationPct": 3.988992,
+          "debtSustainabilityGapPct": 0.35459607023564166,
+          "gapYear": 2026
+        },
+        "UA": {
+          "govRevenuePct": 43.80912,
+          "fiscalBalancePct": -18.440653,
+          "debtToGdpPct": 122.563363,
+          "year": 2026,
+          "primaryBalancePct": -13.262886,
+          "realGdpGrowthPct": 2,
+          "inflationPct": 6.065544,
+          "debtSustainabilityGapPct": -8.774061853809417,
+          "gapYear": 2026
+        },
+        "UY": {
+          "govRevenuePct": 28.07096,
+          "fiscalBalancePct": -3.751643,
+          "debtToGdpPct": 66.794586,
+          "year": 2026,
+          "primaryBalancePct": -1.480929,
+          "realGdpGrowthPct": 1.800037,
+          "inflationPct": 3.965052,
+          "debtSustainabilityGapPct": 0.05703458046290888,
+          "gapYear": 2026
+        },
+        "US": {
+          "govRevenuePct": 30.437069,
+          "fiscalBalancePct": -7.501779,
+          "debtToGdpPct": 125.781289,
+          "year": 2026,
+          "primaryBalancePct": -3.667531,
+          "realGdpGrowthPct": 2.323695,
+          "inflationPct": 3.22791,
+          "debtSustainabilityGapPct": -0.5973039300618646,
+          "gapYear": 2026
+        },
+        "UZ": {
+          "govRevenuePct": 28.250693,
+          "fiscalBalancePct": -0.820679,
+          "debtToGdpPct": 27.479561,
+          "year": 2026,
+          "primaryBalancePct": 0.192168,
+          "realGdpGrowthPct": 6.473547,
+          "inflationPct": 7.018549,
+          "debtSustainabilityGapPct": 2.6666417566566296,
+          "gapYear": 2026
+        },
+        "VC": {
+          "govRevenuePct": 28.479968,
+          "fiscalBalancePct": -12.101494,
+          "debtToGdpPct": 120.072995,
+          "year": 2026,
+          "primaryBalancePct": -8.434335,
+          "realGdpGrowthPct": 3,
+          "inflationPct": 0.923951,
+          "debtSustainabilityGapPct": -7.397575357710262,
+          "gapYear": 2026
+        },
+        "VE": {
+          "govRevenuePct": 14.452181,
+          "fiscalBalancePct": -5.841671,
+          "debtToGdpPct": 308.747344,
+          "year": 2025,
+          "primaryBalancePct": -5.059044,
+          "realGdpGrowthPct": 1.532861,
+          "inflationPct": 251.953985,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2025
+        },
+        "VN": {
+          "govRevenuePct": 19.787695,
+          "fiscalBalancePct": -1.979172,
+          "debtToGdpPct": 29.789767,
+          "year": 2026,
+          "primaryBalancePct": -1.123396,
+          "realGdpGrowthPct": 7.1,
+          "inflationPct": 4.860778,
+          "debtSustainabilityGapPct": 1.3788065486353713,
+          "gapYear": 2026
+        },
+        "VU": {
+          "govRevenuePct": 28.123816,
+          "fiscalBalancePct": -4.199527,
+          "debtToGdpPct": 43.238056,
+          "year": 2026,
+          "primaryBalancePct": -3.30958,
+          "realGdpGrowthPct": 3.528385,
+          "inflationPct": 4.116683,
+          "debtSustainabilityGapPct": -1.01026768850386,
+          "gapYear": 2026
+        },
+        "WS": {
+          "govRevenuePct": 30.47843,
+          "fiscalBalancePct": 0.559257,
+          "debtToGdpPct": 17.146678,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "YE": {
+          "govRevenuePct": 17.191764,
+          "fiscalBalancePct": -1.233618,
+          "debtToGdpPct": null,
+          "year": 2026,
+          "primaryBalancePct": null,
+          "realGdpGrowthPct": null,
+          "inflationPct": null,
+          "debtSustainabilityGapPct": null,
+          "gapYear": null
+        },
+        "ZA": {
+          "govRevenuePct": 28.464786,
+          "fiscalBalancePct": -4.868299,
+          "debtToGdpPct": 78.918661,
+          "year": 2026,
+          "primaryBalancePct": 0.626035,
+          "realGdpGrowthPct": 1.049002,
+          "inflationPct": 3.927794,
+          "debtSustainabilityGapPct": -0.8348542628865686,
+          "gapYear": 2026
+        },
+        "ZM": {
+          "govRevenuePct": 24.763491,
+          "fiscalBalancePct": -4.867489,
+          "debtToGdpPct": 86.004375,
+          "year": 2026,
+          "primaryBalancePct": 3.059013,
+          "realGdpGrowthPct": 3.757599,
+          "inflationPct": 13.90991,
+          "debtSustainabilityGapPct": null,
+          "gapYear": 2025
+        },
+        "ZW": {
+          "govRevenuePct": 15.952642,
+          "fiscalBalancePct": -0.752845,
+          "debtToGdpPct": 42.332811,
+          "year": 2026,
+          "primaryBalancePct": 0.57675,
+          "realGdpGrowthPct": 4.97228,
+          "inflationPct": 7.975268,
+          "debtSustainabilityGapPct": 4.387568459226115,
+          "gapYear": 2026
+        }
+      },
+      "seededAt": "2026-07-30T02:33:37.696Z"
+    },
+    "reserve-adequacy": {
+      "countries": {
+        "AL": {
+          "reserveMonths": 7.20847522420004,
+          "year": 2025
+        },
+        "DZ": {
+          "reserveMonths": 16.5279389774711,
+          "year": 2024
+        },
+        "AO": {
+          "reserveMonths": 5.32280228774496,
+          "year": 2025
+        },
+        "AG": {
+          "reserveMonths": 3.00447771058165,
+          "year": 2025
+        },
+        "AR": {
+          "reserveMonths": 4.05367056004785,
+          "year": 2025
+        },
+        "AM": {
+          "reserveMonths": 3.40707226150344,
+          "year": 2025
+        },
+        "AW": {
+          "reserveMonths": 5.82381270702624,
+          "year": 2023
+        },
+        "AU": {
+          "reserveMonths": 1.58449713774203,
+          "year": 2025
+        },
+        "AT": {
+          "reserveMonths": 1.80000194622226,
+          "year": 2025
+        },
+        "AZ": {
+          "reserveMonths": 4.9535537097736,
+          "year": 2025
+        },
+        "BS": {
+          "reserveMonths": 3.95320627474854,
+          "year": 2024
+        },
+        "BH": {
+          "reserveMonths": 1.41650733987614,
+          "year": 2024
+        },
+        "BD": {
+          "reserveMonths": 3.91092137452087,
+          "year": 2025
+        },
+        "BY": {
+          "reserveMonths": 3.03689694114409,
+          "year": 2025
+        },
+        "BE": {
+          "reserveMonths": 1.0069571758158,
+          "year": 2025
+        },
+        "BZ": {
+          "reserveMonths": 3.49170054807951,
+          "year": 2025
+        },
+        "BT": {
+          "reserveMonths": 6.61474201389783,
+          "year": 2024
+        },
+        "BO": {
+          "reserveMonths": 0.52085247812024,
+          "year": 2025
+        },
+        "BA": {
+          "reserveMonths": 6.48581729707099,
+          "year": 2024
+        },
+        "BW": {
+          "reserveMonths": 4.75676435737337,
+          "year": 2024
+        },
+        "BR": {
+          "reserveMonths": 8.4209144130353,
+          "year": 2025
+        },
+        "BN": {
+          "reserveMonths": 7.90557661596612,
+          "year": 2025
+        },
+        "BG": {
+          "reserveMonths": 7.15757796408695,
+          "year": 2025
+        },
+        "BI": {
+          "reserveMonths": 0.734240336787315,
+          "year": 2023
+        },
+        "CV": {
+          "reserveMonths": 8.68827573096616,
+          "year": 2025
+        },
+        "KH": {
+          "reserveMonths": 7.9138346038867,
+          "year": 2025
+        },
+        "CM": {
+          "reserveMonths": 5.27511403162855,
+          "year": 2024
+        },
+        "CA": {
+          "reserveMonths": 1.59858615113231,
+          "year": 2025
+        },
+        "KY": {
+          "reserveMonths": 0.264692804269898,
+          "year": 2024
+        },
+        "CL": {
+          "reserveMonths": 4.21740649827425,
+          "year": 2025
+        },
+        "CN": {
+          "reserveMonths": 11.9430464176221,
+          "year": 2025
+        },
+        "CO": {
+          "reserveMonths": 7.2960917611185,
+          "year": 2025
+        },
+        "KM": {
+          "reserveMonths": 7.61057543164725,
+          "year": 2023
+        },
+        "CD": {
+          "reserveMonths": 1.69039445082268,
+          "year": 2023
+        },
+        "CG": {
+          "reserveMonths": 1.60424664602081,
+          "year": 2021
+        },
+        "CR": {
+          "reserveMonths": 4.64887001164502,
+          "year": 2025
+        },
+        "HR": {
+          "reserveMonths": 0.693330579617451,
+          "year": 2024
+        },
+        "CY": {
+          "reserveMonths": 0.531870461097574,
+          "year": 2025
+        },
+        "CZ": {
+          "reserveMonths": 7.64375278763755,
+          "year": 2025
+        },
+        "DK": {
+          "reserveMonths": 4.40117717539998,
+          "year": 2024
+        },
+        "DJ": {
+          "reserveMonths": 0.850017224988693,
+          "year": 2024
+        },
+        "DM": {
+          "reserveMonths": 3.86511620663956,
+          "year": 2025
+        },
+        "DO": {
+          "reserveMonths": 3.97266381953501,
+          "year": 2025
+        },
+        "EC": {
+          "reserveMonths": 2.85678667473877,
+          "year": 2025
+        },
+        "EG": {
+          "reserveMonths": 4.35960492991794,
+          "year": 2025
+        },
+        "SV": {
+          "reserveMonths": 2.44784100759352,
+          "year": 2025
+        },
+        "EE": {
+          "reserveMonths": 0.724652822971812,
+          "year": 2025
+        },
+        "SZ": {
+          "reserveMonths": 1.90984811575409,
+          "year": 2024
+        },
+        "ET": {
+          "reserveMonths": 1.7806234891991,
+          "year": 2024
+        },
+        "FJ": {
+          "reserveMonths": 4.44060726544964,
+          "year": 2024
+        },
+        "FI": {
+          "reserveMonths": 1.65449979136764,
+          "year": 2025
+        },
+        "FR": {
+          "reserveMonths": 3.45139872054209,
+          "year": 2025
+        },
+        "GM": {
+          "reserveMonths": 4.78961581785449,
+          "year": 2024
+        },
+        "GE": {
+          "reserveMonths": 3.0148081106958,
+          "year": 2025
+        },
+        "DE": {
+          "reserveMonths": 3.10966865624185,
+          "year": 2025
+        },
+        "GH": {
+          "reserveMonths": 1.6387674511702,
+          "year": 2024
+        },
+        "GR": {
+          "reserveMonths": 1.29467737992629,
+          "year": 2024
+        },
+        "GD": {
+          "reserveMonths": 4.35595272315115,
+          "year": 2025
+        },
+        "GT": {
+          "reserveMonths": 7.38533210656899,
+          "year": 2024
+        },
+        "GN": {
+          "reserveMonths": 1.27721250120659,
+          "year": 2024
+        },
+        "GY": {
+          "reserveMonths": 0.849936413375672,
+          "year": 2023
+        },
+        "HT": {
+          "reserveMonths": 6.76937385035421,
+          "year": 2024
+        },
+        "HN": {
+          "reserveMonths": 5.30281739179415,
+          "year": 2025
+        },
+        "HK": {
+          "reserveMonths": 5.68845238308097,
+          "year": 2023
+        },
+        "HU": {
+          "reserveMonths": 3.49530681990442,
+          "year": 2025
+        },
+        "IS": {
+          "reserveMonths": 5.32133601257325,
+          "year": 2025
+        },
+        "IN": {
+          "reserveMonths": 7.8761457217327,
+          "year": 2025
+        },
+        "ID": {
+          "reserveMonths": 5.51085431823322,
+          "year": 2025
+        },
+        "IQ": {
+          "reserveMonths": 11.2072163127604,
+          "year": 2024
+        },
+        "IE": {
+          "reserveMonths": 0.1406788790813,
+          "year": 2024
+        },
+        "IL": {
+          "reserveMonths": 14.5416215671135,
+          "year": 2025
+        },
+        "IT": {
+          "reserveMonths": 5.67049211863462,
+          "year": 2025
+        },
+        "JM": {
+          "reserveMonths": 6.47177111104504,
+          "year": 2024
+        },
+        "JP": {
+          "reserveMonths": 14.0093945645036,
+          "year": 2025
+        },
+        "JO": {
+          "reserveMonths": 7.79308209953668,
+          "year": 2024
+        },
+        "KZ": {
+          "reserveMonths": 7.38619113398577,
+          "year": 2025
+        },
+        "KE": {
+          "reserveMonths": 4.02886150176484,
+          "year": 2024
+        },
+        "KR": {
+          "reserveMonths": 6.46273036949367,
+          "year": 2025
+        },
+        "XK": {
+          "reserveMonths": 1.81703789628856,
+          "year": 2025
+        },
+        "KW": {
+          "reserveMonths": 8.4055579755159,
+          "year": 2025
+        },
+        "KG": {
+          "reserveMonths": 3.9493282772254,
+          "year": 2024
+        },
+        "LA": {
+          "reserveMonths": 2.39405886523859,
+          "year": 2024
+        },
+        "LV": {
+          "reserveMonths": 2.01703711886477,
+          "year": 2025
+        },
+        "LB": {
+          "reserveMonths": 13.6032284132075,
+          "year": 2023
+        },
+        "LS": {
+          "reserveMonths": 5.53505392293475,
+          "year": 2024
+        },
+        "LR": {
+          "reserveMonths": 2.01571374383086,
+          "year": 2024
+        },
+        "LY": {
+          "reserveMonths": 31.5696640862316,
+          "year": 2023
+        },
+        "LT": {
+          "reserveMonths": 1.17257910250961,
+          "year": 2025
+        },
+        "LU": {
+          "reserveMonths": 0.0634965031275956,
+          "year": 2025
+        },
+        "MO": {
+          "reserveMonths": 9.00280543481805,
+          "year": 2024
+        },
+        "MG": {
+          "reserveMonths": 5.50471378808998,
+          "year": 2024
+        },
+        "MY": {
+          "reserveMonths": 4.45057833503037,
+          "year": 2024
+        },
+        "MV": {
+          "reserveMonths": 1.30326255855386,
+          "year": 2024
+        },
+        "MT": {
+          "reserveMonths": 0.246124766994321,
+          "year": 2024
+        },
+        "MR": {
+          "reserveMonths": 5.41378065178569,
+          "year": 2021
+        },
+        "MU": {
+          "reserveMonths": 5.16133343497892,
+          "year": 2024
+        },
+        "MX": {
+          "reserveMonths": 3.74625370139359,
+          "year": 2025
+        },
+        "MD": {
+          "reserveMonths": 5.39708074479519,
+          "year": 2025
+        },
+        "MN": {
+          "reserveMonths": 3.33485033562729,
+          "year": 2024
+        },
+        "ME": {
+          "reserveMonths": 3.94727078638566,
+          "year": 2025
+        },
+        "MA": {
+          "reserveMonths": 5.92686959641173,
+          "year": 2025
+        },
+        "MZ": {
+          "reserveMonths": 3.4400564661862,
+          "year": 2024
+        },
+        "NA": {
+          "reserveMonths": 3.95760383889023,
+          "year": 2024
+        },
+        "NP": {
+          "reserveMonths": 12.9718425174618,
+          "year": 2024
+        },
+        "NL": {
+          "reserveMonths": 0.729998349874489,
+          "year": 2024
+        },
+        "NZ": {
+          "reserveMonths": 3.90496667135683,
+          "year": 2025
+        },
+        "NI": {
+          "reserveMonths": 5.72174836008153,
+          "year": 2024
+        },
+        "NG": {
+          "reserveMonths": 7.11796797049567,
+          "year": 2025
+        },
+        "MK": {
+          "reserveMonths": 4.56577897422715,
+          "year": 2025
+        },
+        "NO": {
+          "reserveMonths": 4.36557594204946,
+          "year": 2025
+        },
+        "OM": {
+          "reserveMonths": 3.68674849054903,
+          "year": 2024
+        },
+        "PK": {
+          "reserveMonths": 3.75530612751488,
+          "year": 2025
+        },
+        "PA": {
+          "reserveMonths": 1.74344034680151,
+          "year": 2025
+        },
+        "PG": {
+          "reserveMonths": 4.89986226575573,
+          "year": 2024
+        },
+        "PY": {
+          "reserveMonths": 5.55063003989379,
+          "year": 2024
+        },
+        "PE": {
+          "reserveMonths": 10.4232112154747,
+          "year": 2025
+        },
+        "PH": {
+          "reserveMonths": 7.33206019042327,
+          "year": 2025
+        },
+        "PL": {
+          "reserveMonths": 5.86929668938286,
+          "year": 2025
+        },
+        "PT": {
+          "reserveMonths": 3.14206718624252,
+          "year": 2024
+        },
+        "QA": {
+          "reserveMonths": 7.45258764673881,
+          "year": 2025
+        },
+        "RO": {
+          "reserveMonths": 5.52846387485555,
+          "year": 2025
+        },
+        "RU": {
+          "reserveMonths": 16.7768277290964,
+          "year": 2024
+        },
+        "RW": {
+          "reserveMonths": 4.18468259139653,
+          "year": 2024
+        },
+        "WS": {
+          "reserveMonths": 12.367377903483,
+          "year": 2025
+        },
+        "SM": {
+          "reserveMonths": 2.89106960627006,
+          "year": 2023
+        },
+        "ST": {
+          "reserveMonths": 3.45560369469119,
+          "year": 2024
+        },
+        "SA": {
+          "reserveMonths": 15.5945460088131,
+          "year": 2025
+        },
+        "RS": {
+          "reserveMonths": 6.1610204619856,
+          "year": 2025
+        },
+        "SC": {
+          "reserveMonths": 3.66691276850985,
+          "year": 2024
+        },
+        "SL": {
+          "reserveMonths": 1.75019478536003,
+          "year": 2024
+        },
+        "SG": {
+          "reserveMonths": 4.38779137884008,
+          "year": 2025
+        },
+        "SK": {
+          "reserveMonths": 1.54482931360653,
+          "year": 2025
+        },
+        "SI": {
+          "reserveMonths": 0.678336557947523,
+          "year": 2025
+        },
+        "SB": {
+          "reserveMonths": 8.90361515684531,
+          "year": 2024
+        },
+        "ZA": {
+          "reserveMonths": 6.22465629934582,
+          "year": 2025
+        },
+        "SS": {
+          "reserveMonths": 0.174842702708606,
+          "year": 2023
+        },
+        "ES": {
+          "reserveMonths": 2.01778146515219,
+          "year": 2025
+        },
+        "LK": {
+          "reserveMonths": 2.86493580597895,
+          "year": 2024
+        },
+        "KN": {
+          "reserveMonths": 4.44346765051242,
+          "year": 2025
+        },
+        "LC": {
+          "reserveMonths": 2.98855227734655,
+          "year": 2025
+        },
+        "VC": {
+          "reserveMonths": 4.74629227149168,
+          "year": 2025
+        },
+        "SR": {
+          "reserveMonths": 3.29201860179272,
+          "year": 2025
+        },
+        "SE": {
+          "reserveMonths": 2.14189659264151,
+          "year": 2025
+        },
+        "CH": {
+          "reserveMonths": 13.1988008035668,
+          "year": 2025
+        },
+        "TJ": {
+          "reserveMonths": 5.74872211910103,
+          "year": 2025
+        },
+        "TH": {
+          "reserveMonths": 8.02619323823452,
+          "year": 2025
+        },
+        "TL": {
+          "reserveMonths": 6.07323457410572,
+          "year": 2025
+        },
+        "TO": {
+          "reserveMonths": 10.7961837711338,
+          "year": 2024
+        },
+        "TT": {
+          "reserveMonths": 5.7279682868554,
+          "year": 2024
+        },
+        "TN": {
+          "reserveMonths": 4.51241564590908,
+          "year": 2024
+        },
+        "TR": {
+          "reserveMonths": 4.72961263910876,
+          "year": 2024
+        },
+        "UG": {
+          "reserveMonths": 2.39405352978069,
+          "year": 2024
+        },
+        "UA": {
+          "reserveMonths": 5.02796081189491,
+          "year": 2024
+        },
+        "AE": {
+          "reserveMonths": 5.19940206842546,
+          "year": 2024
+        },
+        "GB": {
+          "reserveMonths": 1.38773026145435,
+          "year": 2025
+        },
+        "US": {
+          "reserveMonths": 2.83633267220007,
+          "year": 2025
+        },
+        "UY": {
+          "reserveMonths": 8.6663277251808,
+          "year": 2025
+        },
+        "UZ": {
+          "reserveMonths": 10.2786124689433,
+          "year": 2024
+        },
+        "VU": {
+          "reserveMonths": 12.5956510649933,
+          "year": 2022
+        },
+        "VN": {
+          "reserveMonths": 2.37407817485002,
+          "year": 2024
+        },
+        "PS": {
+          "reserveMonths": 2.34819177993939,
+          "year": 2025
+        },
+        "ZM": {
+          "reserveMonths": 3.29291146061725,
+          "year": 2024
+        },
+        "ZW": {
+          "reserveMonths": 0.519375437391082,
+          "year": 2024
+        }
+      },
+      "seededAt": "2026-07-30T02:33:46.368Z"
+    },
+    "external-debt": {
+      "countries": {
+        "AL": {
+          "debtToReservesRatio": 0.144,
+          "year": 2024
+        },
+        "DZ": {
+          "debtToReservesRatio": 0.024,
+          "year": 2024
+        },
+        "AO": {
+          "debtToReservesRatio": 0.429,
+          "year": 2024
+        },
+        "AR": {
+          "debtToReservesRatio": 1.185,
+          "year": 2024
+        },
+        "AM": {
+          "debtToReservesRatio": 0.688,
+          "year": 2024
+        },
+        "AZ": {
+          "debtToReservesRatio": 0.016,
+          "year": 2024
+        },
+        "BD": {
+          "debtToReservesRatio": 0.453,
+          "year": 2024
+        },
+        "BY": {
+          "debtToReservesRatio": 0.684,
+          "year": 2024
+        },
+        "BZ": {
+          "debtToReservesRatio": 0.024,
+          "year": 2024
+        },
+        "BO": {
+          "debtToReservesRatio": 1.096,
+          "year": 2024
+        },
+        "BA": {
+          "debtToReservesRatio": 0.326,
+          "year": 2024
+        },
+        "BW": {
+          "debtToReservesRatio": 0.042,
+          "year": 2024
+        },
+        "BR": {
+          "debtToReservesRatio": 0.235,
+          "year": 2024
+        },
+        "BG": {
+          "debtToReservesRatio": 0.212,
+          "year": 2022
+        },
+        "BI": {
+          "debtToReservesRatio": 0.029,
+          "year": 2024
+        },
+        "CV": {
+          "debtToReservesRatio": 0.308,
+          "year": 2024
+        },
+        "KH": {
+          "debtToReservesRatio": 0.156,
+          "year": 2024
+        },
+        "CM": {
+          "debtToReservesRatio": 0.188,
+          "year": 2024
+        },
+        "CF": {
+          "debtToReservesRatio": 0.258,
+          "year": 2024
+        },
+        "TD": {
+          "debtToReservesRatio": 0.019,
+          "year": 2024
+        },
+        "CN": {
+          "debtToReservesRatio": 0.348,
+          "year": 2024
+        },
+        "CO": {
+          "debtToReservesRatio": 0.29,
+          "year": 2024
+        },
+        "CD": {
+          "debtToReservesRatio": 0.093,
+          "year": 2024
+        },
+        "CG": {
+          "debtToReservesRatio": 0.866,
+          "year": 2024
+        },
+        "DJ": {
+          "debtToReservesRatio": 0.79,
+          "year": 2024
+        },
+        "DM": {
+          "debtToReservesRatio": 1.055,
+          "year": 2024
+        },
+        "DO": {
+          "debtToReservesRatio": 0.281,
+          "year": 2024
+        },
+        "EC": {
+          "debtToReservesRatio": 0.064,
+          "year": 2024
+        },
+        "EG": {
+          "debtToReservesRatio": 0.634,
+          "year": 2024
+        },
+        "SV": {
+          "debtToReservesRatio": 0.55,
+          "year": 2024
+        },
+        "SZ": {
+          "debtToReservesRatio": 0.13,
+          "year": 2024
+        },
+        "ET": {
+          "debtToReservesRatio": 0.093,
+          "year": 2024
+        },
+        "FJ": {
+          "debtToReservesRatio": 0.635,
+          "year": 2024
+        },
+        "GA": {
+          "debtToReservesRatio": 0.238,
+          "year": 2024
+        },
+        "GM": {
+          "debtToReservesRatio": 0.098,
+          "year": 2024
+        },
+        "GE": {
+          "debtToReservesRatio": 0.768,
+          "year": 2024
+        },
+        "GH": {
+          "debtToReservesRatio": 0.586,
+          "year": 2024
+        },
+        "GD": {
+          "debtToReservesRatio": 0.038,
+          "year": 2024
+        },
+        "GT": {
+          "debtToReservesRatio": 0.005,
+          "year": 2024
+        },
+        "GN": {
+          "debtToReservesRatio": 0.281,
+          "year": 2024
+        },
+        "GY": {
+          "debtToReservesRatio": 0.047,
+          "year": 2024
+        },
+        "HT": {
+          "debtToReservesRatio": 0.038,
+          "year": 2024
+        },
+        "HN": {
+          "debtToReservesRatio": 0.173,
+          "year": 2024
+        },
+        "IN": {
+          "debtToReservesRatio": 0.199,
+          "year": 2024
+        },
+        "ID": {
+          "debtToReservesRatio": 0.416,
+          "year": 2024
+        },
+        "IQ": {
+          "debtToReservesRatio": 0.007,
+          "year": 2024
+        },
+        "JM": {
+          "debtToReservesRatio": 0.381,
+          "year": 2024
+        },
+        "JO": {
+          "debtToReservesRatio": 0.674,
+          "year": 2024
+        },
+        "KZ": {
+          "debtToReservesRatio": 0.297,
+          "year": 2024
+        },
+        "KE": {
+          "debtToReservesRatio": 0.162,
+          "year": 2024
+        },
+        "XK": {
+          "debtToReservesRatio": 1.031,
+          "year": 2024
+        },
+        "KG": {
+          "debtToReservesRatio": 0.314,
+          "year": 2024
+        },
+        "LA": {
+          "debtToReservesRatio": 0.496,
+          "year": 2024
+        },
+        "LB": {
+          "debtToReservesRatio": 0.572,
+          "year": 2024
+        },
+        "LS": {
+          "debtToReservesRatio": 0.003,
+          "year": 2024
+        },
+        "MG": {
+          "debtToReservesRatio": 0.036,
+          "year": 2024
+        },
+        "MV": {
+          "debtToReservesRatio": 0.162,
+          "year": 2024
+        },
+        "MR": {
+          "debtToReservesRatio": 0.105,
+          "year": 2024
+        },
+        "MU": {
+          "debtToReservesRatio": 1.082,
+          "year": 2024
+        },
+        "MX": {
+          "debtToReservesRatio": 0.239,
+          "year": 2024
+        },
+        "MD": {
+          "debtToReservesRatio": 0.372,
+          "year": 2024
+        },
+        "MN": {
+          "debtToReservesRatio": 0.335,
+          "year": 2024
+        },
+        "ME": {
+          "debtToReservesRatio": 0.107,
+          "year": 2024
+        },
+        "MA": {
+          "debtToReservesRatio": 0.155,
+          "year": 2024
+        },
+        "MZ": {
+          "debtToReservesRatio": 0.315,
+          "year": 2024
+        },
+        "MM": {
+          "debtToReservesRatio": 0.007,
+          "year": 2024
+        },
+        "NP": {
+          "debtToReservesRatio": 0.02,
+          "year": 2024
+        },
+        "NI": {
+          "debtToReservesRatio": 0.162,
+          "year": 2024
+        },
+        "NG": {
+          "debtToReservesRatio": 0.483,
+          "year": 2024
+        },
+        "MK": {
+          "debtToReservesRatio": 0.548,
+          "year": 2024
+        },
+        "PK": {
+          "debtToReservesRatio": 0.363,
+          "year": 2024
+        },
+        "PG": {
+          "debtToReservesRatio": 0.033,
+          "year": 2024
+        },
+        "PY": {
+          "debtToReservesRatio": 0.372,
+          "year": 2024
+        },
+        "PE": {
+          "debtToReservesRatio": 0.116,
+          "year": 2024
+        },
+        "PH": {
+          "debtToReservesRatio": 0.189,
+          "year": 2024
+        },
+        "RU": {
+          "debtToReservesRatio": 0.108,
+          "year": 2022
+        },
+        "RW": {
+          "debtToReservesRatio": 0.255,
+          "year": 2024
+        },
+        "WS": {
+          "debtToReservesRatio": 0.115,
+          "year": 2024
+        },
+        "ST": {
+          "debtToReservesRatio": 0.135,
+          "year": 2024
+        },
+        "RS": {
+          "debtToReservesRatio": 0.029,
+          "year": 2024
+        },
+        "SL": {
+          "debtToReservesRatio": 0.401,
+          "year": 2024
+        },
+        "SB": {
+          "debtToReservesRatio": 0.043,
+          "year": 2024
+        },
+        "ZA": {
+          "debtToReservesRatio": 0.616,
+          "year": 2024
+        },
+        "LK": {
+          "debtToReservesRatio": 0.955,
+          "year": 2024
+        },
+        "LC": {
+          "debtToReservesRatio": 0.178,
+          "year": 2024
+        },
+        "VC": {
+          "debtToReservesRatio": 0.231,
+          "year": 2024
+        },
+        "SR": {
+          "debtToReservesRatio": 0.127,
+          "year": 2023
+        },
+        "TJ": {
+          "debtToReservesRatio": 0.202,
+          "year": 2024
+        },
+        "TH": {
+          "debtToReservesRatio": 0.246,
+          "year": 2024
+        },
+        "TL": {
+          "debtToReservesRatio": 0.001,
+          "year": 2024
+        },
+        "TN": {
+          "debtToReservesRatio": 1.705,
+          "year": 2024
+        },
+        "TR": {
+          "debtToReservesRatio": 0.96,
+          "year": 2024
+        },
+        "UG": {
+          "debtToReservesRatio": 0.149,
+          "year": 2024
+        },
+        "UA": {
+          "debtToReservesRatio": 0.32,
+          "year": 2024
+        },
+        "UZ": {
+          "debtToReservesRatio": 0.138,
+          "year": 2024
+        },
+        "VU": {
+          "debtToReservesRatio": 0.187,
+          "year": 2024
+        },
+        "VN": {
+          "debtToReservesRatio": 0.433,
+          "year": 2024
+        },
+        "YE": {
+          "debtToReservesRatio": 0.408,
+          "year": 2024
+        },
+        "ZM": {
+          "debtToReservesRatio": 0.683,
+          "year": 2024
+        },
+        "ZW": {
+          "debtToReservesRatio": 8.18,
+          "year": 2024
+        }
+      },
+      "seededAt": "2026-07-30T02:33:36.691Z"
+    },
+    "fuel-stocks": {
+      "countries": {
+        "AU": {
+          "fuelStockDays": 50,
+          "meetsObligation": false,
+          "belowObligation": true
+        },
+        "JP": {
+          "fuelStockDays": 183,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "KR": {
+          "fuelStockDays": 191,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "NZ": {
+          "fuelStockDays": 92,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "AT": {
+          "fuelStockDays": 116,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "BE": {
+          "fuelStockDays": 183,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "CZ": {
+          "fuelStockDays": 114,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "DK": {
+          "fuelStockDays": 459,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "FI": {
+          "fuelStockDays": 191,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "FR": {
+          "fuelStockDays": 125,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "DE": {
+          "fuelStockDays": 122,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "GR": {
+          "fuelStockDays": 146,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "HU": {
+          "fuelStockDays": 206,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "IE": {
+          "fuelStockDays": 109,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "IT": {
+          "fuelStockDays": 125,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "LV": {
+          "fuelStockDays": 113,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "LT": {
+          "fuelStockDays": 163,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "LU": {
+          "fuelStockDays": 104,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "PL": {
+          "fuelStockDays": 119,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "PT": {
+          "fuelStockDays": 130,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "SK": {
+          "fuelStockDays": 164,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "ES": {
+          "fuelStockDays": 106,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "SE": {
+          "fuelStockDays": 176,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "CH": {
+          "fuelStockDays": 167,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "TR": {
+          "fuelStockDays": 93,
+          "meetsObligation": true,
+          "belowObligation": false
+        },
+        "GB": {
+          "fuelStockDays": 115,
+          "meetsObligation": true,
+          "belowObligation": false
+        }
+      },
+      "dataMonth": "2026-04",
+      "seededAt": "2026-07-30T02:33:37.933Z"
+    },
+    "sovereign-wealth": {
+      "countries": {
+        "AE": {
+          "funds": [
+            {
+              "fund": "icd",
+              "aum": 320000000000,
+              "aumYear": 2023,
+              "source": "manifest_primary",
+              "access": 0.5,
+              "liquidity": 0.5,
+              "transparency": 0.4,
+              "rawMonths": 7.969258589511753,
+              "effectiveMonths": 0.7969258589511754
+            },
+            {
+              "fund": "adq",
+              "aum": 199000000000,
+              "aumYear": 2024,
+              "source": "manifest_primary",
+              "access": 0.5,
+              "liquidity": 0.4,
+              "transparency": 0.4,
+              "rawMonths": 4.955882685352622,
+              "effectiveMonths": 0.3964706148282098
+            }
+          ],
+          "totalEffectiveMonths": 1.1933964737793852,
+          "annualImports": 481851599727.706,
+          "denominatorImports": 481851599727.706,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 4,
+          "matchedFunds": 2,
+          "completeness": 0.5
+        },
+        "SG": {
+          "funds": [
+            {
+              "fund": "temasek",
+              "aum": 401709000000,
+              "aumYear": 2026,
+              "source": "wikipedia_infobox",
+              "access": 0.4,
+              "liquidity": 0.5,
+              "transparency": 0.9,
+              "rawMonths": 5.603680972921086,
+              "effectiveMonths": 1.0086625751257954
+            }
+          ],
+          "totalEffectiveMonths": 1.0086625751257954,
+          "annualImports": 860239550269.609,
+          "denominatorImports": 860239550269.609,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 2,
+          "matchedFunds": 1,
+          "completeness": 0.5
+        },
+        "CN": {
+          "funds": [
+            {
+              "fund": "cic",
+              "aum": 1350000000000,
+              "aumYear": 2023,
+              "source": "manifest_primary",
+              "access": 0.4,
+              "liquidity": 0.5,
+              "transparency": 0.3,
+              "rawMonths": 4.920600789097842,
+              "effectiveMonths": 0.2952360473458705
+            },
+            {
+              "fund": "nssf",
+              "aum": 400000000000,
+              "aumYear": 2023,
+              "source": "manifest_primary",
+              "access": 0.2,
+              "liquidity": 0.5,
+              "transparency": 0.4,
+              "rawMonths": 1.4579557893623236,
+              "effectiveMonths": 0.05831823157449295
+            }
+          ],
+          "totalEffectiveMonths": 0.35355427892036345,
+          "annualImports": 3292280901123.49,
+          "denominatorImports": 3292280901123.49,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 2,
+          "matchedFunds": 2,
+          "completeness": 1
+        },
+        "KR": {
+          "funds": [
+            {
+              "fund": "kic",
+              "aum": 182000000000,
+              "aumYear": 2024,
+              "source": "manifest_primary",
+              "access": 0.3,
+              "liquidity": 0.7,
+              "transparency": 0.7,
+              "rawMonths": 2.8730895114858432,
+              "effectiveMonths": 0.42234415818841886
+            }
+          ],
+          "totalEffectiveMonths": 0.42234415818841886,
+          "annualImports": 760157311935.097,
+          "denominatorImports": 760157311935.097,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 1,
+          "matchedFunds": 1,
+          "completeness": 1
+        },
+        "OM": {
+          "funds": [
+            {
+              "fund": "oia",
+              "aum": 50000000000,
+              "aumYear": 2024,
+              "source": "manifest_primary",
+              "access": 0.5,
+              "liquidity": 0.5,
+              "transparency": 0.5,
+              "rawMonths": 11.480696306470387,
+              "effectiveMonths": 1.4350870383087984
+            }
+          ],
+          "totalEffectiveMonths": 1.4350870383087984,
+          "annualImports": 52261638491.5475,
+          "denominatorImports": 52261638491.5475,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 1,
+          "matchedFunds": 1,
+          "completeness": 1
+        },
+        "BH": {
+          "funds": [
+            {
+              "fund": "mumtalakat",
+              "aum": 19000000000,
+              "aumYear": 2024,
+              "source": "manifest_primary",
+              "access": 0.4,
+              "liquidity": 0.4,
+              "transparency": 0.6,
+              "rawMonths": 6.8998044218371515,
+              "effectiveMonths": 0.6623812244963666
+            }
+          ],
+          "totalEffectiveMonths": 0.6623812244963666,
+          "annualImports": 33044414893.617,
+          "denominatorImports": 33044414893.617,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 1,
+          "matchedFunds": 1,
+          "completeness": 1
+        },
+        "TL": {
+          "funds": [
+            {
+              "fund": "petroleum-fund",
+              "aum": 22000000000,
+              "aumYear": 2024,
+              "source": "manifest_primary",
+              "access": 0.7,
+              "liquidity": 0.9,
+              "transparency": 0.9,
+              "rawMonths": 166.69478588812456,
+              "effectiveMonths": 94.51594359856662
+            }
+          ],
+          "totalEffectiveMonths": 94.51594359856662,
+          "annualImports": 1583732800,
+          "denominatorImports": 1583732800,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 1,
+          "matchedFunds": 1,
+          "completeness": 1
+        },
+        "AU": {
+          "funds": [
+            {
+              "fund": "future-fund",
+              "aum": 192000000000,
+              "aumYear": 2024,
+              "source": "manifest_primary",
+              "access": 0.3,
+              "liquidity": 0.5,
+              "transparency": 0.8,
+              "rawMonths": 5.654117694146424,
+              "effectiveMonths": 0.678494123297571
+            }
+          ],
+          "totalEffectiveMonths": 0.678494123297571,
+          "annualImports": 407490633310.53,
+          "denominatorImports": 407490633310.53,
+          "reexportShareOfImports": 0,
+          "expectedFunds": 1,
+          "matchedFunds": 1,
+          "completeness": 1
+        }
+      },
+      "seededAt": "2026-07-30T02:34:51.857Z",
+      "manifestVersion": 1,
+      "sourceMix": {
+        "official": 0,
+        "ifswf": 0,
+        "wikipedia_list": 0,
+        "wikipedia_infobox": 1,
+        "manifest_primary": 9
+      },
+      "sourceAttribution": {
+        "wikipedia": "Wikipedia — List of sovereign wealth funds + per-fund articles (CC-BY-SA 4.0)"
+      },
+      "summary": {
+        "expectedCountries": 12,
+        "expectedFunds": 18,
+        "matchedCountries": 8,
+        "matchedFunds": 10,
+        "countryStatuses": [
+          {
+            "country": "AE",
+            "status": "partial",
+            "matched": 2,
+            "expected": 4,
+            "reason": null
+          },
+          {
+            "country": "AU",
+            "status": "complete",
+            "matched": 1,
+            "expected": 1,
+            "reason": null
+          },
+          {
+            "country": "BH",
+            "status": "complete",
+            "matched": 1,
+            "expected": 1,
+            "reason": null
+          },
+          {
+            "country": "CN",
+            "status": "complete",
+            "matched": 2,
+            "expected": 2,
+            "reason": null
+          },
+          {
+            "country": "KR",
+            "status": "complete",
+            "matched": 1,
+            "expected": 1,
+            "reason": null
+          },
+          {
+            "country": "KW",
+            "status": "missing",
+            "matched": 0,
+            "expected": 2,
+            "reason": "no fund AUM matched"
+          },
+          {
+            "country": "NO",
+            "status": "missing",
+            "matched": 0,
+            "expected": 1,
+            "reason": "no fund AUM matched"
+          },
+          {
+            "country": "OM",
+            "status": "complete",
+            "matched": 1,
+            "expected": 1,
+            "reason": null
+          },
+          {
+            "country": "QA",
+            "status": "missing",
+            "matched": 0,
+            "expected": 1,
+            "reason": "no fund AUM matched"
+          },
+          {
+            "country": "SA",
+            "status": "missing",
+            "matched": 0,
+            "expected": 1,
+            "reason": "no fund AUM matched"
+          },
+          {
+            "country": "SG",
+            "status": "partial",
+            "matched": 1,
+            "expected": 2,
+            "reason": null
+          },
+          {
+            "country": "TL",
+            "status": "complete",
+            "matched": 1,
+            "expected": 1,
+            "reason": null
+          }
+        ]
+      },
+      "reexportAdjustments": []
+    },
+    "wb-external-debt": {
+      "countries": {
+        "AF": {
+          "value": 2.48,
+          "year": 2024,
+          "yearMismatch": false,
+          "shortTermDebtUsd": 442598969.1,
+          "gniUsd": 17854760026.7681,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2024
+        },
+        "AL": {
+          "value": 4.07,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1240828000,
+          "gniUsd": 30481959825.2063,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "DZ": {
+          "value": 0.62,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1756000000,
+          "gniUsd": 281607541093.641,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "AO": {
+          "value": 4.95,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 5808502070.9,
+          "gniUsd": 117252556229.501,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "AR": {
+          "value": 7.26,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 48583029942.6,
+          "gniUsd": 669197425528.36,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "AM": {
+          "value": 12.33,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 3498904000,
+          "gniUsd": 28372716199.5326,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "AZ": {
+          "value": 0.3,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 218427000,
+          "gniUsd": 73951167058.8235,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BD": {
+          "value": 2.69,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 12945219000,
+          "gniUsd": 481373981511.075,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BY": {
+          "value": 10.76,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 9928836000,
+          "gniUsd": 92292540177.7351,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BZ": {
+          "value": 0.42,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 13148000,
+          "gniUsd": 3161950511.7292,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BJ": {
+          "value": 5.23,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1269746000,
+          "gniUsd": 24286348686.2057,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BT": {
+          "value": 0,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 0,
+          "gniUsd": 3383529296.08293,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BO": {
+          "value": 1.01,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 635358000,
+          "gniUsd": 63063368437.0478,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BA": {
+          "value": 9.43,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 3073363000,
+          "gniUsd": 32600169886.6538,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BW": {
+          "value": 0.75,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 144667000,
+          "gniUsd": 19216757473.63,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BR": {
+          "value": 3.82,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 84282230000,
+          "gniUsd": 2205743179103.41,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BG": {
+          "value": 8.05,
+          "year": 2022,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 9990624000,
+          "gniUsd": 124075962649.326,
+          "shortTermDebtUsdYear": 2022,
+          "gniUsdYear": 2025
+        },
+        "BF": {
+          "value": 0,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 0,
+          "gniUsd": 26003645060.981,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "BI": {
+          "value": 0.08,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2650120.6,
+          "gniUsd": 3356671562.85622,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CV": {
+          "value": 12.86,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 388090000,
+          "gniUsd": 3017027161.19515,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "KH": {
+          "value": 8.53,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 4296540000,
+          "gniUsd": 50363443785.8068,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CM": {
+          "value": 1.64,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 950896478.7,
+          "gniUsd": 58012378538.2103,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CF": {
+          "value": 3.9,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 126466537.1,
+          "gniUsd": 3242395787.5765,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TD": {
+          "value": 0.14,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 29493438,
+          "gniUsd": 20500249472.2371,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CN": {
+          "value": 6.74,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1305871555000,
+          "gniUsd": 19384278970053.2,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CO": {
+          "value": 4.24,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 19052808000,
+          "gniUsd": 449477904285.178,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "KM": {
+          "value": 0,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 0,
+          "gniUsd": 1824491068.23675,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CD": {
+          "value": 0.54,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 476015882.2,
+          "gniUsd": 87661648132.9916,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CG": {
+          "value": 4.5,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 656777369.7,
+          "gniUsd": 14601079025.1075,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "CI": {
+          "value": 4.55,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 4284366000,
+          "gniUsd": 94235813305.7248,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "DJ": {
+          "value": 10.94,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 518113119.7,
+          "gniUsd": 4737614693.49344,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "DM": {
+          "value": 24.62,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 173670714.9,
+          "gniUsd": 705351851.851852,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "DO": {
+          "value": 3.47,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 4147766000,
+          "gniUsd": 119665023063.787,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "EC": {
+          "value": 0.49,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 626221000,
+          "gniUsd": 126715535528.002,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "EG": {
+          "value": 8.87,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 30995280000,
+          "gniUsd": 349408930232.221,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SV": {
+          "value": 7.74,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2649118000,
+          "gniUsd": 34211410000,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SZ": {
+          "value": 1.49,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 69859000,
+          "gniUsd": 4691814925.07663,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ET": {
+          "value": 0.28,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 351666101.2,
+          "gniUsd": 126143243948.566,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "FJ": {
+          "value": 18.07,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1053306000,
+          "gniUsd": 5827509463.3786,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GA": {
+          "value": 0.73,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 152095387.1,
+          "gniUsd": 20891631221.1741,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GM": {
+          "value": 2.4,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 61554160.3,
+          "gniUsd": 2559747118.23131,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GE": {
+          "value": 13.23,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 4731048000,
+          "gniUsd": 35750340654.7763,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GH": {
+          "value": 2.44,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2619647898.2,
+          "gniUsd": 107224848154.296,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GD": {
+          "value": 1.17,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 15671026.1,
+          "gniUsd": 1341773228.56948,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GT": {
+          "value": 0.14,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 170700000,
+          "gniUsd": 121832769297.375,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GN": {
+          "value": 1.39,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 377760206.9,
+          "gniUsd": 27142419744.3206,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GW": {
+          "value": 0.03,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 817000,
+          "gniUsd": 2549069580.94048,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "GY": {
+          "value": 0.29,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 63729586.2,
+          "gniUsd": 22226007218.2254,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "HT": {
+          "value": 0.4,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 129224000,
+          "gniUsd": 32083817264.3434,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "HN": {
+          "value": 4.82,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1761202000,
+          "gniUsd": 36558824861.0211,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "IN": {
+          "value": 3.57,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 139568064000,
+          "gniUsd": 3906711841713.51,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ID": {
+          "value": 4.63,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 65123015000,
+          "gniUsd": 1407196008381.88,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "IR": {
+          "value": 0.63,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2284966218.4,
+          "gniUsd": 361889136552.074,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "IQ": {
+          "value": 0.28,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 726167000,
+          "gniUsd": 254798606537.195,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "JM": {
+          "value": 10.73,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2399479000,
+          "gniUsd": 22357114803.2033,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "JO": {
+          "value": 29.51,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 17898373000.8,
+          "gniUsd": 60657799014.0845,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "KZ": {
+          "value": 6.9,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 19594364000,
+          "gniUsd": 284104931358.247,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "KE": {
+          "value": 1.5,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2007772843.5,
+          "gniUsd": 133806688702.217,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "XK": {
+          "value": 12.31,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1563862000,
+          "gniUsd": 12708326006.1439,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "KG": {
+          "value": 7.14,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1597664000,
+          "gniUsd": 22369752068.95,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "LA": {
+          "value": 6.35,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1096995000,
+          "gniUsd": 17278050750.0247,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "LB": {
+          "value": 74.09,
+          "year": 2024,
+          "yearMismatch": false,
+          "shortTermDebtUsd": 19044742491,
+          "gniUsd": 25703873441.3408,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2024
+        },
+        "LS": {
+          "value": 0.1,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 3237695.3,
+          "gniUsd": 3151686884.30924,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "LR": {
+          "value": 0,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 0,
+          "gniUsd": 4881938900,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MG": {
+          "value": 0.53,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 101609087,
+          "gniUsd": 19165450147.0358,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MW": {
+          "value": 0.51,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 75414708.3,
+          "gniUsd": 14756725420.2181,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MV": {
+          "value": 2.3,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 159814000,
+          "gniUsd": 6939732452.89633,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ML": {
+          "value": 0.14,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 41800976.4,
+          "gniUsd": 29216350332.3531,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MR": {
+          "value": 1.84,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 213336000,
+          "gniUsd": 11621320367.7621,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MU": {
+          "value": 62.83,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 11155487000,
+          "gniUsd": 17755453310.6498,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MX": {
+          "value": 3.44,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 61174418000,
+          "gniUsd": 1776305335400.56,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MD": {
+          "value": 10.98,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2234526000,
+          "gniUsd": 20343909340.5486,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MN": {
+          "value": 10.43,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2348117000,
+          "gniUsd": 22522239145.8998,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ME": {
+          "value": 2.53,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 235211000,
+          "gniUsd": 9303872698.01082,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MA": {
+          "value": 4.17,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 7504234000,
+          "gniUsd": 179878245703.346,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MZ": {
+          "value": 5.97,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1211768676.1,
+          "gniUsd": 20298584787.1515,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MM": {
+          "value": 0.08,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 63958931.7,
+          "gniUsd": 79987773809.5238,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "NP": {
+          "value": 0.92,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 422881000,
+          "gniUsd": 46065540648.189,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "NI": {
+          "value": 6.4,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1346178000,
+          "gniUsd": 21031157113.0916,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "NE": {
+          "value": 0.14,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 29661801.3,
+          "gniUsd": 21330594773.8196,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "NG": {
+          "value": 7.89,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 22227040000,
+          "gniUsd": 281704192171.425,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "MK": {
+          "value": 17.49,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 3179473000,
+          "gniUsd": 18183139432.7539,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "PK": {
+          "value": 2.41,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 9609166000,
+          "gniUsd": 398207214476.221,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "PG": {
+          "value": 0.4,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 121139804.7,
+          "gniUsd": 30160658653.8415,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "PY": {
+          "value": 7.52,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 3559265376,
+          "gniUsd": 47346592807.7707,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "PE": {
+          "value": 3.36,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 10474499000,
+          "gniUsd": 312161545072.085,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "PH": {
+          "value": 3.74,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 20945356000,
+          "gniUsd": 559930093023.41,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "RU": {
+          "value": 2.58,
+          "year": 2022,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 65566000000,
+          "gniUsd": 2543378729358.74,
+          "shortTermDebtUsdYear": 2022,
+          "gniUsdYear": 2025
+        },
+        "RW": {
+          "value": 3.13,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 500836916.3,
+          "gniUsd": 16011146337.0773,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "WS": {
+          "value": 5.33,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 68537000,
+          "gniUsd": 1285852894.62018,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ST": {
+          "value": 0.75,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 7948319.2,
+          "gniUsd": 1062325758.41402,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SN": {
+          "value": 13.23,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 4570012000,
+          "gniUsd": 34537521493.5869,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "RS": {
+          "value": 1.07,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1000649000,
+          "gniUsd": 93669728762.765,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SL": {
+          "value": 2.35,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 173895709.7,
+          "gniUsd": 7413957905.53848,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SB": {
+          "value": 1.67,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 29193000,
+          "gniUsd": 1751318939.40104,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SO": {
+          "value": 5.81,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 752004524,
+          "gniUsd": 12944200000.2658,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ZA": {
+          "value": 11.18,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 46828461000,
+          "gniUsd": 418992808524.509,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "LK": {
+          "value": 5.45,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 5817999373.9,
+          "gniUsd": 106802803147.293,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "LC": {
+          "value": 3.28,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 79529000,
+          "gniUsd": 2425744444.44444,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "VC": {
+          "value": 5.28,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 65000000,
+          "gniUsd": 1230170370.37037,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SD": {
+          "value": 8.08,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 4735902795.6,
+          "gniUsd": 58614383547.6148,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "SR": {
+          "value": 4.9,
+          "year": 2023,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 205701910.3,
+          "gniUsd": 4194657768.57246,
+          "shortTermDebtUsdYear": 2023,
+          "gniUsdYear": 2025
+        },
+        "SY": {
+          "value": 2.69,
+          "year": 2022,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 616052477.3,
+          "gniUsd": 22932930814.4853,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2022
+        },
+        "TJ": {
+          "value": 3.55,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 871155000,
+          "gniUsd": 24557335180.8617,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TZ": {
+          "value": 3.84,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 3382972201.4,
+          "gniUsd": 88069152013.9878,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TH": {
+          "value": 12.35,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 69392055000,
+          "gniUsd": 562095014449.647,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TL": {
+          "value": 0.06,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 1264000,
+          "gniUsd": 2026080430.13339,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TG": {
+          "value": 1.23,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 146089000,
+          "gniUsd": 11915668551.8089,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TO": {
+          "value": 0,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 0,
+          "gniUsd": 723351984.272333,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TN": {
+          "value": 28.39,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 15929973000,
+          "gniUsd": 56113423772.2973,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TR": {
+          "value": 11.32,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 178133840000,
+          "gniUsd": 1574034229288.06,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "TM": {
+          "value": 0.06,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 30905000,
+          "gniUsd": 50332496459.1189,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "UG": {
+          "value": 0.86,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 519028549.9,
+          "gniUsd": 60570387009.2414,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "UA": {
+          "value": 8.63,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 18325600000,
+          "gniUsd": 212427312784.397,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "UZ": {
+          "value": 3.87,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 5699285000,
+          "gniUsd": 147409506131.386,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "VU": {
+          "value": 7.73,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 114910000,
+          "gniUsd": 1486446259.54706,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "VN": {
+          "value": 7.41,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 37087391086.6,
+          "gniUsd": 500206158992.002,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ZM": {
+          "value": 10.61,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 2792341916.4,
+          "gniUsd": 26313122397.8926,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        },
+        "ZW": {
+          "value": 7.84,
+          "year": 2024,
+          "yearMismatch": true,
+          "shortTermDebtUsd": 3967157036.7,
+          "gniUsd": 50609511092.3694,
+          "shortTermDebtUsdYear": 2024,
+          "gniUsdYear": 2025
+        }
+      },
+      "sources": [
+        "https://data.worldbank.org/indicator/DT.DOD.DSTC.CD",
+        "https://data.worldbank.org/indicator/NY.GNP.MKTP.CD"
+      ],
+      "seededAt": "2026-07-30T02:40:13.567Z"
+    }
+  }
+}

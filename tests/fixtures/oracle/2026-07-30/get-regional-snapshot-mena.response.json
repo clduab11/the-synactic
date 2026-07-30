@@ -1,0 +1,329 @@
+{
+  "snapshot": {
+    "regionId": "mena",
+    "generatedAt": 1785378826981,
+    "meta": {
+      "snapshotId": "019fb0deeadf-be7dcc102bc8",
+      "modelVersion": "0.1.0",
+      "scoringVersion": "1.1.0",
+      "geographyVersion": "1.0.0",
+      "snapshotConfidence": 0.673,
+      "missingInputs": [
+        "supply_chain:chokepoints:v4",
+        "intelligence:cross-source-signals:v1",
+        "relay:oref:history:v1",
+        "economic:stress-index:v1",
+        "economic:spr:v1",
+        "aviation:delays:intl:v3",
+        "aviation:notam:closures:v2",
+        "intelligence:gpsjam:v2"
+      ],
+      "staleInputs": [
+        "risk:scores:sebuf:stale:v8"
+      ],
+      "validUntil": 1785379128922,
+      "triggerReason": "scheduled_6h",
+      "narrativeProvider": "",
+      "narrativeModel": ""
+    },
+    "regime": {
+      "label": "calm",
+      "previousLabel": "calm",
+      "transitionedAt": 0,
+      "transitionDriver": ""
+    },
+    "balance": {
+      "coercivePressure": 0,
+      "domesticFragility": 0.491,
+      "capitalStress": 0.255,
+      "energyVulnerability": 0.125,
+      "allianceCohesion": 0.3,
+      "maritimeAccess": 0.7,
+      "energyLeverage": 1,
+      "netBalance": 0.449,
+      "pressures": [
+        {
+          "axis": "domestic_fragility",
+          "description": "YE CII 60 (criticality 1.0)",
+          "magnitude": 0.6,
+          "evidenceIds": [
+            "cii:YE"
+          ],
+          "orientation": "pressure"
+        },
+        {
+          "axis": "capital_stress",
+          "description": "Macro signals verdict: CASH",
+          "magnitude": 1,
+          "evidenceIds": [
+            "macro:verdict"
+          ],
+          "orientation": "pressure"
+        }
+      ],
+      "buffers": [
+        {
+          "axis": "energy_leverage",
+          "description": "6 top-15 producers in region: AE, IQ, IR, KW, QA, SA",
+          "magnitude": 1,
+          "evidenceIds": [
+            "producer:AE",
+            "producer:IQ",
+            "producer:IR",
+            "producer:KW",
+            "producer:QA",
+            "producer:SA"
+          ],
+          "orientation": "buffer"
+        }
+      ]
+    },
+    "actors": [],
+    "leverageEdges": [],
+    "scenarioSets": [
+      {
+        "horizon": "24h",
+        "lanes": [
+          {
+            "name": "base",
+            "probability": 0.571,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "escalation",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "containment",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "fragmentation",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          }
+        ]
+      },
+      {
+        "horizon": "7d",
+        "lanes": [
+          {
+            "name": "base",
+            "probability": 0.571,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "escalation",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "containment",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "fragmentation",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          }
+        ]
+      },
+      {
+        "horizon": "30d",
+        "lanes": [
+          {
+            "name": "base",
+            "probability": 0.571,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "escalation",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "containment",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          },
+          {
+            "name": "fragmentation",
+            "probability": 0.143,
+            "triggerIds": [],
+            "consequences": [],
+            "transmissions": []
+          }
+        ]
+      }
+    ],
+    "transmissionPaths": [],
+    "triggers": {
+      "active": [],
+      "watching": [],
+      "dormant": [
+        {
+          "id": "hormuz_transit_drop",
+          "description": "Hormuz transit count drops sharply vs 7d trailing avg",
+          "threshold": {
+            "metric": "chokepoint:hormuz:transit_count",
+            "operator": "delta_lt",
+            "value": -0.2,
+            "windowMinutes": 1440,
+            "baseline": "trailing_7d"
+          },
+          "activated": false,
+          "activatedAt": 0,
+          "scenarioLane": "escalation",
+          "evidenceIds": []
+        },
+        {
+          "id": "iran_cii_spike",
+          "description": "Iran CII jumps significantly vs 7d trailing avg",
+          "threshold": {
+            "metric": "cii:IR:combined_score",
+            "operator": "delta_gt",
+            "value": 15,
+            "windowMinutes": 720,
+            "baseline": "trailing_7d"
+          },
+          "activated": false,
+          "activatedAt": 0,
+          "scenarioLane": "escalation",
+          "evidenceIds": []
+        },
+        {
+          "id": "red_sea_critical",
+          "description": "Bab el-Mandeb threat level reaches critical",
+          "threshold": {
+            "metric": "chokepoint:babelm:threat_level",
+            "operator": "gte",
+            "value": 0.8,
+            "windowMinutes": 60,
+            "baseline": "fixed"
+          },
+          "activated": false,
+          "activatedAt": 0,
+          "scenarioLane": "escalation",
+          "evidenceIds": []
+        },
+        {
+          "id": "mena_coercive_high",
+          "description": "MENA coercive pressure breaches threshold",
+          "threshold": {
+            "metric": "balance:mena:coercive_pressure",
+            "operator": "gte",
+            "value": 0.7,
+            "windowMinutes": 360,
+            "baseline": "fixed"
+          },
+          "activated": false,
+          "activatedAt": 0,
+          "scenarioLane": "escalation",
+          "evidenceIds": []
+        },
+        {
+          "id": "oref_cluster",
+          "description": "OREF active alert cluster",
+          "threshold": {
+            "metric": "oref:active_alerts_count",
+            "operator": "gt",
+            "value": 10,
+            "windowMinutes": 60,
+            "baseline": "fixed"
+          },
+          "activated": false,
+          "activatedAt": 0,
+          "scenarioLane": "escalation",
+          "evidenceIds": []
+        }
+      ]
+    },
+    "mobility": {
+      "airspace": [],
+      "flightCorridors": [],
+      "airports": [],
+      "rerouteIntensity": 0.02,
+      "notamClosures": []
+    },
+    "evidence": [
+      {
+        "id": "cii:IR",
+        "type": "cii_spike",
+        "source": "risk-scores",
+        "summary": "IR CII 50 (trend TREND_DIRECTION_STABLE)",
+        "confidence": 0.9,
+        "observedAt": 1785375301394,
+        "theater": "",
+        "corridor": ""
+      },
+      {
+        "id": "cii:IL",
+        "type": "cii_spike",
+        "source": "risk-scores",
+        "summary": "IL CII 50 (trend TREND_DIRECTION_STABLE)",
+        "confidence": 0.9,
+        "observedAt": 1785375301394,
+        "theater": "",
+        "corridor": ""
+      },
+      {
+        "id": "cii:IQ",
+        "type": "cii_spike",
+        "source": "risk-scores",
+        "summary": "IQ CII 50 (trend TREND_DIRECTION_STABLE)",
+        "confidence": 0.9,
+        "observedAt": 1785375301394,
+        "theater": "",
+        "corridor": ""
+      }
+    ],
+    "narrative": {
+      "situation": {
+        "text": "",
+        "evidenceIds": []
+      },
+      "balanceAssessment": {
+        "text": "",
+        "evidenceIds": []
+      },
+      "outlook24h": {
+        "text": "",
+        "evidenceIds": []
+      },
+      "outlook7d": {
+        "text": "",
+        "evidenceIds": []
+      },
+      "outlook30d": {
+        "text": "",
+        "evidenceIds": []
+      },
+      "watchItems": []
+    }
+  }
+}

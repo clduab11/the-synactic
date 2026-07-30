@@ -1,0 +1,2016 @@
+{
+  "cached_at": "2026-07-30T06:20:56.881Z",
+  "stale": false,
+  "data": {
+    "advisories": {
+      "byCountry": {
+        "MN": "normal",
+        "UY": "caution",
+        "BS": "caution",
+        "KE": "caution",
+        "LA": "caution",
+        "BE": "caution",
+        "CD": "do-not-travel",
+        "AR": "normal",
+        "SZ": "caution",
+        "LC": "caution",
+        "HT": "do-not-travel",
+        "NE": "do-not-travel",
+        "MT": "normal",
+        "FM": "normal"
+      },
+      "advisories": [
+        {
+          "title": "Democratic Republic of the Congo",
+          "link": "https://www.gov.uk/foreign-travel-advice/democratic-republic-of-the-congo",
+          "pubDate": "2026-07-29T15:56:43.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "CD"
+        },
+        {
+          "title": "Honduras",
+          "link": "https://www.gov.uk/foreign-travel-advice/honduras",
+          "pubDate": "2026-07-29T15:40:19.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "HN"
+        },
+        {
+          "title": "Guatemala",
+          "link": "https://www.gov.uk/foreign-travel-advice/guatemala",
+          "pubDate": "2026-07-29T15:39:54.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "GT"
+        },
+        {
+          "title": "Mongolia - Level 1: Exercise Normal Precautions",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/mongolia-travel-advisory.html",
+          "pubDate": "2026-07-29T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "normal",
+          "country": "MN"
+        },
+        {
+          "title": "U.S. Social Security &#8211; Federal Benefits Services Visit",
+          "link": "https://co.usembassy.gov/u-s-social-security-federal-benefits-services-visit-10/",
+          "pubDate": "2026-07-28T18:31:26.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Cape Verde",
+          "link": "https://www.gov.uk/foreign-travel-advice/cape-verde",
+          "pubDate": "2026-07-28T15:13:41.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "CV"
+        },
+        {
+          "title": "Slovenia",
+          "link": "https://www.gov.uk/foreign-travel-advice/slovenia",
+          "pubDate": "2026-07-28T14:59:27.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "SI"
+        },
+        {
+          "title": "Japan",
+          "link": "https://www.gov.uk/foreign-travel-advice/japan",
+          "pubDate": "2026-07-28T09:16:33.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "JP"
+        },
+        {
+          "title": "Euro-GASP external quality assessment scheme for Neisseria gonorrhoeae antimicrobial susceptibility testing – 2025",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/euro-gasp-external-quality-assessment-scheme-neisseria-gonorrhoeae-4",
+          "pubDate": "2026-07-28T07:48:30.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Progress in the prevention of vertical transmission of viral hepatitis B in the EU/EEA",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/progress-prevention-vertical-transmission-viral-hepatitis-b-eueea",
+          "pubDate": "2026-07-28T07:15:43.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Prevention of hepatitis B and C in the European Union and European Economic Area, 2026",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/prevention-hepatitis-b-and-c-european-union-and-european-economic-area-2026",
+          "pubDate": "2026-07-28T07:03:24.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Survey on testing strategies for hepatitis B virus in blood, and tissues and cell donors within the EU/EEA",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/survey-testing-strategies-hepatitis-b-virus-blood-and-tissues-and-cell-donors-0",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Survey on testing strategies for hepatitis C virus in blood, and tissues and cell donors within the EU/EEA",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/survey-testing-strategies-hepatitis-c-virus-blood-and-tissues-and-cell-donors",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Hepatitis C - Annual Epidemiological Report for 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/hepatitis-c-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Hepatitis B - Annual Epidemiological Report for 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/hepatitis-b-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-28T06:00:07.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Uruguay - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/uruguay-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "UY"
+        },
+        {
+          "title": "The Bahamas - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/the-bahamas-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "BS"
+        },
+        {
+          "title": "Kenya - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/kenya-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "KE"
+        },
+        {
+          "title": "Laos - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/laos-travel-advisory.html",
+          "pubDate": "2026-07-28T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "LA"
+        },
+        {
+          "title": "WHO: Integration, innovation and community leadership key to ending HIV, hepatitis and STIs",
+          "link": "https://www.who.int/news/item/27-07-2026-who--integration--innovation-and-community-leadership-key-to-ending-hiv--hepatitis-and-stis",
+          "pubDate": "2026-07-27T15:45:12.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Germany",
+          "link": "https://www.gov.uk/foreign-travel-advice/germany",
+          "pubDate": "2026-07-27T14:32:10.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Eritrea",
+          "link": "https://www.gov.uk/foreign-travel-advice/eritrea",
+          "pubDate": "2026-07-27T14:03:05.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "ER"
+        },
+        {
+          "title": "Djibouti",
+          "link": "https://www.gov.uk/foreign-travel-advice/djibouti",
+          "pubDate": "2026-07-27T14:03:02.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "DJ"
+        },
+        {
+          "title": "Uganda",
+          "link": "https://www.gov.uk/foreign-travel-advice/uganda",
+          "pubDate": "2026-07-27T14:00:28.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "UG"
+        },
+        {
+          "title": "Georgia",
+          "link": "https://www.gov.uk/foreign-travel-advice/georgia",
+          "pubDate": "2026-07-27T12:40:10.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "GE"
+        },
+        {
+          "title": "Tetanus - Annual Epidemiological Report 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/tetanus-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-27T11:53:59.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Diphtheria - Annual Epidemiological Report for 2024",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/diphtheria-annual-epidemiological-report-2024",
+          "pubDate": "2026-07-27T09:58:54.000Z",
+          "source": "ECDC Publications",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "France",
+          "link": "https://www.gov.uk/foreign-travel-advice/france",
+          "pubDate": "2026-07-26T10:36:19.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "FR"
+        },
+        {
+          "title": "Saudi Arabia",
+          "link": "https://www.gov.uk/foreign-travel-advice/saudi-arabia",
+          "pubDate": "2026-07-25T17:34:42.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "SA"
+        },
+        {
+          "title": "Algeria",
+          "link": "https://www.gov.uk/foreign-travel-advice/algeria",
+          "pubDate": "2026-07-24T16:25:37.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "DZ"
+        },
+        {
+          "title": "Tunisia",
+          "link": "https://www.gov.uk/foreign-travel-advice/tunisia",
+          "pubDate": "2026-07-24T16:07:53.000Z",
+          "source": "UK FCDO",
+          "sourceCountry": "UK",
+          "level": "info",
+          "country": "TN"
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Abu Dhabi and U.S. Consulate General Dubai &#8211; July 24, 2026",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-embassy-abu-dhabi-and-u-s-consulate-general-dubai-july-24-2026/",
+          "pubDate": "2026-07-24T14:30:28.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Communicable disease threats report, 18 - 24 July 2026, week 30",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-18-24-july-2026-week-30",
+          "pubDate": "2026-07-24T13:55:28.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "WHO launches seven strategies to prevent drowning",
+          "link": "https://www.who.int/news/item/23-07-2026-who-launches-seven-strategies-to-prevent-drowning",
+          "pubDate": "2026-07-23T08:00:24.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Belgium - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/belgium-travel-advisory.html",
+          "pubDate": "2026-07-23T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "BE"
+        },
+        {
+          "title": "Security Alert &#8211; July 22, 2026 &#8211; Worldwide Caution for U.S. Citizens",
+          "link": "https://pk.usembassy.gov/security-alert-july-22-2026-worldwide-caution-for-u-s-citizens/",
+          "pubDate": "2026-07-23T04:24:22.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Straight Talk About Crime in Colombia",
+          "link": "https://co.usembassy.gov/straight-talk-about-crime-in-colombia/",
+          "pubDate": "2026-07-22T18:39:43.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Ebola disease outbreak in the Democratic Republic of the Congo and Uganda",
+          "link": "https://www.ecdc.europa.eu/en/ebola-outbreak-democratic-republic-congo-and-uganda",
+          "pubDate": "2026-07-21T15:36:21.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "UN report: Global hunger levels ease for third consecutive year as regional disparities persist",
+          "link": "https://www.who.int/news/item/21-07-2026-un-report--global-hunger-levels-ease-for-third-consecutive-year-as-regional-disparities-persist",
+          "pubDate": "2026-07-21T08:26:17.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "WHO marks 25 years of Research4Life, advancing access to scientific knowledge in more than 120 countries",
+          "link": "https://www.who.int/news/item/21-07-2026-who-marks-25-years-of-research4life--advancing-access-to-scientific-knowledge-in-more-than-120-countries",
+          "pubDate": "2026-07-20T15:34:49.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Road deaths fall by 21% globally but stronger action is needed to save lives",
+          "link": "https://www.who.int/news/item/20-07-2026-road-deaths-fall-by-21--globally-but-stronger-action-is-needed-to-save-lives",
+          "pubDate": "2026-07-20T07:09:01.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert: Worldwide Caution",
+          "link": "https://th.usembassy.gov/security-alert-worldwide-caution/",
+          "pubDate": "2026-07-19T01:42:24.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "WHO Member States continue negotiations on the Pathogen Access and Benefit Sharing Annex",
+          "link": "https://www.who.int/news/item/20-07-2026-who-member-states-continue-negotiations-on-the-pathogen-access-and-benefit-sharing-annex",
+          "pubDate": "2026-07-18T07:27:54.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Natural Disaster Alert: Earthquake in Southwestern Mexico",
+          "link": "https://mx.usembassy.gov/natural-disaster-alert-earthquake-in-southwestern-mexico/",
+          "pubDate": "2026-07-17T20:00:07.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Abu Dhabi and U.S. Consulate General Dubai &#8211; July 17, 2026",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-embassy-abu-dhabi-and-u-s-consulate-general-dubai-july-17-2026/",
+          "pubDate": "2026-07-17T19:59:00.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Security Alert: Temporary Airspace Closure in Bogota (July 20, 2026)",
+          "link": "https://co.usembassy.gov/security-alert-temporary-airspace-closure-in-bogota-july-20-2026/",
+          "pubDate": "2026-07-17T19:34:06.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Demonstration Alert: Nationwide Celebrations and Possible Protests &#8211; July 20, 2026",
+          "link": "https://co.usembassy.gov/demonstration-alert-nationwide-celebrations-and-possible-protests-july-20-2026/",
+          "pubDate": "2026-07-17T19:06:57.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Demonstration Alert: U.S. Embassy New Delhi, India (July 17, 2026)",
+          "link": "https://in.usembassy.gov/demonstration-alert-u-s-embassy-new-delhi-india-july-17-2026/",
+          "pubDate": "2026-07-17T16:05:49.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Communicable disease threats report, 13 - 17 July 2026, week 29",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-13-17-july-2026-week-29",
+          "pubDate": "2026-07-17T14:46:54.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 2 - Chikungunya in Costa Rica",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/chikungunya-costa-rica",
+          "pubDate": "2026-07-16T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CR"
+        },
+        {
+          "title": "New WHO guidelines: up to 45% of dementia risk could be prevented or delayed",
+          "link": "https://www.who.int/news/item/15-07-2026-new-who-guidelines--up-to-45--of-dementia-risk-could-be-prevented-or-delayed",
+          "pubDate": "2026-07-15T12:15:58.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Democratic Republic of the Congo - Level 4: Do Not Travel",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/democratic-republic-of-the-congo-travel-advisory.html",
+          "pubDate": "2026-07-15T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "do-not-travel",
+          "country": "CD"
+        },
+        {
+          "title": "Level 2 - Ebola Bundibugyo Virus Disease in the Democratic Republic of the Congo and Uganda",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/ebola-drc-uganda",
+          "pubDate": "2026-07-15T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CD"
+        },
+        {
+          "title": "Level 3 - Ebola Bundibugyo Virus Disease in Parts of the Democratic Republic of the Congo",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level3/ebola-democratic-republic-of-the-congo",
+          "pubDate": "2026-07-15T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CD"
+        },
+        {
+          "title": "Global childhood immunization coverage inches forward despite conflict and hesitancy – UNICEF, WHO",
+          "link": "https://www.who.int/news/item/15-07-2026-global-childhood-immunization-coverage-inches-forward-despite-conflict-and-hesitancy---unicef--who",
+          "pubDate": "2026-07-15T00:01:54.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Abu Dhabi, United Arab Emirates (July 13, 2026)",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-embassy-abu-dhabi-united-arab-emirates-july-13-2026/",
+          "pubDate": "2026-07-13T18:36:34.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Security Alert: Cancellation of Consular Appointments (July 13, 2026)",
+          "link": "https://ae.usembassy.gov/cancellation-of-consular-appointments/",
+          "pubDate": "2026-07-13T18:31:59.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "El Salvador validated by WHO as having eliminated trachoma as a public health problem",
+          "link": "https://www.who.int/news/item/13-07-2026-el-salvador-validated-by-who-as-having-eliminated-trachoma-as-a-public-health-problem",
+          "pubDate": "2026-07-13T09:57:57.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Communicable disease threats report, 6 - 10 July 2026, week 28",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-6-10-july-2026-week-28",
+          "pubDate": "2026-07-10T13:43:00.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Argentina - Level 1: Exercise Normal Precautions",
+          "link": "https://travel.state.gov/content/tsg_aem/us/en/home/international-travel/travel-advisories/destination.arg.html",
+          "pubDate": "2026-07-10T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "normal",
+          "country": "AR"
+        },
+        {
+          "title": "Eswatini - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/tsg_aem/us/en/home/international-travel/travel-advisories/destination.swz.html",
+          "pubDate": "2026-07-10T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "SZ"
+        },
+        {
+          "title": "Saint Lucia - Level 2: Exercise Increased Caution",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/saint-lucia-travel-advisory.html",
+          "pubDate": "2026-07-10T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "caution",
+          "country": "LC"
+        },
+        {
+          "title": "Haiti - Level 4: Do Not Travel",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/haiti-travel-advisory.html",
+          "pubDate": "2026-07-10T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "do-not-travel",
+          "country": "HT"
+        },
+        {
+          "title": "Niger - Level 4: Do Not Travel",
+          "link": "https://travel.state.gov/content/tsg_aem/us/en/home/international-travel/travel-advisories/destination.ner.html",
+          "pubDate": "2026-07-09T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "do-not-travel",
+          "country": "NE"
+        },
+        {
+          "title": "Malta - Level 1: Exercise Normal Precautions",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/malta-travel-advisory.html",
+          "pubDate": "2026-07-09T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "normal",
+          "country": "MT"
+        },
+        {
+          "title": "Alert: U.S. Embassy – July 8, 2026 – Thailand Customs Policy Update",
+          "link": "https://th.usembassy.gov/alert-u-s-embassy-july-8-2026-thailand-customs-policy-update/",
+          "pubDate": "2026-07-09T03:32:44.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "WHO calls for urgent action as new cancer cases are projected to nearly double by 2050",
+          "link": "https://www.who.int/news/item/08-07-2026-who-calls-for-urgent-action-as-new-cancer-cases-are-projected-to-nearly-double-by-2050",
+          "pubDate": "2026-07-08T11:51:29.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "French Guiana - Level 1: Exercise Normal Precautions",
+          "link": "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/french-guiana-travel-advisory.html",
+          "pubDate": "2026-07-08T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "normal",
+          "country": ""
+        },
+        {
+          "title": "Federated States of Micronesia - Level 1: Exercise Normal Precautions",
+          "link": "https://travel.state.gov/content/tsg_aem/us/en/home/international-travel/travel-advisories/destination.fsm.html",
+          "pubDate": "2026-07-07T05:00:00.000Z",
+          "source": "US State Dept",
+          "sourceCountry": "US",
+          "level": "normal",
+          "country": "FM"
+        },
+        {
+          "title": "Air Suvidha 2.0 Passenger Health Self-Declaration Form",
+          "link": "https://in.usembassy.gov/air-suvidha-2-0-passenger-health-self-declaration-form/",
+          "pubDate": "2026-07-06T10:21:25.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Demonstration Alert: U.S. Embassy Warsaw, Poland (July 2, 2026)",
+          "link": "https://pl.usembassy.gov/demonstration-alert-u-s-embassy-warsaw-poland-july-2-2026/",
+          "pubDate": "2026-07-06T07:34:36.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "Safety Message: Expected Large-Scale Crowds and Traffic Disruptions on July 5th, 2026",
+          "link": "https://mx.usembassy.gov/safety-message-expected-large-scale-crowds-and-traffic-disruptions-on-july-5th-2026/",
+          "pubDate": "2026-07-04T18:19:18.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Communicable disease threats report, 27 June - 3 July 2026, week 27",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-27-june-3-july-2026-week-27",
+          "pubDate": "2026-07-03T13:56:12.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "WHO adds first diagnostic test for Ebola Bundibugyo virus to its Emergency Use Listing",
+          "link": "https://www.who.int/news/item/02-07-2026-who-adds-first-diagnostic-test-for-ebola-bundibugyo-virus-to-its-emergency-use-listing",
+          "pubDate": "2026-07-02T16:21:23.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Patient enrolment begins in a scientific trial to identify the first effective treatments for Bundibugyo virus disease",
+          "link": "https://www.who.int/news/item/02-07-2026-patient-enrolment-begins-in-a-scientific-trial-to-identify-the-first-effective-treatments-for-bundibugyo-virus-disease",
+          "pubDate": "2026-07-02T12:19:20.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Demonstration Alert: Protest Near U.S. Embassy in Mexico City",
+          "link": "https://mx.usembassy.gov/demonstration-alert-protest-near-u-s-embassy-in-mexico-city/",
+          "pubDate": "2026-06-30T19:16:48.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Outcomes of the Second Pax Silica Summit",
+          "link": "https://pl.usembassy.gov/outcomes-of-the-second-pax-silica-summit/",
+          "pubDate": "2026-06-29T12:33:53.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "Communicable disease threats report, 19 - 26 June 2026, week 26",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-19-26-june-2026-week-26",
+          "pubDate": "2026-06-26T13:52:25.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Avian influenza overview March–May 2026",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/avian-influenza-overview-march-may-2026",
+          "pubDate": "2026-06-26T09:12:00.000Z",
+          "source": "ECDC Avian Influenza",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Weather Alert: Kolkata Heavy Rainfall and Flooding",
+          "link": "https://in.usembassy.gov/weather-alert-kolkata-heavy-rainfall-and-flooding/",
+          "pubDate": "2026-06-25T15:15:07.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Level 1 - Diphtheria in Haiti",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level1/diphtheria-haiti",
+          "pubDate": "2026-06-25T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "HT"
+        },
+        {
+          "title": "Security Alert &#8211; Muharram Processions June 25-26",
+          "link": "https://pk.usembassy.gov/security-alert-muharram-processions-june-25-26/",
+          "pubDate": "2026-06-24T14:21:56.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "655 million people still living without electricity underscore urgent need to deliver on universal energy access target",
+          "link": "https://www.who.int/news/item/24-06-2026-655-million-people-still-living-without-electricity-underscore-urgent-need-to-deliver-on-universal-energy-access-target",
+          "pubDate": "2026-06-24T11:57:55.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Message for U.S. Citizens: Consular Outreach in Zakopane on July 09, 2026",
+          "link": "https://pl.usembassy.gov/message-for-u-s-citizens-consular-outreach-in-zakopane-on-july-09-2026/",
+          "pubDate": "2026-06-23T12:23:20.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "WHO urges scale up of newborn screening to improve early detection and care of birth defects",
+          "link": "https://www.who.int/news/item/23-06-2026-who-urges-scale-up-of-newborn-screening-to-improve-early-detection-and-care-of-birth-defects",
+          "pubDate": "2026-06-23T10:01:11.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 1 - Global Dengue",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level1/dengue-global",
+          "pubDate": "2026-06-23T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Routine STEP Message – How to Apply for Emergency Passports",
+          "link": "https://do.usembassy.gov/routine-step-message-how-to-apply-for-emergency-passports/",
+          "pubDate": "2026-06-22T20:21:37.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Security Alert: Presidential Elections &#8211; June 21, 2026",
+          "link": "https://co.usembassy.gov/security-alert-presidential-elections-june-21-2026/",
+          "pubDate": "2026-06-18T19:32:48.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Communicable disease threats report, 13 - 18 June 2026, week 25",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-13-18-june-2026-week-25",
+          "pubDate": "2026-06-18T14:25:05.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Alert – U.S. Embassy Warsaw, Poland (June 18, 2026)",
+          "link": "https://pl.usembassy.gov/alert-u-s-embassy-warsaw-poland-june-18-2026/",
+          "pubDate": "2026-06-18T12:49:12.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "WHO issues comprehensive guidelines on filovirus disease, including Ebola and Marburg disease",
+          "link": "https://www.who.int/news/item/17-06-2026-who-issues-comprehensive-guidelines-on-filovirus-disease--including-ebola-and-marburg-disease",
+          "pubDate": "2026-06-17T13:30:57.000Z",
+          "source": "WHO News",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Pakistan Travel Advisory Minor Update &#8211; Level 3 June 6, 2026",
+          "link": "https://pk.usembassy.gov/pakistan-travel-advisory-minor-update-level-3-june-6-2026/",
+          "pubDate": "2026-06-17T04:17:54.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Security Alert: Do Not Travel: Malambo, Baranoa and other towns, Departmento de Atlantico &#8211; June 16, 2026",
+          "link": "https://co.usembassy.gov/security-alert-do-not-travel-malambo-baranoa-and-other-towns-departmento-de-atlantico-june-16-2026/",
+          "pubDate": "2026-06-16T22:39:44.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Security Alert: Troncal del Caribe (Route 90) Blocked Near Guachaca",
+          "link": "https://co.usembassy.gov/security-alert-troncal-del-caribe-route-90-blocked-near-guachaca/",
+          "pubDate": "2026-06-16T18:23:21.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Demonstration Alert – U.S. Embassy Warsaw, Poland (June 15, 2026)",
+          "link": "https://pl.usembassy.gov/demonstration-alert-u-s-embassy-warsaw-poland-june-15-2026/",
+          "pubDate": "2026-06-16T14:31:59.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "Demonstration Alert: Protests at Tlalpan Toll Booth on the Mexico-Cuernavaca Highway",
+          "link": "https://mx.usembassy.gov/demonstration-alert-protests-at-tlalpan-toll-booth-on-the-mexico-cuernavaca-highway/",
+          "pubDate": "2026-06-15T19:02:35.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Guidelines for surveillance of avian influenza",
+          "link": "https://www.ecdc.europa.eu/en/topics-z/avian-influenza/strategies-and-guidelines/guidelines-surveillance-avian-influenza",
+          "pubDate": "2026-06-15T09:38:31.000Z",
+          "source": "ECDC Avian Influenza",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Routine Message: Reminder for U.S. Citizens: U.S. Passport Required to Enter the United States",
+          "link": "https://mx.usembassy.gov/routine-message-reminder-for-u-s-citizens-u-s-passport-required-to-enter-the-united-states/",
+          "pubDate": "2026-06-12T20:33:53.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Demonstration Alert: U.S. Embassy, Rome, Italy, June 13, 2026",
+          "link": "https://it.usembassy.gov/demonstration-alert-u-s-embassy-rome-italy-june-13-2026/",
+          "pubDate": "2026-06-12T14:59:56.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Reminder for U.S. Citizens Abroad",
+          "link": "https://it.usembassy.gov/reminder-for-u-s-citizens-abroad/",
+          "pubDate": "2026-06-12T14:51:44.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Communicable disease threats report, 6 - 12 June 2026, week 24",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-6-12-june-2026-week-24",
+          "pubDate": "2026-06-12T13:19:02.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Pay.gov Scheduled Maintenance – Service Temporarily Unavailable",
+          "link": "https://de.usembassy.gov/pay-gov-scheduled-maintenance-service-temporarily-unavailable/",
+          "pubDate": "2026-06-12T06:20:04.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Reminder for U.S. Citizens: U.S. Passport Required to Enter the United States",
+          "link": "https://in.usembassy.gov/reminder-for-u-s-citizens-u-s-passport-required-to-enter-the-united-states/",
+          "pubDate": "2026-06-12T02:26:55.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Level 2 - Malaria in Yemen",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/malaria-yemen",
+          "pubDate": "2026-06-11T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "YE"
+        },
+        {
+          "title": "Message to U.S. Citizens: School Closures, Telework, and Protests in Mexico City on June 11 for FIFA World Cup 2026™ Inauguration",
+          "link": "https://mx.usembassy.gov/message-to-u-s-citizens-school-closures-telework-and-protests-in-mexico-city-on-june-11-for-fifa-world-cup-2026-inauguration/",
+          "pubDate": "2026-06-10T21:51:33.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Routine Message: Staying Safe in Tijuana with Phone Security Apps",
+          "link": "https://mx.usembassy.gov/routine-message-staying-safe-in-tijuana-with-phone-security-apps/",
+          "pubDate": "2026-06-10T19:48:18.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Message to U.S. Citizens: FIFA World Cup 26 Travel",
+          "link": "https://mx.usembassy.gov/message-to-u-s-citizens-fifa-world-cup-26-travel/",
+          "pubDate": "2026-06-09T21:42:38.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Weather Alert: Tropical Storm Boris &#8211; June 8, 2026",
+          "link": "https://mx.usembassy.gov/weather-alert-tropical-storm-boris-june-8-2026/",
+          "pubDate": "2026-06-08T23:11:50.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "Routine Message: Hurricane Season 2026",
+          "link": "https://mx.usembassy.gov/routine-message-hurricane-season-2026/",
+          "pubDate": "2026-06-08T22:44:32.000Z",
+          "source": "US Embassy Mexico",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MX"
+        },
+        {
+          "title": "MERS-CoV worldwide overview",
+          "link": "https://www.ecdc.europa.eu/en/middle-east-respiratory-syndrome-coronavirus-mers-cov-situation-update",
+          "pubDate": "2026-06-08T12:20:22.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Government of India Regulations for Foreign Nationals &#8211; Stay Compliant to Avoid Penalties",
+          "link": "https://in.usembassy.gov/government-of-india-regulations-for-foreign-nationals-stay-compliant-to-avoid-penalties/",
+          "pubDate": "2026-06-08T04:09:36.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Demonstration Alert: June 9 Protests in Azad Kashmir",
+          "link": "https://pk.usembassy.gov/demonstration-alert-june-9-protests-in-azad-kashmir/",
+          "pubDate": "2026-06-07T07:51:06.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Communicable disease threats report, 30 May - 5 June 2026, week 23",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-30-may-5-june-2026-week-23",
+          "pubDate": "2026-06-05T14:27:01.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Demonstration Alert &#8211; U.S. Embassy Warsaw, Poland (June 5, 2026)",
+          "link": "https://pl.usembassy.gov/demonstration-alert-u-s-embassy-warsaw-poland-june-5-2026/",
+          "pubDate": "2026-06-05T12:19:16.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "Security Alert: Exercise Increased Caution in the Middle East",
+          "link": "https://ae.usembassy.gov/security-alert-exercise-increased-caution-in-the-middle-east/",
+          "pubDate": "2026-06-04T17:33:14.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Level 1 - Hepatitis A in Canada",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level1/hepatitis-a-canada",
+          "pubDate": "2026-06-04T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CA"
+        },
+        {
+          "title": "Level 2 - Chikungunya in French Guiana",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/chikungunya-french-guiana",
+          "pubDate": "2026-06-04T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 2 - Malaria in Mayotte",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/malaria-mayotte",
+          "pubDate": "2026-06-02T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 1 - Diphtheria in Sub-Saharan Africa",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level1/diphtheria-sub-saharan-africa",
+          "pubDate": "2026-06-02T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Health Alert: U.S. Embassy – June 2, 2026 – Thailand Enhanced Ebola Screening",
+          "link": "https://th.usembassy.gov/health-alert-u-s-embassy-june-2-2026-thailand-enhanced-ebola-screening/",
+          "pubDate": "2026-06-02T01:29:32.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "Communicable disease threats report, 23-29 May 2026, week 22",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-23-29-may-2026-week-22",
+          "pubDate": "2026-05-29T14:06:52.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Worldwide Caution – Updated Public Health Arrival Restrictions and Enhanced Ebola Disease Screening – May 28, 2026",
+          "link": "https://do.usembassy.gov/worldwide-caution-updated-public-health-arrival-restrictions-and-enhanced-ebola-disease-screening-may-28-2026/",
+          "pubDate": "2026-05-28T17:40:33.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Health Alert: Worldwide Caution – Updated Public Health Arrival Restrictions and Enhanced Ebola Disease Screening – May 28, 2026",
+          "link": "https://th.usembassy.gov/health-alert-worldwide-caution-updated-public-health-arrival-restrictions-and-enhanced-ebola-disease-screening-may-28-2026/",
+          "pubDate": "2026-05-28T16:56:00.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "Security Alert: Presidential Elections &#8211; May 31, 2026",
+          "link": "https://co.usembassy.gov/security-alert-presidential-elections-may-31-2026/",
+          "pubDate": "2026-05-28T13:35:57.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "ECDC hosts annual meeting of the European Respiratory Viruses Network",
+          "link": "https://www.ecdc.europa.eu/en/news-events/ecdc-hosts-annual-meeting-european-respiratory-viruses-network",
+          "pubDate": "2026-05-27T05:51:08.000Z",
+          "source": "ECDC Avian Influenza",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Andes hantavirus outbreak in cruise ship",
+          "link": "https://www.ecdc.europa.eu/en/infectious-disease-topics/hantavirus-infection/surveillance-and-updates/andes-hantavirus-outbreak",
+          "pubDate": "2026-05-26T15:56:17.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert &#8211; U. S. Embassy Kyiv, Ukraine (May 23, 2026)",
+          "link": "https://ua.usembassy.gov/security-alert-u-s-embassy-kyiv-ukraine-may-23-2026/",
+          "pubDate": "2026-05-23T16:40:51.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Health Alert: Worldwide Caution – Updated Public Health Arrival Restrictions and Enhanced Ebola Screening – May 22, 2026",
+          "link": "https://th.usembassy.gov/health-alert-worldwide-caution-updated-public-health-arrival-restrictions-and-enhanced-ebola-screening-may-22-2026/",
+          "pubDate": "2026-05-23T01:09:01.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "Communicable disease threats report, 14-22 May 2026, week 21",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-14-22-may-2026-week-21",
+          "pubDate": "2026-05-22T15:24:45.000Z",
+          "source": "ECDC Threats Report",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Health Alert: Worldwide Caution – Public Health Arrival Restrictions and Enhanced Ebola Screening – May 21, 2026",
+          "link": "https://th.usembassy.gov/health-alert-worldwide-caution-public-health-arrival-restrictions-and-enhanced-ebola-screening-may-21-2026/",
+          "pubDate": "2026-05-22T08:44:11.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "Worldwide Caution on Ebola",
+          "link": "https://in.usembassy.gov/worldwide-caution-on-ebola/",
+          "pubDate": "2026-05-22T02:20:48.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Health Alert: Worldwide Caution &#8211; Updated Public Health Arrival Restrictions and Enhanced Ebola Screening",
+          "link": "https://mm.usembassy.gov/worldwide-caution-public-health-arrival-restrictions-and-enhanced-ebola-screening/",
+          "pubDate": "2026-05-22T01:54:18.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Threat assessment brief – Ebola disease outbreak caused by Bundibugyo virus – Democratic Republic of the Congo and Uganda – 2026",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/threat-assessment-brief-ebola-disease-outbreak-caused-bundibugyo-virus-democratic",
+          "pubDate": "2026-05-21T16:19:06.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Worldwide Caution: Public Health Arrival Restrictions and Enhanced Ebola Screening",
+          "link": "https://ae.usembassy.gov/health-alert-worldwide-caution-public-health-arrival-restrictions-and-enhanced-ebola-screening-may-21-2026/",
+          "pubDate": "2026-05-21T14:23:36.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Demonstration Alert: Planned Protests near the U.S. Embassy &#8211; Thursday, May 21, 2026",
+          "link": "https://co.usembassy.gov/demonstration-alert-planned-protests-near-the-u-s-embassy-thursday-may-21-2026/",
+          "pubDate": "2026-05-21T13:37:16.000Z",
+          "source": "US Embassy Colombia",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CO"
+        },
+        {
+          "title": "Worldwide Caution – Security Alert – May 21, 2026",
+          "link": "https://it.usembassy.gov/worldwide-caution-security-alert-may-21-2026/",
+          "pubDate": "2026-05-21T13:21:32.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Consular Information for Americans Regarding the Ebola Outbreak",
+          "link": "https://it.usembassy.gov/consular-information-for-americans-regarding-the-ebola-outbreak/",
+          "pubDate": "2026-05-21T13:12:50.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Epidemiological update: Spread of multidrug-resistant and extensively-drug resistant Shigella in Europe",
+          "link": "https://www.ecdc.europa.eu/en/news-events/epidemiological-update-spread-multidrug-resistant-and-extensively-drug-resistant",
+          "pubDate": "2026-05-20T11:16:59.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Demolition Operations Near Bandra Railway Station &#8211; May 19 &#8211; 23, 2026",
+          "link": "https://in.usembassy.gov/demolition-operations-near-bandra-railway-station-may-19-23-2026/",
+          "pubDate": "2026-05-20T02:16:32.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Demonstration Alert &#8211; U.S. Embassy Warsaw, Poland (May 19, 2026)",
+          "link": "https://pl.usembassy.gov/demonstration-alert-u-s-embassy-warsaw-poland-may-19-2026/",
+          "pubDate": "2026-05-19T07:01:53.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "Rapid scientific advice on infection, prevention and control measures for patients in healthcare settings with Andes virus (ANDV) disease",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/rapid-scientific-advice-infection-prevention-and-control-measures-patients",
+          "pubDate": "2026-05-15T17:58:48.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 2 - Chikungunya in Mauritius",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/chikungunya-mauritius",
+          "pubDate": "2026-05-14T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MU"
+        },
+        {
+          "title": "Communicable disease threats report, 9-13 May 2026, week 20",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-9-13-may-2026-week-20",
+          "pubDate": "2026-05-13T13:46:07.000Z",
+          "source": "ECDC Avian Influenza",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Mpox worldwide overview",
+          "link": "https://www.ecdc.europa.eu/en/mpox-worldwide-overview",
+          "pubDate": "2026-05-13T10:26:15.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Travel Advisory: Burma May 2026",
+          "link": "https://mm.usembassy.gov/travel-advisory-burma-may-2026/",
+          "pubDate": "2026-05-13T04:11:12.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Rapid scientific advice on the management of passengers - In the context of the Andes virus outbreak on the cruise ship MV Hondius",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/rapid-scientific-advice-management-passengers-context-andes-virus-outbreak-cruise",
+          "pubDate": "2026-05-09T12:46:13.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 1 - Ciguatera Fish Poisoning in Vanuatu",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level1/ciguatera-fish-poisoning-vanuatu",
+          "pubDate": "2026-05-07T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "VU"
+        },
+        {
+          "title": "Demonstration Alert &#8211; U.S. Embassy Warsaw, Poland (May 6, 2026)",
+          "link": "https://pl.usembassy.gov/demonstration-alert-u-s-embassy-warsaw-poland-may-6-2026/",
+          "pubDate": "2026-05-06T19:37:02.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "Threat assessment brief – Hantavirus-associated cluster of illness on a cruise ship: ECDC assessment and recommendations",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/threat-assessment-brief-hantavirus-associated-cluster-illness-cruise-ship-ecdc",
+          "pubDate": "2026-05-06T16:39:17.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert – U.S. Mission to the United Arab Emirates (May 4, 2026)",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-mission-to-the-united-arab-emirates-may-4-2026/",
+          "pubDate": "2026-05-04T20:15:04.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Demonstration Alert: U. S. Consulate General, Florence, Italy (May 01, 2026)",
+          "link": "https://it.usembassy.gov/demonstration-alert-u-s-consulate-general-florence-italy-may-01-2026/",
+          "pubDate": "2026-04-30T21:09:57.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Weather Alert: U.S. Embassy Santo Domingo, Dominican Republic (April 30, 2026)",
+          "link": "https://do.usembassy.gov/weather-alert-u-s-embassy-santo-domingo-dominican-republic-april-30-2026/",
+          "pubDate": "2026-04-30T13:01:30.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Demonstration Alert &#8211; U.S. Embassy Warsaw, Poland",
+          "link": "https://pl.usembassy.gov/demonstration-alert-u-s-embassy-warsaw-poland-2/",
+          "pubDate": "2026-04-29T14:20:13.000Z",
+          "source": "US Embassy Poland",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PL"
+        },
+        {
+          "title": "Communicable disease threats report, 18-24 April 2026, week 17",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report-18-24-april-2026-week-17",
+          "pubDate": "2026-04-24T13:37:10.000Z",
+          "source": "ECDC Avian Influenza",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Schedule of Fees for Consular Services",
+          "link": "https://pk.usembassy.gov/schedule-of-fees-for-consular-services/",
+          "pubDate": "2026-04-24T03:48:17.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Weather Alert: U.S. Embassy Santo Domingo, Dominican Republic (April 22, 2026)",
+          "link": "https://do.usembassy.gov/weather-alert-u-s-embassy-santo-domingo-dominican-republic-april-22-2026-2/",
+          "pubDate": "2026-04-23T03:05:07.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Demonstration Alert: U. S. Consulate, Milan, Italy, April 18, 2026",
+          "link": "https://it.usembassy.gov/demonstration-alert-u-s-consulate-milan-italy-april-18-2026/",
+          "pubDate": "2026-04-17T16:52:16.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Security Alert – U.S. Mission to the United Arab Emirates (April 14, 2026)",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-mission-to-the-united-arab-emirates-april-14-2026/",
+          "pubDate": "2026-04-14T15:55:09.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Weather Alert: U.S. Embassy Santo Domingo, Dominican Republic (April 13, 2026)",
+          "link": "https://do.usembassy.gov/weather-alert-u-s-embassy-santo-domingo-dominican-republic-april-11-2026/",
+          "pubDate": "2026-04-13T22:02:37.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Weather Alert: U.S. Embassy Santo Domingo, Dominican Republic (April 11,2026)",
+          "link": "https://do.usembassy.gov/weather-alert-u-s-embassy-santo-domingo-dominican-republic-april-112026/",
+          "pubDate": "2026-04-12T00:43:33.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Security Alert &#8211; Thingyan Holiday",
+          "link": "https://mm.usembassy.gov/security-alert-thingyan-holiday/",
+          "pubDate": "2026-04-10T09:12:00.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Message for U.S. Citizens – April 8, 2026",
+          "link": "https://in.usembassy.gov/message-for-u-s-citizens-april-8-2026/",
+          "pubDate": "2026-04-09T03:35:53.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Weather Alert: U.S. Embassy Santo Domingo, Dominican Republic (April 8, 2026)",
+          "link": "https://do.usembassy.gov/weather-alert-u-s-embassy-santo-domingo-dominican-republic-april-8-2026/",
+          "pubDate": "2026-04-08T14:07:06.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Consular Services Update (April 3, 2026)",
+          "link": "https://pk.usembassy.gov/consular-services-update-april-3-2026/",
+          "pubDate": "2026-04-03T14:54:26.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Security Alert – U.S. Mission to the United Arab Emirates – March 31, 2026",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-mission-to-the-united-arab-emirates-march-31-2026/",
+          "pubDate": "2026-03-31T13:23:00.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Chikungunya virus disease worldwide overview",
+          "link": "https://www.ecdc.europa.eu/en/chikungunya-monthly",
+          "pubDate": "2026-03-30T14:05:05.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Dengue worldwide overview",
+          "link": "https://www.ecdc.europa.eu/en/dengue-monthly",
+          "pubDate": "2026-03-30T07:17:53.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert – U.S. Mission to the United Arab Emirates – March 26, 2026",
+          "link": "https://ae.usembassy.gov/security-alert-u-s-mission-to-the-united-arab-emirates-march-26-2026/",
+          "pubDate": "2026-03-26T14:51:33.000Z",
+          "source": "US Embassy UAE",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "AE"
+        },
+        {
+          "title": "Demonstration Alert: U.S. Embassy, Rome, Italy (March 26 &#038; 28, 2026)",
+          "link": "https://it.usembassy.gov/demonstration-alert-u-s-embassy-rome-italy-march-26-28-2026/",
+          "pubDate": "2026-03-25T15:20:58.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Security Alert (March 22, 2026)",
+          "link": "https://pk.usembassy.gov/security-alert-march-22-2026/",
+          "pubDate": "2026-03-24T04:33:46.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Level 2 - Meningococcal Disease in the Democratic Republic of the Congo",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/meningococcal-drc",
+          "pubDate": "2026-03-24T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "CD"
+        },
+        {
+          "title": "Message for U.S. Citizens – Passport Services in Ahmedabad",
+          "link": "https://in.usembassy.gov/message-for-u-s-citizens-march-20-2026/",
+          "pubDate": "2026-03-20T10:33:13.000Z",
+          "source": "US Embassy India",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IN"
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Rome, Italy (March 18, 2026)",
+          "link": "https://it.usembassy.gov/security-alert-u-s-embassy-rome-italy-march-18-2026/",
+          "pubDate": "2026-03-18T18:53:30.000Z",
+          "source": "US Embassy Italy",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "IT"
+        },
+        {
+          "title": "Consular Routine Message: Eid",
+          "link": "https://bd.usembassy.gov/consular-routine-message-eid/",
+          "pubDate": "2026-03-18T11:11:08.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Epidemiological update: Shigellosis and other gastrointestinal infections in travellers returning from Cabo Verde",
+          "link": "https://www.ecdc.europa.eu/en/news-events/epidemiological-update-shigellosis-and-other-gastrointestinal-infections-travellers",
+          "pubDate": "2026-03-18T09:32:55.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Level 2 - Yellow Fever in Venezuela",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/yellow-fever-venezuela",
+          "pubDate": "2026-03-16T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "VE"
+        },
+        {
+          "title": "Demonstration Alert",
+          "link": "https://pk.usembassy.gov/demonstration-alert/",
+          "pubDate": "2026-03-13T13:21:51.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Consular Services Update – March 13, 2026",
+          "link": "https://pk.usembassy.gov/consular-services-update-march-13-2026/",
+          "pubDate": "2026-03-13T08:59:23.000Z",
+          "source": "US Embassy Pakistan",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "PK"
+        },
+        {
+          "title": "Demonstration Alert &#8211; U.S. Embassy Bangkok, Thailand",
+          "link": "https://th.usembassy.gov/demonstration-alert-u-s-embassy-bangkok-thailand/",
+          "pubDate": "2026-03-12T06:48:35.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "Level 2 - Global Polio",
+          "link": "https://wwwnc.cdc.gov/travel/notices/level2/global-polio",
+          "pubDate": "2026-03-09T04:00:00.000Z",
+          "source": "CDC Travel Notices",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Weather Alert: U.S. Embassy Santo Domingo, Dominican Republic (February 25, 2026)",
+          "link": "https://do.usembassy.gov/weather-alert-u-s-embassy-santo-domingo-dominican-republic-february-25-2026/",
+          "pubDate": "2026-02-26T02:39:28.000Z",
+          "source": "US Embassy Dominican Republic",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DO"
+        },
+        {
+          "title": "Multi-country foodborne event caused by cereulide in infant formula products",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/multi-country-foodborne-event-caused-cereulide-infant-formula-products",
+          "pubDate": "2026-02-19T13:56:02.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert: Bangladesh Elections",
+          "link": "https://bd.usembassy.gov/security-alert-bangladesh-elections/",
+          "pubDate": "2026-01-30T07:33:08.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Demonstration Alert – Protests this Saturday in Leipzig U.S. Embassy Berlin, Germany (January 15, 2026)",
+          "link": "https://de.usembassy.gov/demonstration-alert-protests-this-saturday-in-leipzig-u-s-embassy-berlin-germany-january-15-2026/",
+          "pubDate": "2026-01-15T13:12:11.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Security Alert &#8211; U. S. Embassy Kyiv, Ukraine (January 8, 2026)",
+          "link": "https://ua.usembassy.gov/security-alert-u-s-embassy-kyiv-ukraine-january-8-2026/",
+          "pubDate": "2026-01-08T17:47:06.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Security Alert: Continued Armed Conflict Along the Thailand-Cambodia Border",
+          "link": "https://th.usembassy.gov/security-alert-continued-armed-conflict-along-the-thailand-cambodia-border-2/",
+          "pubDate": "2026-01-02T08:56:17.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "Security Alert: Continued Armed Conflict Along the Thailand-Cambodia Border (December 23, 2025)",
+          "link": "https://th.usembassy.gov/security-alert-continued-armed-conflict-along-the-thailand-cambodia-border-december-23-2025/",
+          "pubDate": "2025-12-23T06:16:34.000Z",
+          "source": "US Embassy Thailand",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "TH"
+        },
+        {
+          "title": "Routine Message: Potential Traffic Alert",
+          "link": "https://bd.usembassy.gov/routine-message-potential-traffic-alert/",
+          "pubDate": "2025-12-21T09:33:25.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Early estimates of seasonal influenza vaccine effectiveness against influenza requiring medical attention at primary care level in Europe, week 41 - 49, 2025",
+          "link": "https://www.ecdc.europa.eu/en/news-events/early-estimates-seasonal-influenza-vaccine-effectiveness-against-influenza-requiring",
+          "pubDate": "2025-12-19T13:32:38.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Routine Message &#8211; U.S. Embassy Dhaka, Bangladesh (December 19-20, 2025)",
+          "link": "https://bd.usembassy.gov/u-s-citizens-should-practice-vigilance-and-remember-that-gatherings-intended-to-be-peaceful-can-turn-confrontational-and-escalate-into-violence/",
+          "pubDate": "2025-12-19T09:23:01.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Security Alert – U.S. Embassy Rangoon, Burma",
+          "link": "https://mm.usembassy.gov/security-alert-u-s-embassy-rangoon-burma/",
+          "pubDate": "2025-12-18T04:18:55.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Security Alert &#8211; U. S. Embassy Dhaka, Bangladesh (December 15, 2025)",
+          "link": "https://bd.usembassy.gov/security-alert-u-s-embassy-dhaka-bangladesh-december-15-2025/",
+          "pubDate": "2025-12-15T10:34:42.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Two cases of Middle East respiratory syndrome (MERS) in travellers returning to France from the Arabian Peninsula",
+          "link": "https://www.ecdc.europa.eu/en/news-events/cases-middle-east-respiratory-syndrome-coronavirus-mers-cov-travellers",
+          "pubDate": "2025-12-05T15:43:12.000Z",
+          "source": "ECDC Epidemiological Updates",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Town Hall for U.S. Citizens in Rangoon",
+          "link": "https://mm.usembassy.gov/town-hall-for-u-s-citizens-in-rangoon/",
+          "pubDate": "2025-11-26T06:24:54.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Earthquake Alert",
+          "link": "https://bd.usembassy.gov/earthquake-alert/",
+          "pubDate": "2025-11-21T07:01:07.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Threat Assessment Brief – Assessing the risk of influenza for the EU/EEA in the context of increasing circulation of A(H3N2) subclade K",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/threat-assessment-brief-assessing-risk-influenza-november-2025",
+          "pubDate": "2025-11-20T14:14:08.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Kyiv, Ukraine (November 3, 2025)",
+          "link": "https://ua.usembassy.gov/security-alert-u-s-embassy-kyiv-ukraine-november-3-2025/",
+          "pubDate": "2025-11-03T14:49:44.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Prolonged multi-country outbreak of Salmonella Strathcona ST2559 linked to consumption of tomatoes in the European Union/European Economic Area – first update",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/prolonged-multi-country-outbreak-salmonella-strathcona-st2559-linked-consumption",
+          "pubDate": "2025-10-23T14:00:54.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Demonstration Alert &#8211; U.S. Embassy Berlin, Germany (October 10, 2025)",
+          "link": "https://de.usembassy.gov/demonstration-alert-u-s-embassy-berlin-germany-october-10-2025/",
+          "pubDate": "2025-10-10T15:32:38.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Message for U.S. Citizens: New Entry/Exit System, U.S. Mission Germany, October 12, 2025",
+          "link": "https://de.usembassy.gov/message-for-u-s-citizens-new-entry-exit-system-u-s-mission-germany-october-12-2025/",
+          "pubDate": "2025-10-07T12:30:27.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Berlin, Germany October 6, 2025",
+          "link": "https://de.usembassy.gov/security-alert-u-s-embassy-berlin-germany-october-6-2025/",
+          "pubDate": "2025-10-07T08:08:36.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Alert – Message for U.S. Citizens: Consular officers from the U.S. Embassy to offer services to all U.S. citizens in Lviv on October 15, 2025, by appointment only.",
+          "link": "https://ua.usembassy.gov/consular-officers-from-the-u-s-embassy-to-offer-services-to-all-u-s-citizens-in-lviv-on-october-15-2025-by-appointment-only/",
+          "pubDate": "2025-10-06T09:20:34.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Security Alert: U.S. Consulate General Munich October 1, 2025",
+          "link": "https://de.usembassy.gov/security-alert-u-s-consulate-general-munich-october-1-2025/",
+          "pubDate": "2025-10-01T08:59:09.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "2025 Lapse in Appropriations",
+          "link": "https://de.usembassy.gov/2025-lapse-in-appropriations/",
+          "pubDate": "2025-10-01T07:43:47.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Security Alert: Message for U.S. Citizens Considering Travel to Uman for Rosh Hashanah",
+          "link": "https://ua.usembassy.gov/security-alert-message-for-u-s-citizens-considering-travel-to-uman-for-rosh-hashanah-2/",
+          "pubDate": "2025-09-18T08:35:00.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Ongoing outbreak in the DRC",
+          "link": "https://www.afro.who.int/node/22081",
+          "pubDate": "2025-09-15T05:01:07.000Z",
+          "source": "WHO Africa Emergencies",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Health Alert – Bangladesh Added to CDC’s Traveler’s Health Notice on Chikungunya – U. S. Embassy Dhaka, Bangladesh (September 9, 2025)",
+          "link": "https://bd.usembassy.gov/health-alert-bangladesh-added-to-cdcs-travelers-health-notice-on-chikungunya-u-s-embassy-dhaka-bangladesh-september-9-2025/",
+          "pubDate": "2025-09-09T04:43:35.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Health Alert – Bangladesh Added to the Global Dengue Travelers’ Health Notice – U. S. Embassy Dhaka, Bangladesh (July 28, 2025)",
+          "link": "https://bd.usembassy.gov/health-alert-bangladesh-added-to-the-global-dengue-travelers-health-notice-u-s-embassy-dhaka-bangladesh-july-28-2025/",
+          "pubDate": "2025-07-28T09:01:36.000Z",
+          "source": "US Embassy Bangladesh",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "BD"
+        },
+        {
+          "title": "Alert &#8211; Message for U.S. Citizens: Potential Obligations of Dual Citizens under Martial Law and Mobilization Law",
+          "link": "https://ua.usembassy.gov/message-for-u-s-citizens-potential-obligations-of-dual-citizens-under-martial-law-and-mobilization-law/",
+          "pubDate": "2025-07-21T14:04:01.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Security Alert &#8211; Worldwide Caution, June 22, 2025",
+          "link": "https://de.usembassy.gov/security-alert-worldwide-caution-june-22-2025/",
+          "pubDate": "2025-06-23T02:44:16.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Security Alert – Worldwide Caution",
+          "link": "https://ua.usembassy.gov/security-alert-worldwide-caution-june-22-2025/",
+          "pubDate": "2025-06-22T05:51:35.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Security Alert: U.S. Embassy Kyiv, Ukraine",
+          "link": "https://ua.usembassy.gov/security-alert-u-s-embassy-kyiv-ukraine-june-6-2025/",
+          "pubDate": "2025-06-06T17:53:17.000Z",
+          "source": "US Embassy Ukraine",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "UA"
+        },
+        {
+          "title": "Security Alert: U.S. Consulate General Frankfurt May 2, 2025",
+          "link": "https://de.usembassy.gov/security-alert-u-s-consulate-general-frankfurt-may-2-2025/",
+          "pubDate": "2025-05-02T19:08:24.000Z",
+          "source": "US Embassy Germany",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "DE"
+        },
+        {
+          "title": "Alert: U. S. Embassy in Yangon, Burma (Myanmar), April 1, 2025",
+          "link": "https://mm.usembassy.gov/alert-u-s-embassy-in-yangon-burma-myanmar-april-1-2025/",
+          "pubDate": "2025-04-01T16:56:38.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Alert &#8211; U. S. Embassy in Yangon, Burma (Myanmar), March 29, 2025",
+          "link": "https://mm.usembassy.gov/alert-u-s-embassy-in-yangon-burma-myanmar-march-29-2025/",
+          "pubDate": "2025-03-29T09:46:51.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Alert &#8211; U. S. Embassy Yangon, Burma (Myanmar), March 28, 2025",
+          "link": "https://mm.usembassy.gov/alert-u-s-embassy-yangon-burma-myanmar-march-28-2025/",
+          "pubDate": "2025-03-28T10:59:53.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Rapid outbreak assessment - Prolonged cross-border multi-serovar Salmonella outbreak linked to consumption of sprouted seeds",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/rapid-outbreak-assessment-prolonged-cross-border-multi-serovar-salmonella",
+          "pubDate": "2025-03-06T11:08:04.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "ACS message for Union Day 2025",
+          "link": "https://mm.usembassy.gov/acs-message-for-union-day-2025/",
+          "pubDate": "2025-02-11T10:48:46.000Z",
+          "source": "US Embassy Myanmar",
+          "sourceCountry": "US",
+          "level": "info",
+          "country": "MM"
+        },
+        {
+          "title": "Rapid risk assessment – Assessing the risk to public health of multiple detections of poliovirus in wastewater in the EU/EEA",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/multiple-detections-poliovirus-wastewater-eueea",
+          "pubDate": "2025-01-30T16:28:53.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Rapid outbreak assessment – Prolonged multi-country outbreak of Salmonella Strathcona ST2559 linked to consumption of tomatoes in the EU/EEA and the UK",
+          "link": "https://www.ecdc.europa.eu/en/publications-data/rapid-outbreak-assessment-prolonged-multi-country-outbreak-salmonella-strathcona",
+          "pubDate": "2024-11-12T12:58:24.000Z",
+          "source": "ECDC Risk Assessments",
+          "sourceCountry": "EU",
+          "level": "info",
+          "country": ""
+        },
+        {
+          "title": "Weekly bulletin",
+          "link": "https://www.afro.who.int/node/12346",
+          "pubDate": "2024-05-10T18:18:56.000Z",
+          "source": "WHO Africa Emergencies",
+          "sourceCountry": "INT",
+          "level": "info",
+          "country": ""
+        }
+      ],
+      "fetchedAt": "2026-07-30T06:20:56.862Z"
+    }
+  }
+}

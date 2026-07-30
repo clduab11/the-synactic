@@ -1,0 +1,9 @@
+{
+  "classification": {
+    "level": "high",
+    "category": "cyber",
+    "severity": 75,
+    "confidence": 0.8,
+    "source": "keyword"
+  }
+}
