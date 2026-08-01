@@ -67,6 +67,7 @@ import type { McpPanelSpec } from '@/services/mcp-store';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import type { AuthSession } from '@/services/auth-state';
 import { PanelGateReason, getPanelGateReason, hasPremiumAccess, resolveBillingAwareGateReason, resolveGateAction } from '@/services/panel-gating';
+import { isSelfHostPremiumUnlock } from '@/services/runtime-config';
 import { evaluateTabCap, exportLockToGateReason } from '@/services/gates/export';
 import { primeExportGateActivation } from '@/services/gates/export-resolver';
 import type { TabCapVerdict } from '@/services/gates/export-resolver';
@@ -2548,12 +2549,16 @@ export class PanelLayoutManager implements AppModule {
     const proLabel = document.createElement('span');
     proLabel.className = 'add-panel-block-label';
     proLabel.textContent = t('widgets.createInteractive');
-    const proBadge = document.createElement('span');
-    proBadge.className = 'widget-pro-badge';
-    proBadge.textContent = t('widgets.proBadge');
     proBlock.appendChild(proIcon);
     proBlock.appendChild(proLabel);
-    proBlock.appendChild(proBadge);
+    // A self-host has no Pro tier to upgrade to, so the badge is pure noise
+    // there. On hosted it still marks the CTA as a premium feature.
+    if (!isSelfHostPremiumUnlock()) {
+      const proBadge = document.createElement('span');
+      proBadge.className = 'widget-pro-badge';
+      proBadge.textContent = t('widgets.proBadge');
+      proBlock.appendChild(proBadge);
+    }
     proBlock.addEventListener('click', () => {
       void import('@/components/WidgetChatModal').then((m) => m.openWidgetChatModal({
         mode: 'create',
@@ -2578,12 +2583,14 @@ export class PanelLayoutManager implements AppModule {
     const mcpLabel = document.createElement('span');
     mcpLabel.className = 'add-panel-block-label';
     mcpLabel.textContent = t('mcp.connectPanel');
-    const mcpBadge = document.createElement('span');
-    mcpBadge.className = 'widget-pro-badge';
-    mcpBadge.textContent = t('widgets.proBadge');
     mcpBlock.appendChild(mcpIcon);
     mcpBlock.appendChild(mcpLabel);
-    mcpBlock.appendChild(mcpBadge);
+    if (!isSelfHostPremiumUnlock()) {
+      const mcpBadge = document.createElement('span');
+      mcpBadge.className = 'widget-pro-badge';
+      mcpBadge.textContent = t('widgets.proBadge');
+      mcpBlock.appendChild(mcpBadge);
+    }
     mcpBlock.addEventListener('click', () => {
       void import('@/components/McpConnectModal').then((m) => m.openMcpConnectModal({
         onComplete: (spec) => this.addMcpPanel(spec),

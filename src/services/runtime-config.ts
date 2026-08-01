@@ -328,6 +328,17 @@ function readSelfHostPremiumUnlock(): boolean {
   }
 }
 
+/**
+ * True when this build is a self-host with premium unlocked. Distinct from
+ * hasPremiumAccess(): that answers "may this user see premium UI", which is
+ * also true for real Pro accounts on hosted. This answers "is the Pro TIER
+ * meaningless here", which is what suppresses upsell chrome such as the PRO
+ * badges on the widget/MCP CTAs — a self-host has no tier to upgrade to.
+ */
+export function isSelfHostPremiumUnlock(): boolean {
+  return readSelfHostPremiumUnlock();
+}
+
 function readStoredToggles(): Record<RuntimeFeatureId, boolean> {
   try {
     const stored = localStorage.getItem(TOGGLES_STORAGE_KEY);
