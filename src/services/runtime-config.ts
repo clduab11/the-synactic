@@ -304,6 +304,30 @@ function readEnvSecret(key: RuntimeSecretKey): string {
     : '';
 }
 
+/**
+ * Fork-local (the-synactic, ADV-34): self-host premium unlock.
+ *
+ * A bare self-host resolves none of the four entitlement sources — there is no
+ * Convex subscription, no Clerk plan, no desktop vault, and the legacy tester
+ * keys no longer carry a value (`getProWidgetKey` returns '' since the 2026-08
+ * merge). Premium UI therefore stays padlocked on a deployment that owns its
+ * own data.
+ *
+ * Set VITE_SELFHOST_PRO=1 at build time to unlock it. This is a boolean, never
+ * a credential: the browser bundle carries no API key. The matching server-side
+ * credential is attached by nginx (SELFHOST_PREMIUM_KEY, see docker/entrypoint.sh),
+ * so the key never reaches a client that could leak it.
+ */
+function readSelfHostPremiumUnlock(): boolean {
+  try {
+    return typeof import.meta.env.VITE_SELFHOST_PRO === 'string'
+      ? import.meta.env.VITE_SELFHOST_PRO.trim() === '1'
+      : false;
+  } catch {
+    return false;
+  }
+}
+
 function readStoredToggles(): Record<RuntimeFeatureId, boolean> {
   try {
     const stored = localStorage.getItem(TOGGLES_STORAGE_KEY);
@@ -381,6 +405,15 @@ function seedSecretsFromEnvironment(): void {
     if (value) {
       runtimeConfig.secrets[key] = { value, source: 'env' };
     }
+  }
+
+  // ADV-34: advertise presence WITHOUT a plaintext value — the same shape the
+  // desktop vault uses (see RuntimeSecretState.value). `present` is what gates
+  // premium UI (hasPremiumAccess, ProBanner.hasLocalUnlockPremium); leaving
+  // `value` undefined keeps premiumFetch from attaching a bogus header, so the
+  // real credential is whatever nginx injects.
+  if (readSelfHostPremiumUnlock()) {
+    runtimeConfig.secrets.WORLDMONITOR_API_KEY = { source: 'env' };
   }
 }
 

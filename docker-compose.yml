@@ -43,6 +43,13 @@ services:
       # Keep DISTINCT from WORLDMONITOR_RELAY_KEY (server/gateway.ts says the
       # relay warm-ping secret should not be a valid key).
       WORLDMONITOR_VALID_KEYS: "${WORLDMONITOR_VALID_KEYS:-}"
+      # ADV-34: when set, nginx attaches this key to browser-origin /api/ calls so
+      # premium RPC routes return real data instead of empty payloads. Must be one
+      # of WORLDMONITOR_VALID_KEYS above. Pairs with VITE_SELFHOST_PRO=1 (build
+      # time) which removes the matching UI padlocks. Unset = current behavior.
+      # NOTE: the dashboard port is published on all interfaces, so setting this
+      # grants premium API access to anything that can reach the port.
+      SELFHOST_PREMIUM_KEY: "${SELFHOST_PREMIUM_KEY:-}"
       # Seed-only refresh credential for the resilience-ranking recompute path
       # (gateway isResilienceRankingSeedRefreshRequest; seed-resilience-scores.mjs
       # FATALs without it and the gateway must hold the same value).

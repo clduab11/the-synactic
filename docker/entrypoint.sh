@@ -19,5 +19,18 @@ if [ -z "${LOCAL_API_TOKEN:-}" ]; then
   export LOCAL_API_TOKEN
 fi
 
+# ADV-34 (the-synactic): self-host premium credential for browser-origin API
+# calls. Written as an included snippet rather than templated into nginx.conf so
+# that leaving SELFHOST_PREMIUM_KEY unset emits NO directive at all — an empty
+# proxy_set_header would strip a caller's own X-WorldMonitor-Key and break
+# /api/mcp. Regenerated every boot; never baked into the image.
+rm -rf /tmp/selfhost-premium
+mkdir -p /tmp/selfhost-premium
+if [ -n "${SELFHOST_PREMIUM_KEY:-}" ]; then
+  printf 'proxy_set_header X-WorldMonitor-Key "%s";\n' "${SELFHOST_PREMIUM_KEY}" \
+    > /tmp/selfhost-premium/premium-key.conf
+  chmod 600 /tmp/selfhost-premium/premium-key.conf
+fi
+
 envsubst '$LOCAL_API_PORT $LOCAL_API_TOKEN' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/worldmonitor.conf

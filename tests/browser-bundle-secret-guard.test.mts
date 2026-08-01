@@ -109,6 +109,10 @@ const CLIENT_ENV_ALLOWLIST = new Set([
   'VITE_QUIET_HOURS_BATCH_ENABLED',
   'VITE_RELAY_GATES_READY',
   'VITE_RSS_DIRECT_TO_RELAY',
+  // Fork-local self-host premium unlock (ADV-34). A boolean, not a credential:
+  // the matching API key is attached server-side by nginx and never enters the
+  // bundle. See src/services/runtime-config.ts readSelfHostPremiumUnlock.
+  'VITE_SELFHOST_PRO',
   'VITE_SENTRY_DSN',
   'VITE_TAURI_API_BASE_URL',
   'VITE_TAURI_REMOTE_API_BASE_URL',
