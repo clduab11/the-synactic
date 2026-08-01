@@ -29,7 +29,7 @@ being able to say where a number came from.
 
 150+ autonomous collectors sweeping conflict events, sanctions programs,
 maritime chokepoints, energy flows, airspace, cyber threat feeds,
-macroeconomics, and climate anomalies. 50+ typed MCP tools any agent can
+macroeconomics, and climate anomalies. 60+ typed MCP tools any agent can
 call — composite country-risk scoring, conflict-event retrieval,
 LLM-grounded country briefs, chokepoint status — with server-side projection
 keeping context windows lean. 190+ routed model endpoints behind one

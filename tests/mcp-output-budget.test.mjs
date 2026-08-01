@@ -19,7 +19,7 @@
 // or summary call shrinks the response further, so testing the unprojected
 // path is the bound the runtime gate cares about.
 //
-// Coverage caveat: only 3/51 tools have captured fixtures in
+// Coverage caveat: only 3 of the registry's tools have captured fixtures in
 // `tests/fixtures/jmespath-samples/` (the shape-only projection set). Each new
 // fixture added there will be picked up by this test the next CI run. Value
 // coverage lives separately in `tests/fixtures/oracle/<date>/` +

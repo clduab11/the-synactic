@@ -129,17 +129,20 @@
       "currencies": "Valute",
       "area": "Superficie"
     },
-    "loadingResilienceScore": "Caricamento punteggio di resilienza…",
+    "loadingResilienceScore": "Caricamento del punteggio di resilienza…",
     "resilienceScoreUnavailable": "Punteggio di resilienza non disponibile.",
     "china": {
       "title": "Panoramica paese: Cina",
       "description": "Quadro attuale di macroeconomia, mercato, commercio, energia e disponibilità operativa dai contratti dati pubblici esistenti.",
-      "macroPolicy": "Macro e politica",
-      "marketCredit": "Mercato e credito",
-      "tradeSupply": "Commercio e filiera",
+      "policyEvents": "Politica e applicazione",
       "energy": "Energia",
       "availability": "Rischi e aviazione",
       "observed": "Al:",
+      "published": "Pubblicato:",
+      "effective": "In vigore:",
+      "sectors": "Settori:",
+      "entities": "Entità:",
+      "translation": "Traduzione:",
       "source": "Fonte:",
       "imfGrowth": "Previsione di crescita FMI",
       "creditGdp": "Credito su PIL",
@@ -148,8 +151,6 @@
       "gasDemand": "Domanda di gas",
       "energyMix": "Mix elettrico",
       "coal": "carbone",
-      "aviationAvailability": "Disponibilità aviazione",
-      "hazardAvailability": "Disponibilità rischi",
       "noMajorDisruptions": "Nessuna interruzione rilevante segnalata",
       "activeDisruptions_one": "{{count}} interruzione attiva",
       "activeDisruptions_many": "{{count}} interruzioni attive",
@@ -163,18 +164,21 @@
       "ccfiSource": "Borsa marittima di Shanghai",
       "comtradeSource": "UN Comtrade, dichiarante 156",
       "sourceUnavailable": "Fonte non disponibile",
-      "macroUnavailable": "I dati macro e di politica non sono al momento disponibili.",
-      "marketUnavailable": "I dati di mercato e credito non sono al momento disponibili.",
-      "tradeUnavailable": "I dati su commercio e filiera non sono al momento disponibili.",
-      "energyUnavailable": "I dati sull'energia non sono al momento disponibili.",
-      "availabilityUnavailable": "I dati di disponibilità su rischi e aviazione non sono al momento disponibili.",
+      "policyUnavailable": "Official policy and enforcement events are currently unavailable.",
+      "policyPartial": "{{count}} official agencies are temporarily degraded.",
       "status": {
         "loading": "Caricamento",
         "available": "Disponibile",
         "partial": "Parziale",
         "stale": "Obsoleto",
         "unavailable": "Non disponibile"
-      }
+      },
+      "macroSignals": "Segnali macro",
+      "crossStraitActivity": "Attività attraverso lo stretto",
+      "corporateDisclosures": "Comunicazioni aziendali",
+      "corridorConditions": "Condizioni del corridoio",
+      "activityNowcast": "Nowcast dell'attività",
+      "decisionSignalsUnavailable": "Lo snapshot dei segnali decisionali della Cina non è attualmente disponibile."
     }
   },
   "header": {
@@ -255,7 +259,7 @@
     "panelCatCommodityEcon": "Economia e Commercio",
     "panelCatHappyNews": "Buone Notizie",
     "panelCatHappyPlanet": "Pianeta e Beneficenza",
-    "embed": "Embed"
+    "embed": "Incorpora"
   },
   "panels": {
     "liveNews": "Notizie in diretta",
@@ -873,7 +877,7 @@
       "fytdLabel": "AF{{year}} DA",
       "vsPriorFy": "vs AF{{year}}",
       "sourceWto": "OMC",
-      "sourceTreasury": "US Treasury",
+      "sourceTreasury": "Dipartimento del Tesoro degli Stati Uniti",
       "colDate": "Data",
       "colMonthly": "Mensile",
       "colFytd": "AF DA",
@@ -1060,7 +1064,7 @@
           "techCloudRegions": "Regioni dei data center AWS, Azure e GCP",
           "techHQs": "Quartieri delle principali aziende tecnologiche",
           "techAccelerators": "Y Combinator, Techstars, 500 sedi di startup",
-          "infraCables": "Principali cavi in ​​fibra ottica sottomarini (dorsale Internet)",
+          "infraCables": "Principali cavi in fibra ottica sottomarini (dorsale Internet)",
           "infraDatacenters": "Cluster di calcolo AI >=10.000 GPU",
           "infraOutages": "Blackout di Internet e interruzioni del servizio",
           "naturalEventsTech": "Terremoti, tempeste, incendi (possono interessare i data center)",
@@ -1088,7 +1092,7 @@
           "militaryNuclear": "Centrali elettriche, arricchimento, impianti di armi",
           "militaryIrradiators": "Impianti industriali di irradiazione gamma",
           "militaryActivity": "Monitoraggio in tempo reale di aerei militari e navi",
-          "infraCablesFull": "Principali cavi in ​​fibra ottica sottomarini (20 percorsi dorsali)",
+          "infraCablesFull": "Principali cavi in fibra ottica sottomarini (20 percorsi dorsali)",
           "infraPipelinesFull": "Oleodotti/gasdotti (Nord Stream, TAPI, ecc.)",
           "infraDatacentersFull": "Solo cluster di elaborazione AI >=10.000 GPU",
           "transportShipping": "Navi, punti di strozzatura, 61 porti strategici",
@@ -1137,6 +1141,8 @@
       "relatedAssetsNear": "Asset correlati vicino a {{location}}",
       "summaryError": "Impossibile generare il riepilogo",
       "summaryFailed": "Riepilogo fallito",
+      "sourceCoverage": "{{covered}}/{{total}} fonti",
+      "sourceCoverageHint": "Mostra {{covered}} di {{total}} fonti attive — questo pannello ruota tra le sue fonti a ogni aggiornamento",
       "sortBy": "Ordina per",
       "sortNewest": "Più recenti",
       "sortRelevance": "Rilevanza"
@@ -1420,25 +1426,25 @@
       "candidGrants": "Sovvenzioni Candid",
       "dataLag": "Ritardo dati",
       "infoTooltip": "<strong>Indice di attività donazioni globali</strong> Indice composito che traccia le donazioni personali attraverso piattaforme di crowdfunding e wallet crypto.<ul><li><strong>Piattaforme</strong>: GoFundMe, GlobalGiving, JustGiving campionamento campagne</li><li><strong>Crypto</strong>: Afflussi on-chain a wallet beneficenza (Endaoment, Giving Block)</li><li><strong>Istituzionale</strong>: OCSE APS, CAF World Giving Index, sovvenzioni Candid</li></ul>L'indice è direzionale (non importi esatti in dollari). Combina campionamento in tempo reale con rapporti annuali pubblicati.",
-      "benchmarkTitle": "Global Giving Benchmarks",
-      "benchmarkInfoTooltip": "<strong>Global Giving Benchmarks</strong> Published platform and institutional claims with source periods and verification status. Annualized figures are estimates, not live activity.",
+      "benchmarkTitle": "Benchmark globali per donazioni",
+      "benchmarkInfoTooltip": "<strong>Benchmark globali per donazioni</strong> Dichiarazioni pubblicate di piattaforme e istituzioni con periodi di fonte e stato di verifica. I dati annualizzati sono stime, non attività in tempo reale.",
       "status": {
-        "published": "Published benchmarks with verified source coverage.",
-        "partial": "Published benchmarks with partial source coverage.",
-        "legacy": "Legacy snapshot; source details are unavailable.",
-        "cached": "Showing a cached snapshot; refresh unavailable."
+        "published": "Benchmark pubblicati con copertura delle fonti verificata.",
+        "partial": "Benchmark pubblicati con copertura delle fonti parziale.",
+        "legacy": "Snapshot legacy; dettagli della fonte non disponibili.",
+        "cached": "Visualizzazione di uno snapshot nella cache; aggiornamento non disponibile."
       },
-      "trackedAnnualized": "Tracked platform giving — annualized estimate",
-      "annualizedDaily": "Annualized daily estimate",
-      "atLeast": "At least",
-      "about": "About",
-      "sourceNotVerified": "Source not verified",
-      "reportedCumulative": "Reported cumulative total",
+      "trackedAnnualized": "Donazioni di piattaforma tracciate — stima annualizzata",
+      "annualizedDaily": "Stima giornaliera annualizzata",
+      "atLeast": "Almeno",
+      "about": "Circa",
+      "sourceNotVerified": "Fonte non verificata",
+      "reportedCumulative": "Totale cumulativo dichiarato",
       "sourcePeriod": "{{source}} · {{period}}",
-      "benchmark": "Published benchmark",
-      "sourcesMethodology": "Sources & methodology",
-      "methodologyIntro": "Only verified annual or defensibly annualized platform claims enter the headline. Cumulative and institutional figures remain separate context.",
-      "partialEstimate": "Partially verified estimate"
+      "benchmark": "Benchmark pubblicato",
+      "sourcesMethodology": "Fonti e metodologia",
+      "methodologyIntro": "Solo le dichiarazioni annuali verificate o annualizzate in modo difendibile entrano nel titolo. I dati cumulativi e istituzionali rimangono un contesto separato.",
+      "partialEstimate": "Stima parzialmente verificata"
     },
     "displacement": {
       "refugees": "Rifugiati",
@@ -1585,7 +1591,7 @@
         "minutesAgo": "{{count}}m fa",
         "hoursAgo": "{{count}}h fa"
       },
-      "cachedCiiStatus": "CII memorizzato {{states}}",
+      "cachedCiiStatus": "CII nella cache {{states}}",
       "sourceStates": {
         "degraded": "degradato",
         "stale": "obsoleto"
@@ -2136,7 +2142,11 @@
       "infoTooltip": "<strong>Disaster Cascade</strong> Rileva segnali convergenti di disastri naturali e infrastrutture:<ul><li>Correla terremoti, incendi boschivi, alluvioni ed estremi meteorologici</li><li>Traccia effetti a cascata su infrastrutture e supply chain</li><li>Evidenzia regioni con rischio di disastri composti</li></ul>Clicca su una card per ingrandire la regione interessata."
     },
     "markets": {
-      "infoTooltip": "<strong>Markets</strong> Indici azionari in tempo reale, azioni e prezzi crypto. Personalizza la tua watchlist con il pulsante Watchlist. Le sparkline mostrano il trend di prezzo recente."
+      "infoTooltip": "<strong>Markets</strong> Indici azionari in tempo reale, azioni e prezzi crypto. Personalizza la tua watchlist con il pulsante Watchlist. Le sparkline mostrano il trend di prezzo recente.",
+      "chart": {
+        "title": "Grafico del prezzo {{symbol}}",
+        "close": "Chiudi grafico"
+      }
     },
     "heatmap": {
       "infoTooltip": "<strong>Sector Heatmap</strong> Performance dei settori S&P 500 a colpo d'occhio. L'intensità del colore riflette l'entità della variazione giornaliera. Verde = guadagni, Rosso = perdite."
@@ -2256,9 +2266,10 @@
           "summaryVerified": "Sbloccato e pronto quando lo sei tu.",
           "channelsNote": "Preferisci Telegram, Slack, Discord o un webhook?",
           "pointers": {
+            "search": "Cerca nell'intera dashboard",
             "widgets": "Crea un widget personalizzato",
             "analyst": "Chiedi all'analista IA",
-            "apiKeys": "Ottieni le tue chiavi API e MCP",
+            "mcpClients": "Configura MCP",
             "channels": "Configurali nelle impostazioni di notifica"
           }
         }
@@ -2475,7 +2486,7 @@
       }
     },
     "mobileNav": {
-      "panelCategories": "Categorie pannelli"
+      "panelCategories": "Categorie di pannelli"
     },
     "panelFreshness": {
       "status": {
@@ -2483,11 +2494,11 @@
         "stale": "Obsoleto",
         "veryStale": "Molto obsoleto",
         "noData": "Nessun dato",
-        "disabled": "Disattivato",
+        "disabled": "Disabilitato",
         "error": "Errore"
       },
       "labelWithAge": "{{status}} {{age}}",
-      "title": "Freschezza dati: {{status}}. {{sources}}",
+      "title": "Aggiornamento dati: {{status}}. {{sources}}",
       "sourceDetail": "{{name}}: {{status}}, {{update}}",
       "sourceDetailWithHealth": "{{name}}: {{status}}, {{update}}, {{detail}}",
       "lastUpdated": "ultimo aggiornamento {{time}}",
@@ -2496,14 +2507,14 @@
         "partialCoverage": "copertura parziale",
         "contentStale": "contenuto obsoleto",
         "seedStale": "seed obsoleto",
-        "noSourceData": "nessun dato dalla fonte",
-        "sourceErrorReported": "errore fonte segnalato",
-        "freshnessStoreUnavailable": "archivio freschezza non disponibile",
-        "freshnessStoreDegraded": "archivio freschezza degradato"
+        "noSourceData": "nessun dato sorgente",
+        "sourceErrorReported": "errore sorgente segnalato",
+        "freshnessStoreUnavailable": "archivio di freschezza non disponibile",
+        "freshnessStoreDegraded": "archivio di freschezza degradato"
       },
       "time": {
         "never": "mai",
-        "justNow": "adesso",
+        "justNow": "proprio ora",
         "minutesAgo": "{{count}}m fa",
         "hoursAgo": "{{count}}h fa",
         "daysAgo": "{{count}}g fa",
@@ -2512,6 +2523,22 @@
         "compactHours": "{{count}}h",
         "compactDays": "{{count}}g"
       }
+    },
+    "exportGate": {
+      "signedOutDesc": "Accedi per esportare i dati del dashboard come CSV, JSON o PDF.",
+      "upgradeDesc": "L'esportazione dei dati (CSV, JSON, PDF) è inclusa in Pro Business.",
+      "upgradeCta": "Passa a Pro Business",
+      "lockedAriaLabel": "Esporta dati — bloccato. {{reason}}",
+      "unlockedAnnouncement": "Esportazione dati sbloccata.",
+      "preparingPdf": "Preparazione del PDF…",
+      "pdfFailed": "Il report PDF non è stato generato. Riprova o usa l'esportazione JSON."
+    },
+    "tabCap": {
+      "signedOutDesc": "Gli spazi di lavoro non connessi sono limitati a {{cap}} schede. Accedi per aggiungerne altre.",
+      "upgradeDesc": "Hai raggiunto il limite di {{cap}} schede del dashboard.",
+      "upgradeCta": "Esegui l'upgrade per di più",
+      "lockedAriaLabel": "Aggiungi scheda — bloccato. {{reason}}",
+      "unlockedAnnouncement": "Limite schede del dashboard rimosso."
     }
   },
   "popups": {
@@ -2646,7 +2673,7 @@
       "health": {
         "evidence": "EVIDENZE DI STATO"
       },
-      "description": "Cavo sottomarino per telecomunicazioni che trasporta traffico Internet internazionale. Questi cavi in ​​fibra ottica costituiscono la spina dorsale della connettività Internet globale, trasmettendo oltre il 95% dei dati intercontinentali."
+      "description": "Cavo sottomarino per telecomunicazioni che trasporta traffico Internet internazionale. Questi cavi in fibra ottica costituiscono la spina dorsale della connettività Internet globale, trasmettendo oltre il 95% dei dati intercontinentali."
     },
     "repairShip": {
       "note": "Il tracciamento della nave riparatrice indica un dispiegamento attivo verso il sito del guasto.",
@@ -3315,7 +3342,7 @@
     "visualizationFailed": "Visualizzazione non riuscita"
   },
   "dashboardTabs": {
-    "ariaLabel": "Schede dashboard",
+    "ariaLabel": "Schede del dashboard",
     "defaultName": "Principale",
     "newTabName": "Nuova scheda",
     "newTabCreated": "Nuova scheda creata",

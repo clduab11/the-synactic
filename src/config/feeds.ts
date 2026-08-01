@@ -2,6 +2,10 @@ import type { Feed } from '@/types';
 import { SITE_VARIANT } from './variant';
 import { rssProxyUrl } from '@/utils';
 import { mergeCanonicalFeeds } from './feed-resolution';
+import {
+  getSourceProvenanceState,
+  type SourceProvenanceState,
+} from '../../shared/source-provenance';
 
 const rss = rssProxyUrl;
 const railwayRss = rssProxyUrl;
@@ -9,165 +13,27 @@ const railwayRss = rssProxyUrl;
 // Source tier system — canonical definition lives in server/_shared/source-tiers.ts
 // so server-side code can import it without pulling in client-only modules.
 export { SOURCE_TIERS, getSourceTier } from '../../server/_shared/source-tiers';
-
-
-export type SourceType = 'wire' | 'gov' | 'intel' | 'mainstream' | 'market' | 'tech' | 'other';
-
-export const SOURCE_TYPES: Record<string, SourceType> = {
-  // Wire services - fastest, most authoritative
-  'Reuters': 'wire', 'Reuters World': 'wire', 'Reuters Business': 'wire',
-  'AP News': 'wire', 'AFP': 'wire', 'Bloomberg': 'wire',
-
-  // Government & International Org sources
-  'White House': 'gov', 'State Dept': 'gov', 'Pentagon': 'gov',
-  'Treasury': 'gov', 'DOJ': 'gov', 'DHS': 'gov', 'CDC': 'gov',
-  'FEMA': 'gov', 'Federal Reserve': 'gov', 'SEC': 'gov',
-  'UN News': 'gov', 'CISA': 'gov',
-
-  // Intel/Defense specialty
-  'Defense One': 'intel', 'Breaking Defense': 'intel', 'The War Zone': 'intel',
-  'Defense News': 'intel', 'Janes': 'intel', 'Military Times': 'intel', 'Task & Purpose': 'intel',
-  'USNI News': 'intel', 'gCaptain': 'intel', 'Oryx OSINT': 'intel', 'UK MOD': 'gov',
-  'Bellingcat': 'intel', 'Krebs Security': 'intel',
-  'Foreign Policy': 'intel', 'The Diplomat': 'intel',
-  'Atlantic Council': 'intel', 'Foreign Affairs': 'intel',
-  'CrisisWatch': 'intel',
-  'CSIS': 'intel', 'RAND': 'intel', 'Brookings': 'intel', 'Carnegie': 'intel',
-  'IAEA': 'gov', 'WHO': 'gov', 'UNHCR': 'gov',
-  'Xinhua': 'wire', 'TASS': 'wire', 'RT': 'wire', 'RT Russia': 'wire',
-  'NHK World': 'mainstream', 'Nikkei Asia': 'market',
-
-  // Mainstream outlets
-  'BBC World': 'mainstream', 'BBC Middle East': 'mainstream',
-  'Guardian World': 'mainstream', 'Guardian ME': 'mainstream',
-  'NPR News': 'mainstream', 'Al Jazeera': 'mainstream',
-  'CNN World': 'mainstream', 'Politico': 'mainstream', 'Axios': 'mainstream',
-  'EuroNews': 'mainstream', 'France 24': 'mainstream', 'Le Monde': 'mainstream',
-  // European Addition
-  'El País': 'mainstream', 'El Mundo': 'mainstream', 'BBC Mundo': 'mainstream',
-  'Tagesschau': 'mainstream', 'Der Spiegel': 'mainstream', 'Die Zeit': 'mainstream', 'DW News': 'mainstream',
-  'ANSA': 'wire', 'Corriere della Sera': 'mainstream', 'Repubblica': 'mainstream',
-  'NOS Nieuws': 'mainstream', 'NRC': 'mainstream', 'De Telegraaf': 'mainstream',
-  // Croatian (HR)
-  'N1 Croatia': 'mainstream', 'Index.hr': 'mainstream', 'Jutarnji list': 'mainstream',
-  'Balkan Insight': 'intel',
-  // Hindi (HI)
-  'BBC Hindi': 'mainstream', 'Aaj Tak': 'mainstream', 'NDTV India': 'mainstream', 'Amar Ujala': 'mainstream',
-  // Hungarian (HU)
-  'Telex': 'mainstream', 'Index.hu': 'mainstream', 'HVG': 'mainstream',
-  '444.hu': 'mainstream', '24.hu': 'mainstream', 'Híradó': 'mainstream',
-  'ATV': 'mainstream', 'Portfolio.hu': 'market',
-  'SVT Nyheter': 'mainstream', 'Dagens Nyheter': 'mainstream', 'Svenska Dagbladet': 'mainstream',
-  // Brazilian Addition
-  'Brasil Paralelo': 'mainstream',
-
-  // Market/Finance
-  'CNBC': 'market', 'MarketWatch': 'market', 'Yahoo Finance': 'market',
-  'Financial Times': 'market',
-
-  // Tech
-  'Hacker News': 'tech', 'Ars Technica': 'tech', 'The Verge': 'tech',
-  'The Verge AI': 'tech', 'MIT Tech Review': 'tech', 'TechCrunch Layoffs': 'tech',
-  'AI News': 'tech', 'ArXiv AI': 'tech', 'VentureBeat AI': 'tech',
-  'Layoffs.fyi': 'tech', 'Layoffs News': 'tech',
-
-  // Regional Tech Startups
-  'EU Startups': 'tech', 'Tech.eu': 'tech', 'Sifted (Europe)': 'tech',
-  'The Next Web': 'tech', 'Tech in Asia': 'tech', 'e27 (SEA)': 'tech',
-  'DealStreetAsia': 'tech', 'Pandaily (China)': 'tech', '36Kr English': 'tech',
-  'TechNode (China)': 'tech', 'The Bridge (Japan)': 'tech', 'Nikkei Tech': 'tech',
-  'Inc42 (India)': 'tech', 'YourStory': 'tech', 'TechCabal (Africa)': 'tech',
-  'Wamda (MENA)': 'tech', 'Magnitt': 'tech',
-
-  // Think Tanks & Policy
-  'Brookings Tech': 'intel', 'CSIS Tech': 'intel', 'Stanford HAI': 'intel',
-  'AI Now Institute': 'intel', 'OECD Digital': 'intel', 'Bruegel (EU)': 'intel',
-  'Chatham House Tech': 'intel', 'DigiChina': 'intel', 'Lowy Institute': 'intel',
-  'EFF News': 'intel', 'Politico Tech': 'intel',
-  // Security/Defense Think Tanks
-  'RUSI': 'intel', 'Wilson Center': 'intel', 'GMF': 'intel',
-  'Stimson Center': 'intel', 'CNAS': 'intel',
-  // Nuclear & Arms Control
-  'Arms Control Assn': 'intel', 'Bulletin of Atomic Scientists': 'intel',
-  // Food Security & Regional
-  'FAO GIEWS': 'gov', 'EU ISS': 'intel',
-  // Investigative journalism & accountability
-  'OCCRP': 'intel', 'DFRLab': 'intel', 'Lighthouse Reports': 'intel', 'The Sentry': 'intel', 'GITOC': 'intel', 'VSquare': 'intel', 'Correctiv': 'intel',
-  // New verified think tanks
-  'War on the Rocks': 'intel', 'AEI': 'intel', 'Responsible Statecraft': 'intel',
-  'FPRI': 'intel', 'Jamestown': 'intel',
-
-  // Podcasts & Newsletters
-  'Acquired Podcast': 'tech', 'All-In Podcast': 'tech', 'a16z Podcast': 'tech',
-  'This Week in Startups': 'tech', 'The Twenty Minute VC': 'tech',
-  'Hard Fork (NYT)': 'tech', 'Pivot (Vox)': 'tech', 'Stratechery': 'tech',
-  'Benedict Evans': 'tech', 'How I Built This': 'tech', 'Masters of Scale': 'tech',
-};
-
-export function getSourceType(sourceName: string): SourceType {
-  return SOURCE_TYPES[sourceName] ?? 'other';
-}
-
-// Propaganda risk assessment for sources (Quick Win #5)
-// 'high' = State-controlled media, known to push government narratives
-// 'medium' = State-affiliated or known editorial bias toward specific governments
-// 'low' = Independent journalism with editorial standards
-export type PropagandaRisk = 'low' | 'medium' | 'high';
-
-export interface SourceRiskProfile {
-  risk: PropagandaRisk;
-  stateAffiliated?: string;
-  knownBiases?: string[];
-  note?: string;
-}
-
-export const SOURCE_PROPAGANDA_RISK: Record<string, SourceRiskProfile> = {
-  // High risk - State-controlled media
-  'Xinhua': { risk: 'high', stateAffiliated: 'China', note: 'Official CCP news agency' },
-  'TASS': { risk: 'high', stateAffiliated: 'Russia', note: 'Russian state news agency' },
-  'RT': { risk: 'high', stateAffiliated: 'Russia', note: 'Russian state media, banned in EU' },
-  'RT Russia': { risk: 'high', stateAffiliated: 'Russia', note: 'Russian state media, Russia desk' },
-  'Sputnik': { risk: 'high', stateAffiliated: 'Russia', note: 'Russian state media' },
-  'CGTN': { risk: 'high', stateAffiliated: 'China', note: 'Chinese state broadcaster' },
-  'Press TV': { risk: 'high', stateAffiliated: 'Iran', note: 'Iranian state media' },
-  'IRNA': { risk: 'high', stateAffiliated: 'Iran', note: 'Iranian state news agency (Islamic Republic News Agency)' },
-  'Mehr News': { risk: 'high', stateAffiliated: 'Iran', note: 'Iranian state-affiliated, Basij-linked' },
-  'KCNA': { risk: 'high', stateAffiliated: 'North Korea', note: 'North Korean state media' },
-
-  // Medium risk - State-affiliated or known bias
-  'Al Jazeera': { risk: 'medium', stateAffiliated: 'Qatar', note: 'Qatari state-funded, independent editorial' },
-  'Al Arabiya': { risk: 'medium', stateAffiliated: 'Saudi Arabia', note: 'Saudi-owned, reflects Gulf perspective' },
-  'TRT World': { risk: 'medium', stateAffiliated: 'Turkey', note: 'Turkish state broadcaster' },
-  'France 24': { risk: 'medium', stateAffiliated: 'France', note: 'French state-funded, editorially independent' },
-  'EuroNews': { risk: 'low', note: 'European public broadcaster consortium', knownBiases: ['Pro-EU'] },
-  'Le Monde': { risk: 'low', note: 'French newspaper of record' },
-  'DW News': { risk: 'medium', stateAffiliated: 'Germany', note: 'German state-funded, editorially independent' },
-  'Voice of America': { risk: 'medium', stateAffiliated: 'USA', note: 'US government-funded' },
-  'Kyiv Independent': { risk: 'medium', knownBiases: ['Pro-Ukraine'], note: 'Ukrainian perspective on Russia-Ukraine war' },
-  'Moscow Times': { risk: 'medium', knownBiases: ['Anti-Kremlin'], note: 'Independent, critical of Russian government' },
-
-  // Low risk - Independent with editorial standards (explicit)
-  'Jerusalem Post': { risk: 'low', knownBiases: ['Israeli centre-right'], note: 'English-language Israeli daily of record' },
-  'Ynetnews': { risk: 'low', knownBiases: ['Israeli mainstream'], note: 'Yedioth Ahronoth English edition' },
-  'Reuters': { risk: 'low', note: 'Wire service, strict editorial standards' },
-  'AP News': { risk: 'low', note: 'Wire service, nonprofit cooperative' },
-  'AFP': { risk: 'low', note: 'Wire service, editorially independent' },
-  'BBC World': { risk: 'low', note: 'Public broadcaster, editorial independence charter' },
-  'BBC Middle East': { risk: 'low', note: 'Public broadcaster, editorial independence charter' },
-  'Guardian World': { risk: 'low', knownBiases: ['Center-left'], note: 'Scott Trust ownership, no shareholders' },
-  'Financial Times': { risk: 'low', note: 'Business focus, Nikkei-owned' },
-  'Bellingcat': { risk: 'low', note: 'Open-source investigations, methodology transparent' },
-  'Brasil Paralelo': { risk: 'low', note: 'Independent media company: no political ties, no public funding, 100% subscriber-funded.' },
-};
-
-export function getSourcePropagandaRisk(sourceName: string): SourceRiskProfile {
-  return SOURCE_PROPAGANDA_RISK[sourceName] ?? { risk: 'low' };
-}
-
-export function isStateAffiliatedSource(sourceName: string): boolean {
-  const profile = SOURCE_PROPAGANDA_RISK[sourceName];
-  return !!profile?.stateAffiliated;
-}
+export {
+  SOURCE_PROPAGANDA_RISK,
+  SOURCE_TYPES,
+  UNREVIEWED_SOURCE_RISK,
+  describePropagandaBadge,
+  getSourcePropagandaRisk,
+  getSourceProvenanceState,
+  getSourceTierBadgeTitle,
+  getSourceType,
+  hasDeclaredPropagandaRisk,
+  hasDeclaredSourceType,
+  hasReviewedPropagandaRisk,
+  hasReviewedSourceType,
+  isStateAffiliatedSource,
+} from '../../shared/source-provenance';
+export type {
+  PropagandaRisk,
+  SourceProvenanceState,
+  SourceRiskProfile,
+  SourceType,
+} from '../../shared/source-provenance';
 
 let _sourcePanelMap: Map<string, string> | null = null;
 export function getSourcePanelId(sourceName: string): string {
@@ -264,10 +130,20 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'BBC Turkce', url: rss('https://feeds.bbci.co.uk/turkce/rss.xml'), lang: 'tr' },
     { name: 'DW Turkish', url: rss('https://rss.dw.com/xml/rss-tur-all'), lang: 'tr' },
     { name: 'Hurriyet', url: rss('https://www.hurriyet.com.tr/rss/anasayfa'), lang: 'tr' },
-    // Polish (PL)
-    { name: 'TVN24', url: rss('https://tvn24.pl/swiat.xml'), lang: 'pl' },
+    // Polish (PL) — TVN24 / Rzeczpospolita are EN-default frontline sources (#5949).
+    // Their native RSS feeds are used for both locales: the Google News site
+    // queries previously used for EN returned HTTP 200 with no <item> nodes.
+    // No `lang` tag so isFeedInLanguage / server digests do not drop them for EN.
+    // Polsat News stays PL-only (locale-boosted, not EN default-on).
+    { name: 'TVN24', url: {
+      en: rss('https://tvn24.pl/swiat.xml'),
+      pl: rss('https://tvn24.pl/swiat.xml'),
+    } },
     { name: 'Polsat News', url: rss('https://www.polsatnews.pl/rss/wszystkie.xml'), lang: 'pl' },
-    { name: 'Rzeczpospolita', url: rss('https://www.rp.pl/rss_main'), lang: 'pl' },
+    { name: 'Rzeczpospolita', url: {
+      en: rss('https://www.rp.pl/rss_main'),
+      pl: rss('https://www.rp.pl/rss_main'),
+    } },
     // Hungarian (HU) — V4 / CEE coverage. Locale-gated for hu users only,
     // matching the Tagesschau (de) / ANSA (it) / NOS Nieuws (nl) / SVT (sv)
     // convention. `hu` is registered as a supported locale in src/services/i18n.ts.
@@ -290,13 +166,22 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'in.gr', url: rss('https://www.in.gr/feed/'), lang: 'el' },
     { name: 'iefimerida', url: rss('https://www.iefimerida.gr/rss.xml'), lang: 'el' },
     { name: 'Proto Thema', url: rss('https://news.google.com/rss/search?q=site:protothema.gr+when:2d&hl=el&gl=GR&ceid=GR:el'), lang: 'el' },
-    // Russia & Ukraine (independent sources)
+    // Russia & Ukraine
+    // Independent / exile / UA outlets (Meduza, Novaya Gazeta Europe, Kyiv Independent,
+    // Moscow Times) are eligible for DEFAULT_ENABLED_SOURCES.europe.
+    // TASS / RT / RT Russia stay cataloged for opt-in only — state propaganda
+    // (SOURCE_PROPAGANDA_RISK high, stateAffiliated: Russia); never default-on.
     { name: 'BBC Russian', url: rss('https://feeds.bbci.co.uk/russian/rss.xml'), lang: 'ru' },
-    { name: 'Meduza', url: rss('https://meduza.io/rss/all'), lang: 'ru' },
+    // Meduza: multi-URL so EN digests use the English RSS (no lang gate); RU UI keeps Russian.
+    { name: 'Meduza', url: {
+      en: rss('https://meduza.io/rss/en/all'),
+      ru: rss('https://meduza.io/rss/all'),
+    } },
     { name: 'Novaya Gazeta Europe', url: rss('https://novayagazeta.eu/feed/rss'), lang: 'ru' },
     { name: 'TASS', url: rss('https://news.google.com/rss/search?q=site:tass.com+OR+TASS+Russia+when:1d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'RT', url: rss('https://www.rt.com/rss/') },
     { name: 'RT Russia', url: rss('https://www.rt.com/rss/russia/') },
+    // English-language (no lang tag) — always EN-digest-reachable
     { name: 'Kyiv Independent', url: rss('https://news.google.com/rss/search?q=site:kyivindependent.com+when:3d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Moscow Times', url: rss('https://www.themoscowtimes.com/rss/news') },
   ],
@@ -1065,6 +950,15 @@ export const INTEL_SOURCES: Feed[] = [
   { name: 'USNI News', url: rss('https://news.google.com/rss/search?q=site:news.usni.org+when:3d&hl=en-US&gl=US&ceid=US:en'), type: 'defense' },
   { name: 'gCaptain', url: rss('https://gcaptain.com/feed/'), type: 'defense' },
   { name: 'Oryx OSINT', url: rss('https://www.oryxspioenkop.com/feeds/posts/default?alt=rss'), type: 'defense' },
+  // Declared LAST in the defense group on purpose. The free-tier source cap
+  // (selectSourcesUnderCap, FREE_MAX_SOURCES) fills category buckets round-robin
+  // in DECLARATION ORDER, and the intel bucket only gets a handful of slots — so
+  // inserting a new name near the top silently evicts whichever default-enabled
+  // source it pushes past the cap. That eviction is written back into
+  // worldmonitor-disabled-feeds and cloud-synced rather than recomputed, so it
+  // never recovers. Appending makes a new source absorb its own cap cost instead
+  // of deleting an existing one from every free-tier user (#5405 review).
+  { name: 'Breaking Defense', url: rss('https://breakingdefense.com/feed/'), type: 'defense' },
   { name: 'UK MOD', url: rss('https://www.gov.uk/government/organisations/ministry-of-defence.atom'), type: 'defense' },
   { name: 'CSIS', url: rss('https://news.google.com/rss/search?q=site:csis.org&hl=en&gl=US&ceid=US:en'), type: 'defense' },
 
@@ -1121,11 +1015,46 @@ export const INTEL_SOURCES: Feed[] = [
   { name: 'EU ISS', url: rss('https://news.google.com/rss/search?q=site:iss.europa.eu+when:7d&hl=en-US&gl=US&ceid=US:en'), type: 'intl' },
 ];
 
+/** Unique configured feed names across every variant map + intel sources. */
+export function listConfiguredFeedNames(): string[] {
+  const names = new Set<string>();
+  for (const feeds of Object.values(CANONICAL_FEEDS)) {
+    for (const feed of feeds) names.add(feed.name);
+  }
+  for (const feed of INTEL_SOURCES) names.add(feed.name);
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Provenance state for a configured feed.
+ * `reviewed` = present in SOURCE_PROPAGANDA_RISK (any risk including explicit low).
+ * `unknown` = not yet reviewed — API still returns a definite profile via getSourcePropagandaRisk.
+ */
+export function getFeedProvenanceState(sourceName: string): SourceProvenanceState {
+  return getSourceProvenanceState(sourceName);
+}
+
 // Default-enabled sources per panel (Tier 1+2 priority, ≥8 per panel)
+export const FRONTLINE_EUROPE_PROTECTED_SOURCES = [
+  'Kyiv Independent',
+  'TVN24',
+  'Rzeczpospolita',
+  'Meduza',
+  'Moscow Times',
+] as const;
+
 export const DEFAULT_ENABLED_SOURCES: Record<string, string[]> = {
   politics: ['BBC World', 'Guardian World', 'AP News', 'Reuters World', 'CNN World'],
   us: ['Reuters US', 'NPR News', 'PBS NewsHour', 'ABC News', 'CBS News', 'NBC News', 'Wall Street Journal', 'Politico', 'The Hill'],
-  europe: ['France 24', 'EuroNews', 'Le Monde', 'DW News', 'Tagesschau', 'ANSA', 'NOS Nieuws', 'SVT Nyheter', 'Balkan Insight'],
+  // Europe defaults include Ukraine war frontline coverage for EN users (#5949):
+  // Kyiv Independent (UA), TVN24 + Rzeczpospolita (PL — not all three PL to limit noise),
+  // Meduza + Moscow Times (independent RU). TASS/RT stay off (state propaganda).
+  // HU/EL locale packs remain locale-boosted only, not EN default-on.
+  europe: [
+    'France 24', 'EuroNews', 'Le Monde', 'DW News', 'Tagesschau', 'ANSA', 'NOS Nieuws', 'SVT Nyheter', 'Balkan Insight',
+    ...FRONTLINE_EUROPE_PROTECTED_SOURCES,
+  ],
+
   middleeast: ['BBC Middle East', 'Al Jazeera', 'Al Arabiya', 'Guardian ME', 'BBC Persian', 'Iran International', 'IRNA', 'Mehr News', 'Haaretz', 'Jerusalem Post', 'Ynetnews', 'Asharq News', 'The National'],
   africa: ['BBC Africa', 'News24', 'Africanews', 'Jeune Afrique', 'Africa News', 'Premium Times', 'Channels TV', 'Sahel Crisis'],
   latam: ['BBC Latin America', 'Reuters LatAm', 'InSight Crime', 'Mexico News Daily', 'Clarín', 'Primicias', 'Infobae Americas', 'El Universo'],
@@ -1174,6 +1103,18 @@ export function computeDefaultDisabledSources(locale?: string): string[] {
   for (const feeds of Object.values(FULL_FEEDS)) for (const f of feeds) all.add(f.name);
   for (const f of INTEL_SOURCES) all.add(f.name);
   return [...all].filter(name => !enabled.has(name));
+}
+
+/**
+ * The v3 source-reduction migration's pre-#5949 disabled set. This is used
+ * only for a conservative one-time frontline migration: an exact match means
+ * the profile still has the old untouched defaults, while any extra or
+ * missing entry is treated as a user-customized preference and left alone.
+ */
+export function computeLegacyDefaultDisabledSources(): string[] {
+  const disabled = new Set(computeDefaultDisabledSources());
+  for (const name of FRONTLINE_EUROPE_PROTECTED_SOURCES) disabled.add(name);
+  return [...disabled];
 }
 
 export function getTotalFeedCount(): number {
