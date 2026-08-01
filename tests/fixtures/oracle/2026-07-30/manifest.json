@@ -92,26 +92,6 @@
       "notes": "unavailable:false with updatedAt:'' is the VALID healthy-unenriched pair (see degradedInputs.goldExtended). COT position counts are strings on the wire."
     },
     {
-      "file": "get-population-exposure-ukr.response.json",
-      "tool": "get_population_exposure",
-      "args": { "mode": "exposure", "lat": 48.4, "lon": 31.2, "radius": 50 },
-      "capturedAt": "2026-07-30T07:05:00Z",
-      "notes": "Deterministic over a static 20-country table: 481480 exposed at the UKR centroid, radius 50."
-    },
-    {
-      "file": "get-population-exposure-countries.response.json",
-      "tool": "get_population_exposure",
-      "args": {},
-      "capturedAt": "2026-07-30T07:05:00Z"
-    },
-    {
-      "file": "get-population-exposure-no-latlon.response.json",
-      "tool": "get_population_exposure",
-      "args": { "mode": "exposure" },
-      "capturedAt": "2026-07-30T07:05:00Z",
-      "notes": "Wrapper-level rejection fixture: exposure mode without lat/lon must be REJECTED, never answered — the route itself would default to (0,0) and confidently report Nigeria."
-    },
-    {
       "file": "classify-event-keyword-invasion.response.json",
       "tool": "classify_event_keyword",
       "args": { "title": "Russia launches invasion of northern Ukraine" },
@@ -124,5 +104,10 @@
       "capturedAt": "2026-07-30T07:05:00Z"
     }
   ],
-  "pending": []
+  "pending": [
+    {
+      "tool": "get_population_exposure",
+      "reason": "Fork reconstruction retired at the 2026-08 upstream sync: upstream open-sourced its richer analysis-tools implementation (event_source modes, cache-envelope output) and the duplicate registration had to go one way. The three fork-shape captures (ukr / countries / no-latlon, removed here, recoverable from git history at 48011d60f) assert the RETIRED wrapper's shape. Recapture against the upstream implementation on a live stack — and re-probe the Null-Island trap first: the fork wrapper rejected exposure mode without lat/lon because the route defaults to (0,0) and confidently reports Nigeria; verify upstream's tool guards this before writing new teeth."
+    }
+  ]
 }

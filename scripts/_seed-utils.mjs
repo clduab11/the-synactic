@@ -26,6 +26,11 @@ import { resolveRecordCount } from './_seed-contract.mjs';
 // keeps the loop alive. Same pattern as scripts/warm-cii-stale.mjs.
 async function exitAfterTelemetryFlush(code) {
   try { await flushPendingLlmEvents(); } catch { /* never block exit */ }
+  // Test harnesses (tests/seed-utils-preserve-key-ttls.test.mjs) stub
+  // process.exit and rely on the call being synchronous — the deferred
+  // backstop below would surface the stub's throw as an uncaught timer
+  // exception instead. Only production runs need the libuv-safe teardown.
+  if (isTestRuntime()) process.exit(code);
   process.exitCode = code;
   setTimeout(() => process.exit(code), 3_000).unref();
   // Callers rely on process.exit's never-return semantics — suspend them on a

@@ -338,28 +338,11 @@ const TOOL_ASSERTIONS = {
     assert.ok(payload.cbReserves.topHolders.length >= 5, 'cbReserves.topHolders must be populated despite the zero total');
   },
 
-  get_population_exposure(payload, cap) {
-    if (cap.args?.mode === 'exposure' && cap.args.lat === undefined) {
-      // The Null-Island rejection: exposure without coordinates must be
-      // REJECTED, never answered — the route itself would default to (0,0)
-      // and confidently report Nigeria.
-      assert.equal(typeof payload.error, 'string', 'exposure without lat/lon must be a result-level error');
-      assert.ok(!('exposure' in payload), 'a rejected call must carry NO exposure object');
-      return;
-    }
-    if (cap.args?.mode === 'exposure') {
-      // Deterministic arithmetic over a static 20-country table — exact
-      // equality is legitimate here and the strongest possible tooth.
-      assert.equal(payload.exposure.exposedPopulation, 481480, 'UKR centroid r=50 must reproduce the deterministic estimate');
-      assert.equal(payload.exposure.nearestCountry, 'UKR');
-      assert.equal(payload.exposure.exposureRadiusKm, 50, 'radius must be echoed, not rewritten');
-      return;
-    }
-    assert.equal(payload.countries.length, 20, 'countries mode must return exactly the 20-entry priority table');
-    for (const c of payload.countries) {
-      assert.match(c.code, /^[A-Z]{3}$/, 'population table codes are ISO alpha-3');
-    }
-  },
+  // get_population_exposure validator removed at the 2026-08 upstream sync:
+  // the fork wrapper it asserted was retired in favour of upstream's
+  // analysis-tools implementation (different output shape). See the manifest's
+  // `pending` entry — recapture + new teeth against the upstream tool, and
+  // re-verify the Null-Island (0,0)→Nigeria guard before trusting it.
 
   classify_event_keyword(payload, cap) {
     const c = payload.classification;

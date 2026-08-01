@@ -70,11 +70,12 @@
     "publish-ruby.yml",
     "security-audit.yml",
     "seed-freshness-monitor.yml",
+    "synactic-tests.yml",
     "test-linux-app.yml",
     "test.yml",
     "typecheck.yml"
   ],
-  "workflowCount": 25,
+  "workflowCount": 26,
   "freshnessSources": 35,
   "freshnessRequiredForRisk": 2,
   "feedDefinitions": 568,
@@ -90,7 +91,7 @@
   "leaderNames": 16,
   "populationPriorityCountries": 20,
   "sebufVersion": "v0.11.1",
-  "mcpToolCount": 59,
+  "mcpToolCount": 68,
   "mcpApps": {
     "specVersion": "2026-01-26",
     "mimeType": "text/html;profile=mcp-app",
