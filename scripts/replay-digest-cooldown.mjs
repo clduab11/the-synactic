@@ -43,6 +43,7 @@
  */
 
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import { evaluateCooldown } from './lib/digest-cooldown-decision.mjs';
 
 const DEFAULT_REPLAY_DAYS = 14;
@@ -585,7 +586,7 @@ async function mainCli() {
 const isMainModule = typeof process !== 'undefined'
   && Array.isArray(process.argv)
   && process.argv[1]
-  && import.meta.url === `file://${process.argv[1]}`;
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
   mainCli().catch((err) => {

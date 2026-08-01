@@ -232,6 +232,13 @@ const COUNTRY_EXTRA_KEYS = Object.values(COUNTRY_MAP).map(iso2 => ({
   key: `energy:iea-oil-stocks:v1:${iso2}`,
   ttl: TTL_SECONDS,
   transform: (data) => data.members?.find(m => m.iso2 === iso2) ?? null,
+  // Each member record carries its own `seededAt` (set in parseRecord), which
+  // collides by NAME with the envelope-level `seededAt` that buildIndex strips
+  // from the canonical payload. The pre-publish-leak guard therefore flagged it
+  // and hard-exited on the first country key — after the canonical publish but
+  // before seed-meta — starving all 32 country keys plus the analysis keys that
+  // follow them in extraKeys. It is a per-record timestamp, not pipeline state.
+  allowPrePublishFields: ['seededAt'],
 }));
 
 // Analysis key included in extraKeys so runSeed extends its TTL on fetch

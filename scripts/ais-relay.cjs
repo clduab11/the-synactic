@@ -4549,7 +4549,11 @@ function startChokepointWarmPingLoop() {
 // seed-meta on every live fetch; we just need to call it regularly.
 // ─────────────────────────────────────────────────────────────
 const CABLE_HEALTH_WARM_PING_INTERVAL_MS = 30 * 60 * 1000; // 30 min
-const CABLE_HEALTH_RPC_URL = 'https://api.worldmonitor.app/api/infrastructure/v1/get-cable-health';
+// Overridable so a self-host warms its OWN cache. Hardcoded, every ping
+// populated production Redis while local `cable-health-v1` stayed absent and
+// health.js reported STALE_SEED forever. Mirrors CII_WARM_URL in compose.
+const CABLE_HEALTH_RPC_URL = process.env.CABLE_HEALTH_WARM_URL
+  || 'https://api.worldmonitor.app/api/infrastructure/v1/get-cable-health';
 
 async function seedCableHealthWarmPing() {
   try {

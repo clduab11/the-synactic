@@ -51,6 +51,7 @@
 // out of scope for this one-shot script).
 
 import { isInstitutionalStaticPage } from './shared/url-classifier.js';
+import { pathToFileURL } from 'node:url';
 import { getRedisCredentials } from './_seed-utils.mjs';
 
 const VALID_MODES = ['url', 'age', 'residue', 'both'];
@@ -400,7 +401,7 @@ async function main() {
 const isDirectInvocation =
   typeof process !== 'undefined' &&
   process.argv[1] &&
-  import.meta.url === `file://${process.argv[1]}`;
+  import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isDirectInvocation) {
   main().catch((err) => {

@@ -108,7 +108,13 @@ run_seed() {
 
 ok=0 fail=0 skip=0 timedout=0
 
-for f in "$SCRIPT_DIR"/seed-*.mjs; do
+# fetch-gpsjam.mjs is a seeder in everything but name — audit-railway-watch-paths.mjs
+# allow-lists it as a seed command and api/health.js alarms on its seed-meta — but the
+# seed-*.mjs glob never selected it, so a "full" sweep silently skipped it entirely.
+# Renaming would break tests/gpsjam-org-restore.test.mjs and several path references,
+# so it is named explicitly here. The -f guard also keeps an unmatched glob harmless.
+for f in "$SCRIPT_DIR"/seed-*.mjs "$SCRIPT_DIR"/fetch-gpsjam.mjs; do
+  [ -f "$f" ] || continue
   name="$(basename "$f")"
   printf "→ %s ... " "$name"
   output=$(run_seed "$f")

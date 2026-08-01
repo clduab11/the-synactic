@@ -48,6 +48,7 @@
  */
 
 import { defaultRedisPipeline } from './lib/_upstash-pipeline.mjs';
+import { pathToFileURL } from 'node:url';
 import { ALLOWED_CHANNELS } from './lib/digest-delivered-log.mjs';
 
 const KEY_PREFIX = 'digest:sent:v1';
@@ -326,7 +327,7 @@ async function main() {
 
 // Only run main when invoked directly — keeps the export surface
 // importable from tests without triggering a process.exit.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((err) => {
     console.error('[clear-delivered-entry] FATAL:', err);
     process.exit(EXIT_TRANSPORT);

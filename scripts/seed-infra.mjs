@@ -22,7 +22,12 @@ import { loadEnvFile, CHROME_UA } from './_seed-utils.mjs';
 
 loadEnvFile(import.meta.url);
 
-const API_BASE = 'https://api.worldmonitor.app';
+// Overridable so a self-host can warm its OWN cache. Hardcoding the hosted
+// origin meant every warm-ping populated production Redis while the local keys
+// (infra:service-statuses:v1, cable-health-v1, temporal:anomalies:v1) stayed
+// empty — and main() exits 0 unconditionally, so the sweep logged OK regardless.
+// Same idea as CII_WARM_URL in docker-compose.yml.
+const API_BASE = process.env.API_BASE_URL || 'https://api.worldmonitor.app';
 const TIMEOUT = 30_000;
 
 // Defense-in-depth auth — Origin-trust alone broke globally on 2026-05-02

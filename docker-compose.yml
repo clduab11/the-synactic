@@ -246,6 +246,12 @@ services:
       # forever and get_social_velocity hard-errors with cache_all_null).
       SCRAPECREATORS_API_KEY: "${SCRAPECREATORS_API_KEY:-}"
       MARKET_YAHOO_REFRESH_INTERVAL_MS: "${MARKET_YAHOO_REFRESH_INTERVAL_MS:-900000}"
+      # Cable-health warm-ping. Without these the relay POSTed the HOSTED URL
+      # and 401'd ("WORLDMONITOR_RELAY_KEY not set"), so local cable-health-v1
+      # was never written and health.js reported STALE_SEED indefinitely.
+      # The key IS in .env but was simply never passed to this service.
+      CABLE_HEALTH_WARM_URL: "http://worldmonitor:8080/api/infrastructure/v1/get-cable-health"
+      WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
       UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
       UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
       UPSTASH_ALLOW_INSECURE_HTTP: "true"

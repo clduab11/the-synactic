@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { pathToFileURL } from 'node:url';
 import { loadEnvFile, CHROME_UA, runSeed, httpsProxyFetchRaw, resolveProxyForConnect, describeErr, readSeedSnapshot, writeExtraKeyWithMeta, sleep } from './_seed-utils.mjs';
 import { getAcledToken } from './shared/acled-oauth.mjs';
 import { GDELT_BULK_UNREST_KEY } from './_gdelt-bulk-contract.mjs';
@@ -530,7 +531,11 @@ export function declareRecords(data) {
 // without triggering a real seed run. process.argv[1] is set when this file
 // is invoked as a script (`node scripts/seed-unrest-events.mjs`); under
 // `node --test`, argv[1] is the test runner, not this file.
-const isMain = import.meta.url === `file://${process.argv[1]}`;
+// `file://${argv[1]}` never matches on Windows: run-seeders.sh cygpath-converts
+// argv[1] to `C:\...` while import.meta.url is `file:///C:/...`. The mismatch made
+// this seeder a silent no-op that still exited 0, so the sweep logged OK while
+// unrest:events:v1 was never written. pathToFileURL normalizes both platforms.
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   runSeed('unrest', 'events', CANONICAL_KEY, fetchUnrestEvents, {
     validateFn: validate,

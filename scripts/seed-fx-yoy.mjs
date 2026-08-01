@@ -36,6 +36,7 @@
  * NIXPACKS builder, startCommand `node scripts/seed-fx-yoy.mjs`.
  */
 
+import { pathToFileURL } from 'node:url';
 import { loadEnvFile, CHROME_UA, runSeed } from './_seed-utils.mjs';
 import { tokensToContentMeta, DAY_MIN } from './_content-age-helpers.mjs';
 
@@ -170,7 +171,9 @@ async function fetchFxYoy() {
   return { rates, fetchedAt: new Date().toISOString() };
 }
 
-const isMain = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+// See seed-unrest-events.mjs: the `file://${argv[1]}` form never matches on
+// Windows, turning this into a silent no-op that still logs OK in the sweep.
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 export function declareRecords(data) {
   return Array.isArray(data?.rates) ? data.rates.length : 0;
 }
