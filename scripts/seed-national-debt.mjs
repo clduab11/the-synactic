@@ -4,7 +4,11 @@ import { loadEnvFile, CHROME_UA, runSeed, imfSdmxFetchIndicator } from './_seed-
 
 loadEnvFile(import.meta.url);
 
-const TREASURY_URL = 'https://api.fiscaldata.treasury.gov/services/api/v1/accounting/od/debt_to_penny?fields=record_date,tot_pub_debt_out_amt&sort=-record_date&page[size]=1';
+// FiscalData moved this dataset under /fiscal_service/v2/; the old
+// /services/api/v1/ path now 404s, which fetchTreasury()'s catch swallowed —
+// USA silently fell back to the IMF WEO *projection* instead of live actual
+// debt (2026-07-30: $39.84T actual vs $43.45T projected).
+const TREASURY_URL = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?fields=record_date,tot_pub_debt_out_amt&sort=-record_date&page[size]=1';
 
 const CANONICAL_KEY = 'economic:national-debt:v1';
 // 65 days — must exceed health.js SEED_META.nationalDebt.maxStaleMin (60d) so
@@ -97,7 +101,15 @@ export function computeEntries(debtPctByCountry, gdpByCountry, deficitPctByCount
     const prevDebtPct = Number(debtByYear[prevYear]);
     const hasPrev = Number.isFinite(prevDebtPct) && prevDebtPct > 0;
 
-    const gdpUsd = gdpLatest * 1e9;
+    // IMF SDMX `NGDPD` returns GDP in RAW USD (e.g. USA 2024 = 29_298_025_000_000
+    // ≈ $29.3T), not the billions the legacy WEO API published. Same class as the
+    // `LP` persons-vs-millions fix in seed-imf-labor.mjs — SDMX 3.0 hands back
+    // fully expanded values. The DSD does advertise `series.SCALE = "9"`, but that
+    // describes how WEO *presents* the series, not a multiplier still owed here:
+    // applying it inflated debtUsd/gdpUsd by 1e9 (USA read $43446021592.1T).
+    // debtToGdp comes straight from GGXWDG_NGDP and both absolutes shared the
+    // same bad factor, so neither the ratio nor the panel could reveal it.
+    const gdpUsd = gdpLatest;
     let debtUsd = (effectiveDebtPct / 100) * gdpUsd;
 
     // Override USA with live Treasury data when available
@@ -153,7 +165,12 @@ async function fetchNationalDebt() {
     imfSdmxFetchIndicator('GGXWDG_NGDP', { years }),
     imfSdmxFetchIndicator('NGDPD', { years }),
     imfSdmxFetchIndicator('GGXCNL_NGDP', { years }),
-    fetchTreasury().catch(() => null),
+    // Non-fatal: the IMF projection is a usable fallback for USA. But warn —
+    // a silent null here is what let the dead v1 endpoint go unnoticed.
+    fetchTreasury().catch((err) => {
+      console.warn(`WARN: Treasury debt_to_penny unavailable (${err.message || err}); USA falls back to the IMF WEO projection.`);
+      return null;
+    }),
   ]);
 
   const entries = computeEntries(debtPctData, gdpData, deficitData, treasury);
@@ -164,8 +181,29 @@ async function fetchNationalDebt() {
   };
 }
 
+// Plausibility band for the largest economy's GDP. The 1e9 units bug shipped
+// silently because the only check was a row count — a $33_790_035_432_000_000_000_000
+// GDP passed just as happily as a real one. The largest national GDP is ~$29T, so
+// anything outside [$1T, $1000T] means the source changed scale in one direction
+// or the other. Fail the seed rather than overwrite good data with garbage.
+const MAX_GDP_FLOOR_USD = 1e12;
+const MAX_GDP_CEILING_USD = 1e15;
+
 function validate(data) {
-  return Array.isArray(data?.entries) && data.entries.length >= 100;
+  if (!Array.isArray(data?.entries) || data.entries.length < 100) return false;
+
+  const maxGdp = data.entries.reduce(
+    (max, e) => (Number.isFinite(e?.gdpUsd) && e.gdpUsd > max ? e.gdpUsd : max),
+    0,
+  );
+  if (maxGdp < MAX_GDP_FLOOR_USD || maxGdp > MAX_GDP_CEILING_USD) {
+    console.error(
+      `FATAL: implausible max gdpUsd=${maxGdp} (expected ${MAX_GDP_FLOOR_USD}..${MAX_GDP_CEILING_USD}). ` +
+      'IMF SDMX likely changed the NGDPD scale — check units before re-seeding.',
+    );
+    return false;
+  }
+  return true;
 }
 
 // Guard: only run seed when executed directly, not when imported by tests
