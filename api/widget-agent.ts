@@ -24,7 +24,13 @@ import { timingSafeEqualSecret, timingSafeIncludes } from './_crypto.js';
 import { validateBearerToken } from '../server/auth-session';
 import { getBillingVerificationDenial, getEntitlements } from '../server/_shared/entitlement-check';
 
-const RELAY_BASE = 'https://proxy.worldmonitor.app';
+// proxy.worldmonitor.app is simply a DEPLOYMENT of scripts/ais-relay.cjs, which
+// serves /widget-agent itself (relay :10011, a public route needing no relay
+// auth). A self-host already runs that relay, so this only ever needed to be
+// overridable — not reimplemented. Point WIDGET_RELAY_BASE at the local relay
+// (e.g. http://ais-relay:3004) and set the shared WIDGET_AGENT_KEY on BOTH
+// services. Same hardcoded-hosted-URL class as CABLE_HEALTH_WARM_URL.
+const RELAY_BASE = process.env.WIDGET_RELAY_BASE || 'https://proxy.worldmonitor.app';
 const WIDGET_AGENT_KEY = process.env.WIDGET_AGENT_KEY ?? '';
 const PRO_WIDGET_KEY = process.env.PRO_WIDGET_KEY ?? '';
 const WORLDMONITOR_VALID_KEYS = (process.env.WORLDMONITOR_VALID_KEYS ?? '')
