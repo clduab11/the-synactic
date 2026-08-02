@@ -2148,7 +2148,8 @@
       "closePanel": "Zatvori ploču",
       "collapsePanel": "Sažmi ploču",
       "expandPanel": "Proširi ploču",
-      "addPanel": "Dodaj ploču"
+      "addPanel": "Dodaj ploču",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "selectLanguage": "Odaberi jezik",
@@ -2776,6 +2777,12 @@
       "upgradeCta": "Nadogradi za više",
       "lockedAriaLabel": "Dodaj karticu — zaključano. {{reason}}",
       "unlockedAnnouncement": "Ograničenje kartica nadzorne ploče ukinuto."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

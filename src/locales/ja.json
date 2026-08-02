@@ -1771,7 +1771,8 @@
       "closePanel": "パネルを閉じる",
       "collapsePanel": "パネルを折りたたむ",
       "expandPanel": "パネルを展開する",
-      "addPanel": "パネルを追加"
+      "addPanel": "パネルを追加",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "ベトナム語の地図ラベルは現在英語にフォールバックされます。"
@@ -2521,6 +2522,12 @@
       "upgradeCta": "さらに追加するにはアップグレード",
       "lockedAriaLabel": "タブを追加 — ロック済み。{{reason}}",
       "unlockedAnnouncement": "ダッシュボードタブの制限が解除されました。"
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

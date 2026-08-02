@@ -1771,7 +1771,8 @@
       "closePanel": "Затворете панела",
       "collapsePanel": "Свийте панела",
       "expandPanel": "Разширете панела",
-      "addPanel": "Добавяне на панел"
+      "addPanel": "Добавяне на панел",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Надписите на картата засега са на английски за виетнамски."
@@ -2521,6 +2522,12 @@
       "upgradeCta": "Надградете за повече",
       "lockedAriaLabel": "Добави раздел — заключено. {{reason}}",
       "unlockedAnnouncement": "Лимитът на разделите на таблото е премахнат."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

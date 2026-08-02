@@ -1771,7 +1771,8 @@
       "closePanel": "Paneli Kapat",
       "collapsePanel": "Paneli Daralt",
       "expandPanel": "Paneli Genişlet",
-      "addPanel": "Panel Ekle"
+      "addPanel": "Panel Ekle",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Harita etiketleri Vietnamca için şimdilik İngilizce görüntüleniyor."
@@ -2521,6 +2522,12 @@
       "upgradeCta": "Daha fazlası için yükseltin",
       "lockedAriaLabel": "Sekme ekle — kilitli. {{reason}}",
       "unlockedAnnouncement": "Panel sekmesi limiti kaldırıldı."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

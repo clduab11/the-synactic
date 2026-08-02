@@ -1991,7 +1991,8 @@
       "closePanel": "पैनल बंद करें",
       "collapsePanel": "पैनल संक्षिप्त करें",
       "expandPanel": "पैनल विस्तृत करें",
-      "addPanel": "पैनल जोड़ें"
+      "addPanel": "पैनल जोड़ें",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "मैप लेबल फिलहाल वियतनामी के लिए अंग्रेज़ी में दिख रहे हैं।"
@@ -2590,6 +2591,12 @@
       "upgradeCta": "अधिक के लिए अपग्रेड करें",
       "lockedAriaLabel": "टैब जोड़ें — लॉक्ड। {{reason}}",
       "unlockedAnnouncement": "डैशबोर्ड टैब सीमा हटाई गई।"
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

@@ -1777,7 +1777,8 @@
       "closePanel": "Закрыть панель",
       "collapsePanel": "Свернуть панель",
       "expandPanel": "Развернуть панель",
-      "addPanel": "Добавить панель"
+      "addPanel": "Добавить панель",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Подписи на карте пока отображаются на английском для вьетнамского языка."
@@ -2557,6 +2558,12 @@
       "upgradeCta": "Обновить для большего",
       "lockedAriaLabel": "Добавить вкладку — заблокировано. {{reason}}",
       "unlockedAnnouncement": "Лимит вкладок панели снят."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

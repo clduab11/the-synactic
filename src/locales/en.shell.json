@@ -428,6 +428,7 @@
       "collapsePanel": "Collapse panel",
       "dragToResize": "Drag to resize (double-click to reset)",
       "expandPanel": "Expand panel",
+      "focusPanel": "Focus panel",
       "openSettings": "Open Settings",
       "showMethodologyInfo": "Show methodology info"
     },

@@ -1756,7 +1756,8 @@
       "closePanel": "Zavřít panel",
       "collapsePanel": "Sbalit panel",
       "expandPanel": "Rozbalit panel",
-      "addPanel": "Přidat panel"
+      "addPanel": "Přidat panel",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Popisky mapy aktuálně používají angličtinu jako náhradní jazyk pro vietnamštinu."
@@ -2557,6 +2558,12 @@
       "upgradeCta": "Upgradovat pro více",
       "lockedAriaLabel": "Přidat kartu — zamčeno. {{reason}}",
       "unlockedAnnouncement": "Limit karet řídicího panelu zrušen."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

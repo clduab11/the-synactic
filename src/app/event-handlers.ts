@@ -259,6 +259,7 @@ export class EventHandlerManager implements AppModule {
   private boundSearchKeyHandler: ((e: KeyboardEvent) => void) | null = null;
   private readonly mobilePrimaryNav: MobilePrimaryNav;
   private boundPanelCloseHandler: ((e: Event) => void) | null = null;
+  private boundPanelFocusHandler: ((e: Event) => void) | null = null;
   private boundWidgetModifyHandler: ((e: Event) => void) | null = null;
   private boundUndoHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundNotifyForCountryHandler: ((e: Event) => void) | null = null;
@@ -487,6 +488,11 @@ export class EventHandlerManager implements AppModule {
       this.ctx.container.removeEventListener('wm:panel-close', this.boundPanelCloseHandler);
       this.boundPanelCloseHandler = null;
     }
+
+    if (this.boundPanelFocusHandler) {
+      this.ctx.container.removeEventListener('wm:panel-focus', this.boundPanelFocusHandler);
+      this.boundPanelFocusHandler = null;
+    }
     if (this.boundWidgetModifyHandler) {
       this.ctx.container.removeEventListener('wm:widget-modify', this.boundWidgetModifyHandler);
       this.boundWidgetModifyHandler = null;
@@ -644,6 +650,25 @@ export class EventHandlerManager implements AppModule {
       if (this.closedPanelStack.length > 20) this.closedPanelStack.shift();
     }) as EventListener;
     this.ctx.container.addEventListener('wm:panel-close', this.boundPanelCloseHandler);
+
+    // Focus view (pop-out). Dynamic import keeps the overlay out of the startup
+    // graph — panel-cluster-chunks.test.mjs forbids a static import here.
+    this.boundPanelFocusHandler = ((e: CustomEvent<{ panelId: string; trigger?: HTMLElement }>) => {
+      const { panelId, trigger } = e.detail;
+      const panel = this.ctx.panels[panelId];
+      if (!panel) return;
+      const view = panel.getFocusView();
+      void import('@/components/panel-focus-view').then(({ openPanelFocusView }) => {
+        openPanelFocusView({
+          panelId,
+          title: panel.getTitle(),
+          view,
+          returnFocus: trigger ?? null,
+        });
+        track('panel-focus', { panelId });
+      });
+    }) as EventListener;
+    this.ctx.container.addEventListener('wm:panel-focus', this.boundPanelFocusHandler);
 
     this.boundWidgetModifyHandler = ((e: CustomEvent<{ widgetId: string }>) => {
       const spec = getWidget(e.detail.widgetId);

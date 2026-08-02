@@ -1994,7 +1994,14 @@
       "closePanel": "Close panel",
       "collapsePanel": "Collapse panel",
       "expandPanel": "Expand panel",
+      "focusPanel": "Focus panel",
       "addPanel": "Add Panel"
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Map labels currently fall back to English for Vietnamese."

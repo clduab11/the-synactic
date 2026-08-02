@@ -1771,7 +1771,8 @@
       "closePanel": "Κλείσιμο πίνακα",
       "collapsePanel": "Σύμπτυξη πίνακα",
       "expandPanel": "Ανάπτυξη πίνακα",
-      "addPanel": "Προσθήκη πίνακα"
+      "addPanel": "Προσθήκη πίνακα",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Οι ετικέτες χάρτη εμφανίζονται στα αγγλικά για τα βιετναμέζικα."
@@ -2521,6 +2522,12 @@
       "upgradeCta": "Αναβάθμιση για περισσότερα",
       "lockedAriaLabel": "Προσθήκη καρτέλας — κλειδωμένο. {{reason}}",
       "unlockedAnnouncement": "Το όριο καρτελών πίνακα ελέγχου αρθρώθηκε."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

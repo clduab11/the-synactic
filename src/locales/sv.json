@@ -1375,7 +1375,8 @@
       "closePanel": "Stäng panel",
       "collapsePanel": "Minimera panel",
       "expandPanel": "Expandera panel",
-      "addPanel": "Lägg till panel"
+      "addPanel": "Lägg till panel",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Kartetiketter faller för närvarande tillbaka på engelska för vietnamesiska."
@@ -2261,6 +2262,12 @@
       "upgradeCta": "Uppgradera för mer",
       "lockedAriaLabel": "Lägg till flik — låst. {{reason}}",
       "unlockedAnnouncement": "Gränsen för instrumentpanelflikar upphävd."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

@@ -93,6 +93,7 @@ const EVENTS = {
   'map-layer-toggle': true,
   // Panels
   'panel-toggle': true,
+  'panel-focus': true,
   // Settings
   'settings-open': true,
   'variant-switch': true,

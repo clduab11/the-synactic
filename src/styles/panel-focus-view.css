@@ -1,0 +1,131 @@
+/*
+ * Panel focus view (pop-out) overlay.
+ *
+ * Imported from base-layer.css with layer(base) — the sole stylesheet entry graph.
+ * Variant theme CSS stays unlayered and therefore still wins.
+ *
+ * z-index 10000 puts this in the same band as .country-deep-dive.maximized. The
+ * z-index scale here is a convention rather than a token set, and it is not fully
+ * coherent across the codebase, so verify stacking visually when adding surfaces.
+ */
+
+.panel-focus-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 3vw, 2.5rem);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(2px);
+  overscroll-behavior: contain;
+}
+
+.panel-focus-surface {
+  display: flex;
+  flex-direction: column;
+  width: min(1100px, 100%);
+  max-height: 100%;
+  overflow: hidden;
+  background: var(--panel-bg, #0d1117);
+  border: 1px solid var(--panel-border, #30363d);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.panel-focus-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex: 0 0 auto;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--panel-border, #30363d);
+}
+
+.panel-focus-heading {
+  min-width: 0;
+}
+
+.panel-focus-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-primary, #e6edf3);
+}
+
+.panel-focus-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #8b949e);
+}
+
+.panel-focus-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+}
+
+.panel-focus-freshness {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #8b949e);
+  white-space: nowrap;
+}
+
+/* Unknown age is stated, never implied-fresh. */
+.panel-focus-freshness-unknown {
+  color: var(--severity-medium, #d29922);
+  font-style: italic;
+}
+
+.panel-focus-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+}
+
+/* Wide content scrolls inside its own container; the surface never scrolls
+   horizontally. */
+.panel-focus-body > * {
+  max-width: 100%;
+}
+
+/* Suppress background scroll while the overlay owns the viewport. */
+body.panel-focus-open {
+  overflow: hidden;
+}
+
+/* Header affordance on the panel itself. Hover-gated exactly like the close and
+   collapse buttons, so the deferred-panel skeleton footprint is unchanged and
+   warnOnDeferredFootprintDrift stays quiet.
+   order matters: .panel-close-btn is 999 and .panel-collapse-btn is 998; a button
+   with no order renders left of both regardless of DOM position. */
+.panel-header .panel-focus-btn {
+  order: 997;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.panel:hover .panel-header .panel-focus-btn,
+.panel-header .panel-focus-btn:focus-visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-header .panel-focus-btn {
+    transition: none;
+  }
+}
+
+/* Desktop-only for this pass. Mobile additionally needs overlayHistory
+   registration so browser Back closes the overlay. */
+@media (max-width: 768px) {
+  .panel-header .panel-focus-btn {
+    display: none;
+  }
+}

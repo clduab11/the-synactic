@@ -9,6 +9,7 @@ export class PredictionPanel extends Panel {
       id: 'polymarket',
       title: t('panels.polymarket'),
       infoTooltip: t('components.prediction.infoTooltip'),
+      focusable: true,
     });
   }
 

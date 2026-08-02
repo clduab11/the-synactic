@@ -1718,7 +1718,8 @@
       "closePanel": "Panel schließen",
       "collapsePanel": "Panel minimieren",
       "expandPanel": "Panel erweitern",
-      "addPanel": "Panel hinzufügen"
+      "addPanel": "Panel hinzufügen",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Kartenbeschriftungen verwenden derzeit Englisch als Ersatz für Vietnamesisch."
@@ -2521,6 +2522,12 @@
       "upgradeCta": "Für mehr upgraden",
       "lockedAriaLabel": "Tab hinzufügen — gesperrt. {{reason}}",
       "unlockedAnnouncement": "Dashboard-Tab-Limit aufgehoben."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

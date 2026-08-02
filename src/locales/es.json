@@ -1721,7 +1721,8 @@
       "closePanel": "Cerrar panel",
       "collapsePanel": "Contraer panel",
       "expandPanel": "Expandir panel",
-      "addPanel": "Añadir panel"
+      "addPanel": "Añadir panel",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Las etiquetas del mapa actualmente recurren al inglés para el vietnamita."
@@ -2539,6 +2540,12 @@
       "upgradeCta": "Actualizar para obtener más",
       "lockedAriaLabel": "Agregar pestaña — bloqueado. {{reason}}",
       "unlockedAnnouncement": "Límite de pestañas del panel eliminado."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

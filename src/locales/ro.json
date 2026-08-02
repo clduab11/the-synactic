@@ -1774,7 +1774,8 @@
       "closePanel": "Închide panou",
       "collapsePanel": "Restrânge panou",
       "expandPanel": "Extinide panou",
-      "addPanel": "Adaugă panou"
+      "addPanel": "Adaugă panou",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Etichetele hărții sunt afișate în engleză pentru limba vietnameză."
@@ -2539,6 +2540,12 @@
       "upgradeCta": "Actualizează pentru mai mult",
       "lockedAriaLabel": "Adaugă filă — blocat. {{reason}}",
       "unlockedAnnouncement": "Limita filelor tabloului de bord a fost ridicată."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

@@ -1771,7 +1771,8 @@
       "closePanel": "Đóng bảng điều khiển",
       "collapsePanel": "Thu gọn bảng điều khiển",
       "expandPanel": "Mở rộng bảng điều khiển",
-      "addPanel": "Thêm bảng điều khiển"
+      "addPanel": "Thêm bảng điều khiển",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Nhãn bản đồ hiện sẽ dùng tiếng Anh khi chọn tiếng Việt."
@@ -2521,6 +2522,12 @@
       "upgradeCta": "Nâng cấp để có thêm",
       "lockedAriaLabel": "Thêm tab — đã khóa. {{reason}}",
       "unlockedAnnouncement": "Giới hạn tab bảng điều khiển đã được dỡ bỏ."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

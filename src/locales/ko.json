@@ -1771,7 +1771,8 @@
       "closePanel": "패널 닫기",
       "collapsePanel": "패널 축소",
       "expandPanel": "패널 확장",
-      "addPanel": "패널 추가"
+      "addPanel": "패널 추가",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "베트남어 지도 라벨은 현재 영어로 대체됩니다."
@@ -2521,6 +2522,12 @@
       "upgradeCta": "더 많은 탭을 위해 업그레이드",
       "lockedAriaLabel": "탭 추가 — 잠김. {{reason}}",
       "unlockedAnnouncement": "대시보드 탭 한도가 해제되었습니다."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

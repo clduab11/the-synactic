@@ -1647,7 +1647,8 @@
       "closePanel": "Fermer le panneau",
       "collapsePanel": "Réduire le panneau",
       "expandPanel": "Développer le panneau",
-      "addPanel": "Ajouter un panneau"
+      "addPanel": "Ajouter un panneau",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Les libellés de la carte sont actuellement en anglais pour le vietnamien."
@@ -2539,6 +2540,12 @@
       "upgradeCta": "Passer à la version supérieure",
       "lockedAriaLabel": "Ajouter un onglet — verrouillé. {{reason}}",
       "unlockedAnnouncement": "Limite d'onglets du tableau de bord levée."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

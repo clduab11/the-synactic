@@ -12,6 +12,41 @@ export interface PredictionMarket {
   endDate?: string;
   source?: 'polymarket' | 'kalshi';
   regions?: string[];
+  /** Seeder-published topic tags. Polymarket records carry these; Kalshi records
+   *  publish an empty array, so any tag-driven filter must declare that gap. */
+  tags?: string[];
+}
+
+export type PredictionPoolKey = 'geopolitical' | 'tech' | 'finance';
+
+/**
+ * The compact panel renders 15 records from ONE pool, but bootstrap delivers all
+ * three pools (~75 records). The surplus is discarded at the slice, not at the
+ * network boundary, so it costs nothing to retain a reference for the focus view.
+ *
+ * Pool membership is NOT recoverable from a record — it is implied purely by which
+ * array the record arrived in — so the pools are kept keyed rather than flattened.
+ */
+export interface PredictionPoolSnapshot {
+  pools: Array<{ key: PredictionPoolKey; markets: PredictionMarket[] }>;
+  /** Upstream seed time from the bootstrap payload. */
+  fetchedAt: number;
+  /** When this snapshot was taken client-side. */
+  capturedAt: number;
+  /** The pool the compact panel actually rendered from, given SITE_VARIANT. */
+  renderedPool: PredictionPoolKey;
+}
+
+let poolSnapshot: PredictionPoolSnapshot | null = null;
+
+/**
+ * Returns the last captured bootstrap pools, or null when the panel never took the
+ * bootstrap path (e.g. it fell through to RPC, which returns one flat list with no
+ * pool structure). Callers MUST treat null as "no richer view available" and say so,
+ * rather than silently rendering the compact data twice.
+ */
+export function getPredictionPoolSnapshot(): PredictionPoolSnapshot | null {
+  return poolSnapshot;
 }
 
 function isExpired(endDate?: string): boolean {
@@ -66,6 +101,25 @@ function protoToMarket(m: { title: string; yesPrice: number; volume: number; url
   };
 }
 
+function capturePoolSnapshot(hydrated: BootstrapPredictionData): void {
+  const renderedPool: PredictionPoolKey = SITE_VARIANT === 'tech' ? 'tech'
+    : SITE_VARIANT === 'finance' ? (hydrated.finance ? 'finance' : 'geopolitical')
+    : 'geopolitical';
+
+  const pools: PredictionPoolSnapshot['pools'] = [];
+  for (const key of ['geopolitical', 'tech', 'finance'] as const) {
+    const markets = hydrated[key];
+    if (Array.isArray(markets) && markets.length > 0) pools.push({ key, markets });
+  }
+
+  poolSnapshot = {
+    pools,
+    fetchedAt: hydrated.fetchedAt,
+    capturedAt: Date.now(),
+    renderedPool,
+  };
+}
+
 export async function fetchPredictions(opts?: { region?: string }): Promise<PredictionMarket[]> {
   const markets = await breaker.execute(async () => {
     const hydrated = getHydratedData('predictions') as BootstrapPredictionData | undefined;
@@ -73,6 +127,7 @@ export async function fetchPredictions(opts?: { region?: string }): Promise<Pred
       const variant = SITE_VARIANT === 'tech' ? hydrated.tech
         : SITE_VARIANT === 'finance' ? (hydrated.finance ?? hydrated.geopolitical)
         : hydrated.geopolitical;
+      capturePoolSnapshot(hydrated);
       if (variant && variant.length > 0) {
         return variant
           .filter(m => !isExpired(m.endDate))

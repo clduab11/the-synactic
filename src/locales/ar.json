@@ -1647,7 +1647,8 @@
       "closePanel": "إغلاق اللوحة",
       "collapsePanel": "طي اللوحة",
       "expandPanel": "توسيع اللوحة",
-      "addPanel": "إضافة لوحة"
+      "addPanel": "إضافة لوحة",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "تسميات الخريطة تعود حاليًا إلى الإنجليزية للفيتنامية."
@@ -2593,6 +2594,12 @@
       "upgradeCta": "ترقية للمزيد",
       "lockedAriaLabel": "إضافة علامة تبويب — مقفل. {{reason}}",
       "unlockedAnnouncement": "تم رفع حد علامات التبويب."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

@@ -1994,7 +1994,8 @@
       "closePanel": "Close panel",
       "collapsePanel": "Collapse panel",
       "expandPanel": "Expand panel",
-      "addPanel": "Add Panel"
+      "addPanel": "Add Panel",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Map labels currently fall back to English for Vietnamese."
@@ -2590,6 +2591,12 @@
       "upgradeCta": "ارتقا برای بیشتر",
       "lockedAriaLabel": "افزودن برگه — قفل‌شده. {{reason}}",
       "unlockedAnnouncement": "محدودیت برگه‌های داشبورد برداشته شد."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

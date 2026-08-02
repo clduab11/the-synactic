@@ -1991,7 +1991,8 @@
       "closePanel": "Panel bezárása",
       "collapsePanel": "Panel összecsukása",
       "expandPanel": "Panel kiterjesztése",
-      "addPanel": "Panel hozzáadása"
+      "addPanel": "Panel hozzáadása",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "A térképcímkék jelenleg angolra esnek vissza a vietnámi nyelvben."
@@ -2590,6 +2591,12 @@
       "upgradeCta": "Frissítés többért",
       "lockedAriaLabel": "Fül hozzáadása — zárolva. {{reason}}",
       "unlockedAnnouncement": "Az irányítópult-fülek korlátja feloldva."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

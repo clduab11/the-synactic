@@ -1375,7 +1375,8 @@
       "closePanel": "Paneel sluiten",
       "collapsePanel": "Paneel samenvouwen",
       "expandPanel": "Paneel uitvouwen",
-      "addPanel": "Paneel toevoegen"
+      "addPanel": "Paneel toevoegen",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Kaartlabels vallen momenteel terug op Engels voor Vietnamees."
@@ -2261,6 +2262,12 @@
       "upgradeCta": "Upgraden voor meer",
       "lockedAriaLabel": "Tabblad toevoegen — vergrendeld. {{reason}}",
       "unlockedAnnouncement": "Limiet voor dashboardtabbladen opgeheven."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {

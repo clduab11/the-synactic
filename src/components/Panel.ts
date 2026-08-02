@@ -42,6 +42,24 @@ export interface PanelOptions {
   closable?: boolean;
   collapsible?: boolean;
   defaultRowSpan?: number;
+  /** Opt in to the focus view (pop-out). Panels that set this MUST override
+   *  buildFocusView(); the header button is otherwise inert. */
+  focusable?: boolean;
+}
+
+/**
+ * What a panel hands the focus overlay. The overlay owns the surface, the
+ * freshness header and focus management; the panel owns only the body.
+ *
+ * `fetchedAt` is the UPSTREAM data timestamp, not render time. Omit it when the
+ * panel genuinely does not know — the header then says the age is unpublished
+ * rather than implying the data is fresh.
+ */
+export interface PanelFocusView {
+  /** Short deterministic summary, already localized. */
+  subtitle?: string;
+  fetchedAt?: number;
+  body: SafeHtml;
 }
 
 const ROW_RESIZE_STEP_PX = 80;
@@ -109,6 +127,7 @@ export class Panel {
   private severityDotEl: HTMLElement | null = null;
   private currentSeverity: PanelSeverity = 'none';
   protected panelId: string;
+  protected panelTitle: string;
   private abortController: AbortController = new AbortController();
   private tooltipCloseHandler: (() => void) | null = null;
   private resizeHandle: HTMLElement | null = null;
@@ -177,6 +196,7 @@ export class Panel {
     const title = document.createElement('span');
     title.className = 'panel-title';
     title.textContent = options.title;
+    this.panelTitle = options.title;
     headerLeft.appendChild(title);
 
     this.severityDotEl = document.createElement('span');
@@ -243,6 +263,10 @@ export class Panel {
       this.countEl.className = 'panel-count';
       this.countEl.textContent = '0';
       this.header.appendChild(this.countEl);
+    }
+
+    if (options.focusable) {
+      this.appendFocusButton();
     }
 
     if (options.collapsible) {
@@ -696,6 +720,42 @@ export class Panel {
       savePanelCollapsed(this.panelId, this._collapsed);
     });
     this._collapseBtn = btn;
+    this.header.appendChild(btn);
+  }
+
+  /**
+   * Panels override this to supply focus-view content. Returning null (the
+   * default, and a legitimate runtime answer) makes the overlay render an honest
+   * empty state rather than duplicating the compact panel.
+   */
+  protected buildFocusView(): PanelFocusView | null {
+    return null;
+  }
+
+  /** Read the panel's focus content. Called by the wm:panel-focus handler. */
+  public getFocusView(): PanelFocusView | null {
+    return this.buildFocusView();
+  }
+
+  /** The panel's display title, reused as the focus-view heading. */
+  public getTitle(): string {
+    return this.panelTitle;
+  }
+
+  protected appendFocusButton(): void {
+    const label = t('components.panel.focusPanel') ?? 'Focus panel';
+    const btn = h('button', {
+      className: 'icon-btn panel-focus-btn',
+      'aria-label': label,
+      title: label,
+    }, '\u2922') as HTMLButtonElement;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.element.dispatchEvent(new CustomEvent('wm:panel-focus', {
+        bubbles: true,
+        detail: { panelId: this.panelId, trigger: btn },
+      }));
+    });
     this.header.appendChild(btn);
   }
 

@@ -1641,7 +1641,8 @@
       "closePanel": "Zamknij panel",
       "collapsePanel": "Zwiń panel",
       "expandPanel": "Rozwiń panel",
-      "addPanel": "Dodaj panel"
+      "addPanel": "Dodaj panel",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Etykiety mapy obecnie używają angielskiego jako zastępstwa dla wietnamskiego."
@@ -2557,6 +2558,12 @@
       "upgradeCta": "Uaktualnij, aby uzyskać więcej",
       "lockedAriaLabel": "Dodaj kartę — zablokowane. {{reason}}",
       "unlockedAnnouncement": "Limit kart pulpitu zniesiony."
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
     }
   },
   "popups": {
