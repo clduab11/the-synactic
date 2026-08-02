@@ -55,6 +55,7 @@ services:
       # proxy.worldmonitor.app. The gateway also validates WIDGET_AGENT_KEY for
       # usage telemetry attribution (server/gateway.ts:737-740).
       WIDGET_AGENT_KEY: "${WIDGET_AGENT_KEY:-}"
+      PRO_WIDGET_KEY: "${PRO_WIDGET_KEY:-}"
       WIDGET_RELAY_BASE: "${WIDGET_RELAY_BASE:-}"
       # Seed-only refresh credential for the resilience-ranking recompute path
       # (gateway isResilienceRankingSeedRefreshRequest; seed-resilience-scores.mjs
@@ -267,6 +268,10 @@ services:
       # Anthropic SSE sequence), so WIDGET_AGENT_MODEL must name a model that
       # gateway actually serves. All unset -> hosted defaults, relay unchanged.
       WIDGET_AGENT_KEY: "${WIDGET_AGENT_KEY:-}"
+      # The dashboard's "Create Interactive Widget" CTA requests tier:'pro'
+      # (panel-layout.ts), and the relay 503s "PRO widget agent unavailable"
+      # without this second, distinct secret (ais-relay.cjs:10880).
+      PRO_WIDGET_KEY: "${PRO_WIDGET_KEY:-}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       WIDGET_ANTHROPIC_BASE_URL: "${WIDGET_ANTHROPIC_BASE_URL:-}"
       WIDGET_AGENT_MODEL: "${WIDGET_AGENT_MODEL:-}"

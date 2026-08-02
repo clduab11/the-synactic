@@ -1923,15 +1923,26 @@ export async function createLocalApiServer(options = {}) {
       // "Provider unreachable" and all LLM features silently degrade to
       // empty output. Only the configured origin is trusted, and only in
       // docker mode; the allowlist itself stays env-free otherwise.
+      //
+      // WIDGET_RELAY_BASE joins them for the same reason: on a self-host the
+      // widget agent's backend is our OWN ais-relay container (the service
+      // proxy.worldmonitor.app deploys), so api/widget-agent.ts must reach a
+      // private origin. This is NOT the SSRF threat model — that covers URLs a
+      // CALLER supplies (api/mcp-proxy.ts serverUrl, api/rss-proxy.js feed
+      // url), which no request can influence here: this value is read once at
+      // boot. Unset -> nothing is allowlisted and behaviour is unchanged.
+      // Caveat worth knowing: the allowlist is keyed by ORIGIN in the shared
+      // fetch layer, so trusting it lets any handler in this process reach that
+      // origin — the relay's /widget-agent still 403s without X-Widget-Key.
       if (context.mode === 'docker') {
-        for (const envName of ['LLM_API_URL', 'OLLAMA_API_URL']) {
+        for (const envName of ['LLM_API_URL', 'OLLAMA_API_URL', 'WIDGET_RELAY_BASE']) {
           const value = process.env[envName];
           if (!value) continue;
           try {
             extraAllowedPrivateOrigins.push(new URL(value).origin);
           } catch (err) {
             context.logger.warn(
-              `[local-api] ${envName} is not a valid URL; not added to the private-fetch allowlist (LLM calls will be SSRF-blocked): ${err.message}`,
+              `[local-api] ${envName} is not a valid URL; not added to the private-fetch allowlist (calls to it will be SSRF-blocked): ${err.message}`,
             );
           }
         }
