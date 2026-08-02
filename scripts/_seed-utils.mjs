@@ -41,11 +41,18 @@ async function exitAfterTelemetryFlush(code) {
 }
 
 const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36';
+
+// Honest identifying UA for sources we contact as a named party rather than
+// scrape anonymously. Same reasoning as scripts/_acled-auth.mjs. Verified
+// 2026-08-02: Polymarket's Gamma API and Kalshi's trade-api both answer this
+// UA with HTTP 200 (and answer a UA-less request too), so CHROME_UA was not
+// buying access at either venue.
+const HONEST_UA = 'the-synactic/0.1 (Praxen internal research tool; +chrisldukes@gmail.com)';
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5MB per key
 
 const __seed_dirname = dirname(fileURLToPath(import.meta.url));
 
-export { CHROME_UA, MAX_PAYLOAD_BYTES };
+export { CHROME_UA, HONEST_UA, MAX_PAYLOAD_BYTES };
 
 /**
  * Resolve the CoinGecko base URL + auth header for the configured key tier.

@@ -5,7 +5,7 @@
 // settlement feed. Live I/O remains injectable so the parser, failure, dedupe,
 // and health-meta paths stay hermetic in tests.
 
-import { CHROME_UA } from './_seed-utils.mjs';
+import { CHROME_UA, HONEST_UA } from './_seed-utils.mjs';
 import { unwrapEnvelope } from './_seed-envelope-source.mjs';
 import { MARKET_SETTLEMENT_FEED_KEY } from './_forecast-resolution-eval.mjs';
 
@@ -71,7 +71,7 @@ function parseJsonArray(value) {
 }
 
 async function fetchVenueSettlement(entry) {
-  const headers = { 'User-Agent': CHROME_UA };
+  const headers = { 'User-Agent': HONEST_UA };
   if (entry.marketSource === 'kalshi') {
     const resp = await fetch(`${KALSHI_SETTLEMENT_BASE}/markets/${encodeURIComponent(entry.marketSlug)}`, {
       headers,

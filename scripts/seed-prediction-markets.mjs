@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { loadEnvFile, CHROME_UA, sleep, runSeed } from './_seed-utils.mjs';
+import { loadEnvFile, HONEST_UA, sleep, runSeed } from './_seed-utils.mjs';
 import {
   buildBootstrapPools,
   predictionPoolCounts,
@@ -39,7 +39,7 @@ async function fetchEventsByTag(tag, limit = 20) {
   });
 
   const resp = await fetch(`${GAMMA_BASE}/events?${params}`, {
-    headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+    headers: { Accept: 'application/json', 'User-Agent': HONEST_UA },
     signal: AbortSignal.timeout(FETCH_TIMEOUT),
   });
   if (!resp.ok) {
@@ -57,7 +57,7 @@ async function fetchKalshiEvents() {
       with_nested_markets: 'true',
       limit: '100',
     });
-    const headers = { Accept: 'application/json', 'User-Agent': CHROME_UA };
+    const headers = { Accept: 'application/json', 'User-Agent': HONEST_UA };
     const resp = await fetch(`${KALSHI_BASE}/events?${params}`, {
       headers,
       signal: AbortSignal.timeout(FETCH_TIMEOUT),
@@ -204,7 +204,11 @@ export function declareRecords(data) {
   return (data?.geopolitical?.length || 0) + (data?.tech?.length || 0) + (data?.finance?.length || 0);
 }
 
-await runSeed('prediction', 'markets', CANONICAL_KEY, fetchAllPredictions, {
+// Deliberately not awaited: runSeed ends in exitAfterTelemetryFlush, which
+// parks its caller on a never-settling promise. At top level that is a pending
+// top-level await, and Node exits 13 once the loop drains — masking a run that
+// already published. Float it with .catch(), like every sibling seeder.
+runSeed('prediction', 'markets', CANONICAL_KEY, fetchAllPredictions, {
   ttlSeconds: CACHE_TTL,
   lockTtlMs: 60_000,
   // Population requirement + #5733 category-integrity gate. Lives in
@@ -221,4 +225,7 @@ await runSeed('prediction', 'markets', CANONICAL_KEY, fetchAllPredictions, {
   schemaVersion: 1,
   maxStaleMin: 90,
   sourceVersion: 'prediction-markets-v1',
+}).catch((err) => {
+  console.error('FATAL:', err.message || err);
+  process.exit(1);
 });
