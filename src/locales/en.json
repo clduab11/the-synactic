@@ -2003,6 +2003,25 @@
       "ageUnknown": "Data age not published",
       "noDetail": "No additional detail is available for this panel yet."
     },
+    "predictionFocus": {
+      "poolGeopolitical": "Geopolitical",
+      "poolTech": "Technology",
+      "poolFinance": "Finance",
+      "shownInPanel": "shown in panel",
+      "marketsAcross": "markets across",
+      "pools": "pools",
+      "basisQuote": "live quote",
+      "basisLastTrade": "last trade",
+      "basisEventTotal": "event total",
+      "basisContract": "contract",
+      "volumeMissing": "volume not published",
+      "horizonUnknown": "no close date",
+      "longHorizon": "long horizon",
+      "closed": "closed",
+      "noTags": "no tags published",
+      "basisNote": "Volume and price are not comparable across venues: Polymarket reports an event-level volume with a live quote, Kalshi reports the selected contract volume with its last traded price.",
+      "liquidityNote": "Neither venue publishes order-book depth, so thin and deep markets cannot be distinguished beyond volume."
+    },
     "languageSelector": {
       "mapLabelsFallbackVi": "Map labels currently fall back to English for Vietnamese."
     },

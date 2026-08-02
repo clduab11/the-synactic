@@ -1,4 +1,6 @@
-import { Panel } from './Panel';
+import { Panel, type PanelFocusView } from './Panel';
+import { buildPredictionFocusView } from './prediction-focus-content';
+import { getPredictionPoolSnapshot } from '@/services/prediction';
 import type { PredictionMarket } from '@/services/prediction';
 import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
 import { t } from '@/services/i18n';
@@ -24,6 +26,15 @@ export class PredictionPanel extends Panel {
     if (yes >= 60) return { label: t('components.predictions.leanYes'), cls: 'conviction-yes' };
     if (yes <= 40) return { label: t('components.predictions.leanNo'), cls: 'conviction-no' };
     return { label: t('components.predictions.tossUp'), cls: 'conviction-neutral' };
+  }
+
+  /**
+   * The compact panel shows 15 records from one pool; the focus view shows every
+   * captured pool with the fields this list has no room for. Null when the panel
+   * took the RPC path (no pool structure to expand).
+   */
+  protected override buildFocusView(): PanelFocusView | null {
+    return buildPredictionFocusView(getPredictionPoolSnapshot());
   }
 
   public renderPredictions(data: PredictionMarket[]): void {
