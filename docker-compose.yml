@@ -50,6 +50,12 @@ services:
       # NOTE: the dashboard port is published on all interfaces, so setting this
       # grants premium API access to anything that can reach the port.
       SELFHOST_PREMIUM_KEY: "${SELFHOST_PREMIUM_KEY:-}"
+      # Widget agent (ADV-34): same shared secret the ais-relay service holds,
+      # plus the local relay base so api/widget-agent.ts stops proxying to
+      # proxy.worldmonitor.app. The gateway also validates WIDGET_AGENT_KEY for
+      # usage telemetry attribution (server/gateway.ts:737-740).
+      WIDGET_AGENT_KEY: "${WIDGET_AGENT_KEY:-}"
+      WIDGET_RELAY_BASE: "${WIDGET_RELAY_BASE:-}"
       # Seed-only refresh credential for the resilience-ranking recompute path
       # (gateway isResilienceRankingSeedRefreshRequest; seed-resilience-scores.mjs
       # FATALs without it and the gateway must hold the same value).
@@ -252,6 +258,18 @@ services:
       # The key IS in .env but was simply never passed to this service.
       CABLE_HEALTH_WARM_URL: "http://worldmonitor:8080/api/infrastructure/v1/get-cable-health"
       WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
+      # Widget agent (ADV-34). This relay IS the widget-agent backend that
+      # proxy.worldmonitor.app deploys — /widget-agent lives here, so a self-host
+      # needs no second implementation, just credentials. WIDGET_AGENT_KEY is the
+      # shared secret the app's api/widget-agent.ts presents as X-Widget-Key.
+      # ANTHROPIC_API_KEY + WIDGET_ANTHROPIC_BASE_URL point the Anthropic SDK at
+      # the operator's own LiteLLM gateway (verified to carry tool_use and the
+      # Anthropic SSE sequence), so WIDGET_AGENT_MODEL must name a model that
+      # gateway actually serves. All unset -> hosted defaults, relay unchanged.
+      WIDGET_AGENT_KEY: "${WIDGET_AGENT_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      WIDGET_ANTHROPIC_BASE_URL: "${WIDGET_ANTHROPIC_BASE_URL:-}"
+      WIDGET_AGENT_MODEL: "${WIDGET_AGENT_MODEL:-}"
       UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
       UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
       UPSTASH_ALLOW_INSECURE_HTTP: "true"

@@ -10677,6 +10677,9 @@ const WIDGET_PRO_MAX_HTML = 80_000;
 const WIDGET_AGENT_KEY = (process.env.WIDGET_AGENT_KEY || '').trim();
 const PRO_WIDGET_KEY = (process.env.PRO_WIDGET_KEY || '').trim();
 const WIDGET_ANTHROPIC_KEY = (process.env.ANTHROPIC_API_KEY || '').trim();
+// Optional Anthropic-compatible gateway base (self-host reuse of an existing
+// LLM subscription). Trailing slash stripped — the SDK appends /v1/messages.
+const WIDGET_ANTHROPIC_BASE_URL = (process.env.WIDGET_ANTHROPIC_BASE_URL || '').trim().replace(/\/+$/, '');
 const WIDGET_EXA_KEY = (process.env.EXA_API_KEYS || '').split(/[\n,]+/).map(k => k.trim()).filter(Boolean)[0] || '';
 const WIDGET_BRAVE_KEY = (process.env.BRAVE_API_KEYS || '').split(/[\n,]+/).map(k => k.trim()).filter(Boolean)[0] || '';
 
@@ -10901,8 +10904,13 @@ async function handleWidgetAgentRequest(req, res) {
       JSON.stringify({ error: 'Invalid request: widget builder only accepts data visualization requests.' }));
   }
 
-  // Tier-specific settings
-  const model = isPro ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
+  // Tier-specific settings.
+  // Model is overridable so a self-host can point the agent at its own
+  // Anthropic-compatible gateway (see WIDGET_ANTHROPIC_BASE_URL below), whose
+  // catalogue will not contain claude-* ids. Unset → hosted defaults unchanged.
+  const model = isPro
+    ? (process.env.WIDGET_AGENT_MODEL_PRO || process.env.WIDGET_AGENT_MODEL || 'claude-sonnet-4-6')
+    : (process.env.WIDGET_AGENT_MODEL || 'claude-haiku-4-5-20251001');
   const maxTokens = isPro ? 8192 : 4096;
   const maxTurns = isPro ? 10 : 6;
   const maxHtml = isPro ? WIDGET_PRO_MAX_HTML : WIDGET_MAX_HTML;
@@ -10935,7 +10943,17 @@ async function handleWidgetAgentRequest(req, res) {
 
   try {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: WIDGET_ANTHROPIC_KEY });
+    // baseURL lets a self-host reuse an existing Anthropic-compatible gateway
+    // (e.g. LiteLLM) instead of calling api.anthropic.com directly. Verified
+    // 2026-08-02 against LiteLLM 1.86.3 → gemini-3.6-flash: /v1/messages
+    // returns stop_reason 'tool_use' with a parsed tool_use block, and
+    // stream:true yields the full Anthropic SSE sequence — so both halves of
+    // this handler's contract (tool loop + streaming) survive translation.
+    // Unset → SDK default, hosted behaviour unchanged.
+    const client = new Anthropic({
+      apiKey: WIDGET_ANTHROPIC_KEY,
+      ...(WIDGET_ANTHROPIC_BASE_URL ? { baseURL: WIDGET_ANTHROPIC_BASE_URL } : {}),
+    });
 
     const messages = [
       ...conversationHistory
