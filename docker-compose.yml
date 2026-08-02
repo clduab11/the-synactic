@@ -27,7 +27,12 @@ services:
     image: worldmonitor:latest
     container_name: worldmonitor
     ports:
-      - "${WM_PORT:-3000}:8080"
+      # Loopback by default. nginx stamps SELFHOST_PREMIUM_KEY onto every /api/
+      # request (docker/entrypoint.sh), so a published 0.0.0.0 bind hands any host
+      # that can route here fully-authenticated access to the whole MCP surface and
+      # every premium route — no credential required. Matches redis-rest below.
+      # Set WM_BIND=0.0.0.0 to deliberately expose it (e.g. viewing from a phone).
+      - "${WM_BIND:-127.0.0.1}:${WM_PORT:-3000}:8080"
     environment:
       UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
       UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
