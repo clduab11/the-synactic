@@ -63,11 +63,18 @@ Consequences that shape every decision here:
    replacement for that fallback, and CoinGecko / CoinPaprika are already wired in this repo
    as non-venue alternatives.
 
-   ⚠ **Provenance gap — close this.** As written this rests on an owner-relayed verbal account
-   with no attached artifact, which is the exact shape of the Kalshi counsel record under
-   boundary 3 that later proved impossible to rely on. Paste the Kraken thread reference
-   (date, channel, and the scope they actually agreed) into this block. Until then, treat the
-   SCOPE as "what Kraken agreed", not "whatever we build".
+   > **Provenance, right-sized 2026-08-03 (session 09, owner-directed).** The permission rests
+   > on an owner-relayed account of the marketdata@kraken.com exchange rather than an attached
+   > artifact — the same shape as the Kalshi and defconlevel.com records. **Deliberately NOT
+   > flagged as urgent**, for the same reason as CONTEXT.md v6's DEFCON note: the owner is the
+   > sole consumer of this MCP surface and expects to remain so, which removes the failure mode
+   > that made the Kalshi gap expensive (a paraphrased term reaching a third party who cannot
+   > check it). What remains is ordinary hygiene with a **condition, not a calendar**: if the
+   > surface is ever opened to another consumer, or the scope wording is ever quoted outward,
+   > pin this block to the actual thread first (date, channel, the scope Kraken agreed). Until
+   > an artifact is attached, treat the SCOPE as "what Kraken agreed", not "whatever we build" —
+   > the session-09 integration (4 spot pairs, Ticker + daily OHLC, 45-min cadence, re-served
+   > over MCP with `redistributionScope` in-band) is the current outer edge of what is built.
 
    **Design consequence:** do not build cross-venue spread, funding-stress, or depth-decay tools here. Those need venue data. Build the OSINT surface a machine consumer cannot reconstruct — and keep `source`, `fetched_at` and freshness state on every record so the consumer can reason about staleness.
 
