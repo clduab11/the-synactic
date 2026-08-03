@@ -31,6 +31,32 @@ Consequences that shape every decision here:
 
    That split is not just tidy, it dissolves most of the licensing exposure surveyed in `docs/plans/venue-licensing-01.md`: the clauses that bite hardest (OANDA §15.0(a) re-transmission, Coinbase's internal fair-value ban, Polymarket §4.2 Capital-Market-Client access) all attach to *market data* we no longer carry. The account-holding repo using its own venue data to trade at that venue is squarely inside every one of those licences.
 
+   **v4 AMENDMENT 2026-08-03 (owner) — KRAKEN IS AUTHORIZED. Kraken only.**
+   Chris obtained permission from Kraken for this use case: ingest Kraken market data and
+   re-serve it, including to a downstream consumer. This reverses the 2026-07-30 resolution
+   **for Kraken alone**. Kraken was already the cheapest venue to unblock — no derived-data
+   clause, and `marketdata@kraken.com` is a named permission channel — and that channel was used
+   rather than assumed.
+
+   **Owner-imposed condition, treat as binding:** the integration must not run up API credits
+   or trip rate limits. Respect the published limits, cache aggressively, poll at the lowest
+   cadence that serves the use case, and prefer one streaming connection over polling loops.
+   Boundary 2 already says respect published rate limits and back off; that applies here with
+   full force. A permission obtained and then abused is worse than no permission.
+
+   **What this does NOT authorize.** Binance, Coinbase and OANDA are unchanged — still not to
+   be wired. In particular `scripts/seed-economy.mjs:471` still falls back to `BINANCE:BTCUSDT`
+   via Finnhub, and `FINNHUB_API_KEY` is now SET (2026-08-03), so that path is live-capable.
+   Kraken permission does not cover it. Kraken's own public OHLC endpoint is now the correct
+   replacement for that fallback, and CoinGecko / CoinPaprika are already wired in this repo
+   as non-venue alternatives.
+
+   ⚠ **Provenance gap — close this.** As written this rests on an owner-relayed verbal account
+   with no attached artifact, which is the exact shape of the Kalshi counsel record under
+   boundary 3 that later proved impossible to rely on. Paste the Kraken thread reference
+   (date, channel, and the scope they actually agreed) into this block. Until then, treat the
+   SCOPE as "what Kraken agreed", not "whatever we build".
+
    **Design consequence:** do not build cross-venue spread, funding-stress, or depth-decay tools here. Those need venue data. Build the OSINT surface a machine consumer cannot reconstruct — and keep `source`, `fetched_at` and freshness state on every record so the consumer can reason about staleness.
 
 2. **Retention decided 2026-07-29: OREF, the Telegram MTProto layer, and OpenSky / `PROXY_URL` STAY.** The keep/disable question is closed — they are not to be removed, and refactors must not break them.

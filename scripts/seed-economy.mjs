@@ -416,6 +416,52 @@ function smaCalc(prices, period) {
   return slice.reduce((s, v) => s + v, 0) / period;
 }
 
+/**
+ * Kraken public OHLC daily closes.
+ *
+ * Authorized 2026-08-03 (CONTEXT.md boundary 1, v4 amendment) — Kraken ONLY, and
+ * conditioned on not burning API credits or tripping rate limits. Both hold here:
+ * Kraken serves market data on PUBLIC endpoints with no API key, so there is no
+ * account and no credit pool to consume; limits are IP-based and Kraken documents
+ * >= 1s between OHLC calls, while this makes ONE call per seeder run.
+ *
+ * Do NOT "fix" a future rate-limit problem by spreading calls across IPs. Kraken
+ * suggests it, but CONTEXT.md boundary 2 declines identity-cycling around a
+ * published quota, and nothing here needs that volume.
+ *
+ * Every Kraken numeric is a JSON STRING; row shape is
+ * [time, open, high, low, close, vwap, volume, count].
+ */
+async function fetchKrakenDailyCloses(pair) {
+  try {
+    const url = `https://api.kraken.com/0/public/OHLC?pair=${encodeURIComponent(pair)}&interval=1440`;
+    const data = await fetchJsonSafe(url, 10_000);
+    // Kraken reports failure in a 200 body, not a status code.
+    if (Array.isArray(data?.error) && data.error.length > 0) return [];
+    const series = Object.entries(data?.result ?? {}).find(([k]) => k !== 'last')?.[1];
+    if (!Array.isArray(series)) return [];
+    return series
+      .map((row) => Number.parseFloat(row[4]))
+      .filter((v) => Number.isFinite(v) && v > 0);
+  } catch { return []; }
+}
+
+/**
+ * CoinGecko daily closes — non-venue aggregator, already used elsewhere in this
+ * repo (seed-crypto-quotes, seed-stablecoin-markets). Keyless public endpoint.
+ * Third tier so a single upstream outage cannot blank the BTC trend.
+ */
+async function fetchCoinGeckoDailyCloses(coinId) {
+  try {
+    const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=usd&days=365&interval=daily`;
+    const data = await fetchJsonSafe(url, 10_000);
+    if (!Array.isArray(data?.prices)) return [];
+    return data.prices
+      .map((row) => Number(row?.[1]))
+      .filter((v) => Number.isFinite(v) && v > 0);
+  } catch { return []; }
+}
+
 async function fetchFinnhubCandles(endpoint, symbol) {
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) return [];
@@ -466,9 +512,17 @@ async function fetchMacroSignals(proxyAuth = null) {
 
   let btcPrices = btcChart ? extractClosePrices(btcChart) : [];
   const btcAligned = btcChart ? extractAlignedPriceVolume(btcChart) : [];
+  // Three independent sources. Finnhub is deliberately NOT in this chain: its
+  // crypto/candle endpoint requires an exchange-prefixed symbol (BINANCE:BTCUSDT),
+  // so there is no venue-neutral way to use it, and Binance is not authorized.
+  // Kraken is (CONTEXT.md boundary 1 v4); CoinGecko is a non-venue aggregator.
   if (btcPrices.length === 0) {
-    console.log('  BTC: Yahoo unavailable, falling back to Finnhub crypto/candle');
-    btcPrices = await fetchFinnhubCandles('crypto/candle', 'BINANCE:BTCUSDT');
+    console.log('  BTC: Yahoo unavailable, falling back to Kraken public OHLC');
+    btcPrices = await fetchKrakenDailyCloses('XBTUSD');
+  }
+  if (btcPrices.length === 0) {
+    console.log('  BTC: Kraken unavailable, falling back to CoinGecko');
+    btcPrices = await fetchCoinGeckoDailyCloses('bitcoin');
   }
 
   let qqqPrices = qqqChart ? extractClosePrices(qqqChart) : [];
