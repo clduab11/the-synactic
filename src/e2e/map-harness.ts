@@ -56,7 +56,7 @@ import type { WeatherAlert } from '../services/weather';
 import { CHINA_LOGISTICS_CORRIDORS } from '../../shared/china-logistics-corridors';
 
 type Scenario = 'alpha' | 'beta';
-type HarnessVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+type HarnessVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'trader';
 type HarnessLayerKey = keyof MapLayers;
 type PulseProtestScenario =
   | 'none'
@@ -415,12 +415,21 @@ const happyAllLayersEnabled: MapLayers = {
   renewableInstallations: true,
 };
 
+// Trader's default set includes liveTankers, which is base-false in
+// allLayersEnabled — seed it explicitly or the layer never gets fixture data.
+const traderAllLayersEnabled: MapLayers = {
+  ...allLayersEnabled,
+  liveTankers: true,
+};
+
 const seededAllLayers: MapLayers = isEnergyHarnessVariant
   ? energyAllLayersEnabled
   : SITE_VARIANT === 'commodity'
   ? commodityAllLayersEnabled
   : SITE_VARIANT === 'happy'
   ? happyAllLayersEnabled
+  : SITE_VARIANT === 'trader'
+  ? traderAllLayersEnabled
   : allLayersEnabled;
 
 const initialLayers: MapLayers = {
@@ -1031,6 +1040,8 @@ const currentHarnessVariant: HarnessVariant = SITE_VARIANT === 'tech'
   ? 'commodity'
   : SITE_VARIANT === 'happy'
   ? 'happy'
+  : SITE_VARIANT === 'trader'
+  ? 'trader'
   : 'full';
 
 const buildProtests = (scenario: Scenario): SocialUnrestEvent[] => {

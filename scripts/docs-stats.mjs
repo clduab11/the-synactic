@@ -320,7 +320,16 @@ function parseBootstrapKeyTiers(source = read('shared/bootstrap-tier-keys.js')) 
   ]) {
     const block = source.match(new RegExp(`const ${constName} = new Set\\(\\[([\\s\\S]*?)\\n\\]\\);`));
     if (!block) throw new Error(`docs-stats: could not parse ${constName} in shared/bootstrap-tier-keys.js`);
-    for (const m of block[1].matchAll(/'([^']+)'/g)) {
+    // Strip // comments BEFORE matching quoted names. These Sets are heavily
+    // commented, and a single apostrophe in prose ("defconlevel.com's estimate")
+    // opens a spurious quote pair that swallows everything up to the next real
+    // quote — every match after it is shifted by one, so entries turn into
+    // fragments like ",\n  // Slow tier: ..." and the duplicate check then
+    // reports a key "registered in both slow and slow tiers". That failure
+    // aborts `npm run docs:check` before it evaluates a single claim, which is
+    // how it went unnoticed: the gate looks broken rather than red.
+    const entries = block[1].replace(/\/\/[^\n]*/g, '');
+    for (const m of entries.matchAll(/'([^']+)'/g)) {
       // Last-write-wins would make this parser disagree with the runtime in the
       // one case that matters: tierForKey() tests fast FIRST, so a key in both
       // FAST and ON_DEMAND resolves to fast at runtime and would resolve to
@@ -670,6 +679,7 @@ function claims(s) {
     { file: 'docs/map-engine.mdx', re: /happy \((\d+)\b/, value: s.variantLayers.happy },
     { file: 'docs/map-engine.mdx', re: /commodity \((\d+)\b/, value: s.variantLayers.commodity },
     { file: 'docs/map-engine.mdx', re: /energy \((\d+)\b/, value: s.variantLayers.energy },
+    { file: 'docs/map-engine.mdx', re: /trader \((\d+)\b/, value: s.variantLayers.trader },
 
     { file: 'docs/features.mdx', re: /(\d+)\s+data layers/, value: s.layerDefinitions },
 

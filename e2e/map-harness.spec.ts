@@ -11,13 +11,13 @@ type OverlaySnapshot = {
 
 type VisualScenarioSummary = {
   id: string;
-  variant: 'both' | 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+  variant: 'both' | 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'trader';
 };
 
 type HarnessWindow = Window & {
   __mapHarness?: {
     ready: boolean;
-    variant: 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+    variant: 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'trader';
     seedAllDynamicData: () => void;
     setProtestsScenario: (scenario: 'alpha' | 'beta') => void;
     setPulseProtestsScenario: (
@@ -124,6 +124,15 @@ const EXPECTED_FINANCE_DECK_LAYERS = [
   'central-banks-layer',
   'commodity-hubs-layer',
   'gulf-investments-layer',
+];
+
+// Trader seeds the same layer set as finance (map-harness.ts seeds
+// allLayersEnabled and bypasses sanitizeLayersForVariant), plus liveTankers,
+// which trader turns on by default and allLayersEnabled leaves base-false.
+// UNVERIFIED: no npm script runs map-harness under VITE_VARIANT=trader today.
+const EXPECTED_TRADER_DECK_LAYERS = [
+  ...EXPECTED_FINANCE_DECK_LAYERS,
+  'live-tankers-layer',
 ];
 
 const EXPECTED_ENERGY_DECK_LAYERS = [
@@ -235,6 +244,8 @@ test.describe('DeckGL map harness', () => {
       ? 'commodity'
       : process.env.VITE_VARIANT === 'happy'
       ? 'happy'
+      : process.env.VITE_VARIANT === 'trader'
+      ? 'trader'
       : 'full';
     expect(runtimeVariant).toBe(expectedVariant);
   });
@@ -296,6 +307,8 @@ test.describe('DeckGL map harness', () => {
       ? EXPECTED_COMMODITY_DECK_LAYERS
       : variant === 'happy'
       ? EXPECTED_HAPPY_DECK_LAYERS
+      : variant === 'trader'
+      ? EXPECTED_TRADER_DECK_LAYERS
       : EXPECTED_FULL_DECK_LAYERS;
 
     await expect
@@ -517,8 +530,8 @@ test.describe('DeckGL map harness', () => {
       return w.__mapHarness?.variant ?? 'full';
     });
     test.skip(
-      variant === 'commodity' || variant === 'happy',
-      'Visual baselines are not recorded for commodity/happy variant scenes yet'
+      variant === 'commodity' || variant === 'happy' || variant === 'trader',
+      'Visual baselines are not recorded for commodity/happy/trader variant scenes yet'
     );
     // Energy currently reuses the shared "both" visual scenarios; until we
     // record Atlas-only golden scenes, compare those shared scenarios against

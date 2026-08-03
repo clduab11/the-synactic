@@ -3084,7 +3084,8 @@
     "panelCatCommodityEcon": "Ekonomi & Handel",
     "panelCatHappyNews": "Goda Nyheter",
     "panelCatHappyPlanet": "Planet & Välgörenhet",
-    "embed": "Bädda in"
+    "embed": "Bädda in",
+    "trader": "TRADER"
   },
   "countryBrief": {
     "identifying": "Identifierar land...",

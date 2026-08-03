@@ -338,7 +338,8 @@
     "panelCatCommodityEcon": "Ekonomija i trgovina",
     "panelCatHappyNews": "Dobre vijesti",
     "panelCatHappyPlanet": "Planet i pomoć",
-    "embed": "Ugradi"
+    "embed": "Ugradi",
+    "trader": "TRADER"
   },
   "panels": {
     "liveNews": "Vijesti uživo",

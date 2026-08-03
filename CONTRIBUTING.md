@@ -40,7 +40,7 @@ World Monitor is a real-time OSINT dashboard built with **Vanilla TypeScript** (
 
 ### Variant System
 
-The codebase produces 6 app variants from the same source, each targeting a different audience or use case:
+The codebase produces 7 app variants from the same source, each targeting a different audience or use case:
 
 | Variant | Command | Focus |
 |---|---|---|
@@ -50,6 +50,7 @@ The codebase produces 6 app variants from the same source, each targeting a diff
 | `commodity` | `npm run dev:commodity` | Commodities, mining, energy markets |
 | `happy` | `npm run dev:happy` | Positive news and constructive signals |
 | `energy` | `npm run dev:energy` | Energy security, chokepoints, oil/gas |
+| `trader` | `npm run dev:trader` | Market context, regime signals, and the geopolitical OSINT baseline (read-only — see `src/config/variants/trader.ts`) |
 
 Variants share all code but differ in default panels, map layers, and RSS feeds. Variant configs live in `src/config/variants/`.
 
@@ -57,7 +58,7 @@ Variants share all code but differ in default panels, map layers, and RSS feeds.
 
 | Directory | Purpose |
 |---|---|
-| `src/components/` | UI components — 179 top-level TypeScript component files |
+| `src/components/` | UI components — 184 top-level TypeScript component files |
 | `src/services/` | Data fetching modules — sebuf client wrappers, AI, signal analysis |
 | `src/config/` | Static data and variant configs (feeds, geo, military, pipelines, ports) |
 | `src/generated/` | Auto-generated sebuf client + server stubs (**do not edit by hand**) |

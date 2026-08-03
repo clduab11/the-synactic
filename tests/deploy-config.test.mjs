@@ -158,11 +158,26 @@ const getVariantHosts = () => {
     .sort();
 };
 
+// PUBLISHED variants only — i.e. those whose VARIANT_META url is an https://
+// origin this deployment actually serves. Everything downstream of this helper
+// (vercel rewrites, welcome routing, crawler-stub canonicals, CSP frame-src)
+// describes public subdomain hosting, so a variant with no public subdomain
+// must not be enumerated here or it fails every one of those gates for hosting
+// that should not exist.
+//
+// This mirrors getVariantHosts() above, which has always harvested only
+// `url: 'https://<host>/'`. The two disagreed once trader mode landed as a
+// local-only variant (CONTEXT.md boundary 1 v7 scopes it to a self-host
+// dashboard + MCP surface, on localhost rather than a worldmonitor.app
+// subdomain this fork does not control). Filtering on the scheme keeps the
+// rule self-maintaining: publish a variant by giving it an https url, and
+// every gate below starts enforcing its hosting in the same change.
 const getVariantUrls = () => {
   const variantMetaSource = readFileSync(resolve(__dirname, '../src/config/variant-meta.ts'), 'utf-8');
   return Object.fromEntries(
     [...variantMetaSource.matchAll(/\n\s{2}([a-z]+):\s*\{[\s\S]*?url:\s*'([^']+)'/g)]
       .map((match) => [match[1], match[2]])
+      .filter(([, url]) => url.startsWith('https://'))
   );
 };
 

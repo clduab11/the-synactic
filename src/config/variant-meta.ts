@@ -150,4 +150,42 @@ export const VARIANT_META: { full: VariantMeta; [k: string]: VariantMeta } = {
       'Country energy exposure drill-down',
     ],
   },
+  trader: {
+    title: 'Trader Monitor - Market Context & Geopolitical Signal Dashboard',
+    description: 'Read-only trading context dashboard: live markets, macro regime and positioning signals, prediction markets, and the geopolitical, sanctions and supply-chain baseline a price feed cannot supply.',
+    keywords: 'trading dashboard, market context, macro regime, market breadth, fear and greed, prediction markets, polymarket, sector heatmap, sanctions exposure, supply chain risk, chokepoint monitor, commodity hubs, stock exchanges, central banks, financial centers, crypto spot, market intelligence, OSINT for traders',
+    // LOCAL-ONLY VARIANT — deliberately a loopback origin, unlike its siblings.
+    // Trader mode is scoped by the charter (CONTEXT.md boundary 1, v7) to a
+    // self-host dashboard plus MCP surface. There is no public subdomain, and
+    // claiming one under worldmonitor.app would assert hosting on UPSTREAM's
+    // domain that this fork neither controls nor serves.
+    //
+    // The deploy-config guardrails harvest secure variant origins out of this
+    // file and then require vercel.json rewrites, a middleware host mapping,
+    // crawler-stub copy, and CSP frame ancestry for each one — none of which
+    // exist for trader, or should. Keeping the scheme non-secure is what opts
+    // this entry out. Publishing trader means adding all of that and promoting
+    // this origin in the same change.
+    //
+    // Do NOT write an example secure origin into this comment: those harvesters
+    // regex the raw file, so a sample would be parsed as a real variant host.
+    url: 'http://localhost:3000/dashboard',
+    siteName: 'Trader Monitor',
+    shortName: 'TraderMonitor',
+    subject: 'Market Context and Geopolitical Signal Intelligence for Traders',
+    classification: 'Trading Context Dashboard, Market Intelligence, Read-Only Signal Monitor',
+    categories: ['finance', 'news'],
+    features: [
+      'Live market data across equities, commodities and crypto spot',
+      'Macro regime and market-stress signals',
+      'Fear & Greed and sector heatmap',
+      'Prediction-market pricing',
+      'Sanctions and supply-chain exposure',
+      'Chokepoint, tanker and trade-route monitoring',
+      'Stock exchange, central bank and financial centre mapping',
+      'Power and internet outage tracking',
+      'AI market insights and implications',
+      'Read-only by design — execution lives in downstream systems',
+    ],
+  },
 };

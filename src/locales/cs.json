@@ -261,7 +261,8 @@
     "panelCatCommodityEcon": "Ekonomika a obchod",
     "panelCatHappyNews": "Dobré zprávy",
     "panelCatHappyPlanet": "Planeta a dárcovství",
-    "embed": "Vložit"
+    "embed": "Vložit",
+    "trader": "TRADER"
   },
   "panels": {
     "liveNews": "Živé zprávy",

@@ -157,7 +157,7 @@ export const PUBLIC_PRODUCT_FACTS = {
   "capabilities": {
     "mcpTools": 70,
     "locales": 25,
-    "variants": 6,
+    "variants": 7,
     "mapLayers": 56,
     "feedDefinitions": 568,
     "freshnessTrackedSourceGroups": 37

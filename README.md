@@ -29,10 +29,12 @@ being able to say where a number came from.
 
 163 autonomous collectors sweeping conflict events, sanctions programs,
 maritime chokepoints, energy flows, airspace, cyber threat feeds,
-macroeconomics, and climate anomalies. 68 typed MCP tools any agent can
+macroeconomics, and climate anomalies — drawing on 568+ curated news feeds
+and 29 stock exchanges. 70 typed MCP tools any agent can
 call — composite country-risk scoring, conflict-event retrieval,
 LLM-grounded country briefs, chokepoint status — with server-side projection
-keeping context windows lean. 190+ routed model endpoints behind one
+keeping context windows lean. 56 map layer types render it, in 25 languages.
+190+ routed model endpoints behind one
 gateway, budget-enveloped per route. 400+ tests in the clean-room
 orchestration core alone, with mutation-tested guards on the paths that
 matter.
@@ -86,12 +88,13 @@ flowchart LR
 
 A real-time TypeScript intelligence dashboard and its 150-strong collection
 fleet, hardened for sovereign self-hosting — one compose stack: app, relay,
-cache, verification tooling. An MCP-native tool surface with adversarially
-reviewed, contract-truthed schemas. A clean-room orchestration core —
-original contracts, provenance envelopes, and a default-deny tool-policy
-engine — built to put an agent council on rails rather than on vibes. A
-vector-indexed semantic memory layer for similar-event recall and
-retrieval-grounded drafting, in build now.
+cache, vector store, verification tooling. An MCP-native tool surface with
+adversarially reviewed, contract-truthed schemas, typed end to end by
+Protocol Buffers (290 protos across 35 services). A clean-room orchestration
+core — original contracts, provenance envelopes, and a default-deny
+tool-policy engine — built to put an agent council on rails rather than on
+vibes. A vector-indexed semantic memory layer for similar-event recall and
+retrieval-grounded drafting, running locally on the operator's own hardware.
 
 Built on the excellent AGPL-3.0
 [WorldMonitor](https://github.com/koala73/worldmonitor) project — preserved

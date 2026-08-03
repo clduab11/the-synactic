@@ -259,7 +259,8 @@
     "panelCatCommodityEcon": "Économie & Commerce",
     "panelCatHappyNews": "Bonnes Nouvelles",
     "panelCatHappyPlanet": "Planète & Solidarité",
-    "embed": "Intégrer"
+    "embed": "Intégrer",
+    "trader": "TRADER"
   },
   "panels": {
     "liveNews": "Actualités en direct",

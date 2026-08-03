@@ -1106,10 +1106,178 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 };
 
 // ============================================
+// TRADER variant — trader.worldmonitor.app
+// Owner-approved 2026-08-03 (CONTEXT.md v7 amendment to boundary 1).
+//
+// SCOPE, and it is a hard line: this variant is a DASHBOARD + MCP SURFACE only.
+// It renders market and OSINT context for the operator's own visibility and
+// serves that intelligence over MCP to downstream repos (e.g. oanda-autobot)
+// which hold their own venue accounts, licences and trading authorization.
+// THOSE repos execute. No order-placement, execution, transfer or position
+// -management code belongs in this variant or anywhere else in this repo —
+// not stubbed, not "for testing". See CONTEXT.md boundary 1.
+//
+// Every panel id below is reused from an existing variant; this variant adds
+// no new panel components. Every layer key below is an existing layer id.
+// ============================================
+const TRADER_PANELS: Record<string, PanelConfig> = {
+  // Core
+  map: { name: 'Trading Context Map', enabled: true, priority: 1 },
+  'live-news': { name: 'Market Headlines', enabled: true, priority: 1 },
+  insights: { name: 'AI Market Insights', enabled: true, priority: 1 },
+  // Live market context (non-venue + the one authorized venue: Kraken)
+  markets: { name: 'Live Markets', enabled: true, priority: 1 },
+  'kraken-markets': { name: 'Kraken Spot', enabled: true, priority: 1 },
+  commodities: { name: 'Metals & Materials', enabled: true, priority: 1 },
+  'energy-complex': { name: 'Energy Complex', enabled: true, priority: 1 },
+  heatmap: { name: 'Sector Heatmap', enabled: true, priority: 1 },
+  // Regime / positioning / sentiment
+  'macro-signals': { name: 'Market Regime', enabled: true, priority: 1 },
+  'fear-greed': { name: 'Fear & Greed', enabled: true, priority: 1 },
+  economic: { name: 'Macro Stress', enabled: true, priority: 1 },
+  polymarket: { name: 'Prediction Markets', enabled: true, priority: 1 },
+  // OSINT baseline a price feed cannot reconstruct (CONTEXT.md v7 design note)
+  'supply-chain': { name: 'Supply Chain', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
+  // Research surfaces
+  'stock-analysis': { name: 'Stock Analysis', enabled: true, priority: 1, premium: 'locked' as const },
+  'stock-backtest': { name: 'Backtesting', enabled: true, priority: 1, premium: 'locked' as const },
+  'chat-analyst': { name: 'WM Analyst', enabled: true, priority: 1, premium: 'locked' as const },
+  'market-implications': { name: 'AI Market Implications', enabled: true, priority: 1, premium: 'locked' as const },
+};
+
+// Owner-approved default layer set (12). Mirrored by the `trader` entry in
+// VARIANT_LAYER_ORDER (src/config/map-layer-definitions.ts), which additionally
+// offers a research-shaped superset in the picker without defaulting them ON.
+const TRADER_MAP_LAYERS: MapLayers = {
+  // ── ON by default (the approved 12) ───────────────────────────────────────
+  stockExchanges: true,
+  centralBanks: true,
+  financialCenters: true,
+  commodityHubs: true,
+  waterways: true,
+  tradeRoutes: true,
+  ais: true,
+  liveTankers: true,
+  pipelines: true,
+  sanctions: true,
+  natural: true,
+  outages: true,
+
+  // ── Reachable from the picker, OFF by default ─────────────────────────────
+  ucdpEvents: false,
+  displacement: false,
+  cyberThreats: false,
+  economic: false,
+  military: false,
+  fires: false,
+  weather: false,
+  climate: false,
+
+  // ── Not in this variant's picker ──────────────────────────────────────────
+  gpsJamming: false,
+  satellites: false,
+  conflicts: false,
+  bases: false,
+  cables: false,
+  hotspots: false,
+  nuclear: false,
+  irradiators: false,
+  datacenters: false,
+  protests: false,
+  flights: false,
+  spaceports: false,
+  minerals: false,
+  startupHubs: false,
+  cloudRegions: false,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  gulfInvestments: false,
+  positiveEvents: false,
+  kindness: false,
+  happiness: false,
+  speciesRecovery: false,
+  renewableInstallations: false,
+  iranAttacks: false,
+  ciiChoropleth: false,
+  resilienceScore: false,
+  dayNight: false,
+  miningSites: false,
+  processingPlants: false,
+  commodityPorts: false,
+  webcams: false,
+  diseaseOutbreaks: false,
+  storageFacilities: false,
+  fuelShortages: false,
+};
+
+// Mobile keeps the venue/venue-adjacent point layers and drops the heavy
+// vessel + line geometry, matching the trimming every other variant applies.
+const TRADER_MOBILE_MAP_LAYERS: MapLayers = {
+  stockExchanges: true,
+  centralBanks: true,
+  financialCenters: true,
+  commodityHubs: true,
+  waterways: true,
+  tradeRoutes: false,
+  ais: false,
+  liveTankers: false,
+  pipelines: false,
+  sanctions: false,
+  natural: true,
+  outages: false,
+
+  ucdpEvents: false,
+  displacement: false,
+  cyberThreats: false,
+  economic: false,
+  military: false,
+  fires: false,
+  weather: false,
+  climate: false,
+
+  gpsJamming: false,
+  satellites: false,
+  conflicts: false,
+  bases: false,
+  cables: false,
+  hotspots: false,
+  nuclear: false,
+  irradiators: false,
+  datacenters: false,
+  protests: false,
+  flights: false,
+  spaceports: false,
+  minerals: false,
+  startupHubs: false,
+  cloudRegions: false,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  gulfInvestments: false,
+  positiveEvents: false,
+  kindness: false,
+  happiness: false,
+  speciesRecovery: false,
+  renewableInstallations: false,
+  iranAttacks: false,
+  ciiChoropleth: false,
+  resilienceScore: false,
+  dayNight: false,
+  miningSites: false,
+  processingPlants: false,
+  commodityPorts: false,
+  webcams: false,
+  diseaseOutbreaks: false,
+  storageFacilities: false,
+  fuelShortages: false,
+};
+
+// ============================================
 // UNIFIED PANEL REGISTRY
 // ============================================
 
-type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'trader';
 
 const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> = {
   full: FULL_PANELS,
@@ -1118,6 +1286,7 @@ const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> =
   commodity: COMMODITY_PANELS,
   energy: ENERGY_PANELS,
   happy: HAPPY_PANELS,
+  trader: TRADER_PANELS,
 };
 
 function getVariantPanelConfigs(variant: string): Record<string, PanelConfig> | undefined {
@@ -1131,6 +1300,7 @@ export const ALL_PANELS: Record<string, PanelConfig> = {
   ...HAPPY_PANELS,
   ...COMMODITY_PANELS,
   ...ENERGY_PANELS,
+  ...TRADER_PANELS,
   ...TECH_PANELS,
   ...FINANCE_PANELS,
   ...FULL_PANELS,
@@ -1144,6 +1314,7 @@ export const VARIANT_DEFAULTS: Record<string, string[]> = {
   commodity: Object.keys(VARIANT_PANEL_CONFIGS.commodity),
   energy:    Object.keys(VARIANT_PANEL_CONFIGS.energy),
   happy:     Object.keys(VARIANT_PANEL_CONFIGS.happy),
+  trader:    Object.keys(VARIANT_PANEL_CONFIGS.trader),
 };
 
 /**
@@ -1315,7 +1486,9 @@ export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MAP_LAYERS
-          : FULL_MAP_LAYERS;
+          : SITE_VARIANT === 'trader'
+            ? TRADER_MAP_LAYERS
+            : FULL_MAP_LAYERS;
 
 export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
   ? HAPPY_MOBILE_MAP_LAYERS
@@ -1327,7 +1500,9 @@ export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MOBILE_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MOBILE_MAP_LAYERS
-          : FULL_MOBILE_MAP_LAYERS;
+          : SITE_VARIANT === 'trader'
+            ? TRADER_MOBILE_MAP_LAYERS
+            : FULL_MOBILE_MAP_LAYERS;
 
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
 export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
@@ -1362,7 +1537,9 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   intelligence: {
     labelKey: 'header.panelCatIntelligence',
     panelKeys: ['cii', 'strategic-risk', 'threat-timeline', 'intel', 'gdelt-intel', 'cascade', 'telegram-intel', 'forecast', 'cross-source-signals', 'regional-intelligence', 'deduction', 'chat-analyst', 'thermal-escalation', 'social-velocity', 'geo-hubs'],
-    variants: ['full'],
+    // 'trader' listed for chat-analyst only; getVariantPanelCategories drops the
+    // category unless at least one of these panels is enabled in the variant.
+    variants: ['full', 'trader'],
   },
   correlation: {
     labelKey: 'header.panelCatCorrelation',
@@ -1376,8 +1553,8 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   marketsFinance: {
     labelKey: 'header.panelCatMarketsFinance',
-    panelKeys: ['commodities', 'energy-complex', 'energy-risk-overview', 'pipeline-status', 'storage-facility-map', 'oil-inventories', 'fuel-prices', 'chokepoint-strip', 'fuel-shortages', 'energy-disruptions', 'hormuz-tracker', 'energy-crisis', 'markets', 'economic', 'global-procurement', 'trade-policy', 'sanctions-pressure', 'supply-chain', 'china-corridors', 'china-activity-nowcast', 'finance', 'polymarket', 'macro-signals', 'gulf-economies', 'etf-flows', 'stablecoins', 'crypto', 'heatmap', 'aaii-sentiment', 'cot-positioning', 'earnings-calendar', 'economic-calendar', 'fear-greed', 'fsi', 'macro-tiles', 'market-breadth', 'liquidity-shifts', 'national-debt', 'positioning-247', 'wsb-ticker-scanner', 'yield-curve', 'gold-intelligence', 'bigmac', 'market-implications'],
-    variants: ['full', 'energy'],
+    panelKeys: ['commodities', 'energy-complex', 'energy-risk-overview', 'pipeline-status', 'storage-facility-map', 'oil-inventories', 'fuel-prices', 'chokepoint-strip', 'fuel-shortages', 'energy-disruptions', 'hormuz-tracker', 'energy-crisis', 'markets', 'kraken-markets', 'economic', 'global-procurement', 'trade-policy', 'sanctions-pressure', 'supply-chain', 'china-corridors', 'china-activity-nowcast', 'finance', 'polymarket', 'macro-signals', 'gulf-economies', 'etf-flows', 'stablecoins', 'crypto', 'heatmap', 'aaii-sentiment', 'cot-positioning', 'earnings-calendar', 'economic-calendar', 'fear-greed', 'fsi', 'macro-tiles', 'market-breadth', 'liquidity-shifts', 'national-debt', 'positioning-247', 'wsb-ticker-scanner', 'yield-curve', 'gold-intelligence', 'bigmac', 'market-implications'],
+    variants: ['full', 'energy', 'trader'],
   },
   topical: {
     labelKey: 'header.panelCatTopical',
@@ -1415,8 +1592,8 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   // Finance variant
   finMarkets: {
     labelKey: 'header.panelCatMarkets',
-    panelKeys: ['markets', 'stock-analysis', 'stock-backtest', 'daily-market-brief', 'markets-news', 'heatmap', 'macro-signals', 'analysis', 'polymarket'],
-    variants: ['finance'],
+    panelKeys: ['markets', 'kraken-markets', 'stock-analysis', 'stock-backtest', 'daily-market-brief', 'markets-news', 'heatmap', 'macro-signals', 'analysis', 'polymarket'],
+    variants: ['finance', 'trader'],
   },
   fixedIncomeFx: {
     labelKey: 'header.panelCatFixedIncomeFx',
@@ -1430,7 +1607,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   cryptoDigital: {
     labelKey: 'header.panelCatCryptoDigital',
-    panelKeys: ['crypto', 'crypto-heatmap', 'defi-tokens', 'ai-tokens', 'other-tokens', 'crypto-news', 'etf-flows', 'stablecoins', 'fintech'],
+    panelKeys: ['crypto', 'kraken-markets', 'crypto-heatmap', 'defi-tokens', 'ai-tokens', 'other-tokens', 'crypto-news', 'etf-flows', 'stablecoins', 'fintech'],
     variants: ['finance'],
   },
   centralBanksEcon: {

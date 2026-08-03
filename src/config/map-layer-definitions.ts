@@ -3,7 +3,7 @@ import type { MapLayers } from '@/types';
 import { isDesktopRuntime } from '@/services/runtime';
 
 export type MapRenderer = 'flat' | 'globe';
-export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity' | 'energy';
+export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity' | 'energy' | 'trader';
 
 const _desktop = isDesktopRuntime();
 
@@ -329,6 +329,18 @@ const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
     // Energy-adjacent context
     'sanctions', 'fires', 'climate', 'weather', 'outages', 'natural',
     'resilienceScore', 'dayNight',
+  ],
+  trader: [
+    // The 12 owner-approved defaults — mirror of the `true` keys in
+    // TRADER_MAP_LAYERS (src/config/panels.ts). Keep both in sync.
+    'stockExchanges', 'centralBanks', 'financialCenters', 'commodityHubs',
+    'waterways', 'tradeRoutes', 'ais', 'liveTankers', 'pipelines',
+    'sanctions', 'natural', 'outages',
+    // Research-shaped superset — reachable from the picker, default OFF.
+    // This array also drives sanitizeLayersForVariant, so a key omitted here
+    // is force-disabled even if a restored MapLayers snapshot had it on.
+    'ucdpEvents', 'displacement', 'cyberThreats', 'economic',
+    'military', 'fires', 'weather', 'climate',
   ],
 };
 

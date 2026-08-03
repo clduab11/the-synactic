@@ -7,9 +7,10 @@
     "finance": 17,
     "happy": 6,
     "commodity": 18,
-    "energy": 18
+    "energy": 18,
+    "trader": 20
   },
-  "variantCount": 6,
+  "variantCount": 7,
   "componentTopLevelTsFiles": 184,
   "serviceTopLevelEntries": 221,
   "apiEndpointEntries": 89,

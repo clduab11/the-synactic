@@ -8,7 +8,7 @@ import {
 } from './variant-live-smoke-response-capture';
 import { PREMIUM_RPC_PATHS } from '../src/shared/premium-paths';
 
-type VariantName = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+type VariantName = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'trader';
 
 type PanelDiagnostic = {
   id: string;
@@ -24,6 +24,7 @@ const EXPECTED_BOOT_PANELS: Record<VariantName, string[]> = {
   commodity: ['live-news', 'insights', 'commodity-news', 'markets'],
   energy: ['chokepoint-strip', 'pipeline-status', 'live-news'],
   happy: ['positive-feed', 'progress', 'counters'],
+  trader: ['live-news', 'markets', 'macro-signals'],
 };
 
 const AUTH_OR_PREMIUM_401_PREFIXES = [
@@ -50,7 +51,8 @@ const normalizeVariant = (variant: string | undefined): VariantName => {
     variant === 'finance' ||
     variant === 'commodity' ||
     variant === 'energy' ||
-    variant === 'happy'
+    variant === 'happy' ||
+    variant === 'trader'
   ) {
     return variant;
   }

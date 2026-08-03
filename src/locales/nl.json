@@ -3084,7 +3084,8 @@
     "panelCatCommodityEcon": "Economie & Handel",
     "panelCatHappyNews": "Goed Nieuws",
     "panelCatHappyPlanet": "Planeet & Geven",
-    "embed": "Insluiten"
+    "embed": "Insluiten",
+    "trader": "TRADER"
   },
   "countryBrief": {
     "identifying": "Land identificeren...",
