@@ -1597,10 +1597,7 @@ export class EventHandlerManager implements AppModule {
     if (SITE_VARIANT !== 'full') return;
 
     this.ctx.pizzintIndicator = new PizzIntIndicator();
-    const headerLeft = this.ctx.container.querySelector('.header-left');
-    if (headerLeft) {
-      headerLeft.appendChild(this.ctx.pizzintIndicator.getElement());
-    }
+    this.mountAlertsClusterElement(this.ctx.pizzintIndicator.getElement());
   }
 
   /**
@@ -1613,11 +1610,26 @@ export class EventHandlerManager implements AppModule {
     if (SITE_VARIANT !== 'full') return;
 
     this.ctx.defconIndicator = new DefconLevelIndicator();
-    const headerLeft = this.ctx.container.querySelector('.header-left');
-    if (headerLeft) {
-      headerLeft.appendChild(this.ctx.defconIndicator.getElement());
-    }
+    this.mountAlertsClusterElement(this.ctx.defconIndicator.getElement());
     this.ctx.defconIndicator.hide();
+  }
+
+  /**
+   * The alerts cluster (PizzINT + DEFCON) sits between the variant switcher
+   * and the wordmark, not at the end of `.header-left`. Inserting each badge
+   * before `.logo` preserves setup-call order (PizzINT first, DEFCON second).
+   * Both dropdown panels anchor `left: 0`, so the further-left mount gives
+   * them more viewport, not less.
+   */
+  private mountAlertsClusterElement(el: HTMLElement): void {
+    const headerLeft = this.ctx.container.querySelector('.header-left');
+    if (!headerLeft) return;
+    const wordmark = headerLeft.querySelector('.logo');
+    if (wordmark) {
+      headerLeft.insertBefore(el, wordmark);
+    } else {
+      headerLeft.appendChild(el);
+    }
   }
 
   setupLlmStatusIndicator(): void {
