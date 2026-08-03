@@ -243,7 +243,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop
-    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level seed-fire-detections seed-natural-events seed-climate-disasters seed-kraken-markets; do echo \"[seed-loop] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
+    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level seed-fire-detections seed-thermal-escalation seed-natural-events seed-climate-disasters seed-kraken-markets seed-global-tenders seed-research seed-portwatch-disruptions seed-china-coverage-health; do echo \"[seed-loop] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro
@@ -326,7 +326,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop-slow
-    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies seed-economy seed-eia-petroleum seed-unrest-events; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
+    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies seed-economy seed-eia-petroleum seed-unrest-events seed-portwatch seed-fear-greed seed-fx-rates seed-hormuz seed-climate-ocean-ice seed-bls-series seed-supply-chain-trade seed-regulatory-actions seed-gold-etf-flows seed-energy-spine seed-conflict-intel seed-regional-snapshots; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro
@@ -370,6 +370,113 @@ services:
       ACLED_EMAIL: "${ACLED_EMAIL:-}"
       ACLED_PASSWORD: "${ACLED_PASSWORD:-}"
       ACLED_ACCESS_TOKEN: "${ACLED_ACCESS_TOKEN:-}"
+      # seed-conflict-intel runs on this tier and its afterPublish hook embeds
+      # records into the Chroma store. Without these its writes land in Redis
+      # but never reach the semantic layer, leaving the conflict domain of
+      # search_intel_history permanently empty — the known [2b] gap.
+      INTEL_HISTORY_BACKEND: "${INTEL_HISTORY_BACKEND:-chroma}"
+      CHROMA_URL: "${CHROMA_URL:-http://chroma:8000}"
+      INTEL_EMBED_BASE_URL: "${INTEL_EMBED_BASE_URL:-http://host.docker.internal:1234/v1}"
+      INTEL_EMBED_MODEL: "${INTEL_EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}"
+      INTEL_EMBED_DIMS: "${INTEL_EMBED_DIMS:-768}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis-rest:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
+  # ── Fast seeder tier (session 09) ───────────────────────────────────────────
+  # 10-minute cycle, for layers whose health budget is 30-45 min. The 45-minute
+  # seed-loop CANNOT satisfy a maxStaleMin of 30 no matter what is in it — the
+  # budget sets the cadence, so these need their own tier rather than a longer
+  # list somewhere else.
+  #
+  # ORDER IS LOAD-BEARING within the cycle:
+  #   - seed-military-cii consumes what seed-military-flights just wrote, so it
+  #     runs immediately after it.
+  #   - seed-cross-source-signals is a pure Redis-derived fan-in over the other
+  #     layers, so it runs LAST and sees this cycle's writes, not last cycle's.
+  # Every seeder here is keyless (USGS, ADS-B, Cloudflare Radar via the app's
+  # own API) and cheap, which is what makes a 10-minute cadence defensible
+  # under boundary 2 — none of them touches a metered upstream.
+  seed-loop-fast:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: the-synactic:latest
+    container_name: the-synactic-seed-loop-fast
+    command: ["sh", "-c", "while true; do for s in seed-earthquakes seed-military-flights seed-military-cii seed-infra seed-cross-source-signals; do echo \"[seed-loop-fast] running $$s\"; timeout 540 node /repo/scripts/$$s.mjs || echo \"[seed-loop-fast] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-fast] cycle done; sleeping 10min'; sleep 600; done"]
+    volumes:
+      - ./scripts:/repo/scripts:ro
+      - ./shared:/repo/shared:ro
+      - ./src/config:/repo/src/config:ro
+    environment:
+      UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
+      UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
+      # seed-infra and seed-military-cii read back through the app's own API
+      # rather than re-fetching upstreams; the container name resolves on the
+      # compose network and the app listens on 8080 inside it (the 3000 you use
+      # from the host is the published mapping).
+      API_BASE_URL: "http://the-synactic:8080"
+      WS_RELAY_URL: "http://ais-relay:3004"
+      RELAY_SHARED_SECRET: "${RELAY_SHARED_SECRET:-}"
+    depends_on:
+      redis-rest:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
+  # ── GDELT tier (session 09) ─────────────────────────────────────────────────
+  # Separate from the others because GDELT publishes on its own 15-minute
+  # cadence and because the two members form an ordered chain: the bulk
+  # materializer writes gdelt:bulk:*, which seed-conflict-intel then reads.
+  #
+  # ⚠ This uses the BULK path (data.gdeltproject.org masterfilelist), NOT the
+  # doc API. Those are different upstreams with different limits: the doc API
+  # is currently 429ing this host while masterfilelist returns 200. Do not
+  # "simplify" this to the doc API, and do not shorten the cycle — boundary 2
+  # says back off, never work around a published limit.
+  #
+  # seed-conflict-intel also carries the intel-history env so its afterPublish
+  # hook embeds into Chroma; without it the conflict domain of the semantic
+  # store stays empty (a known gap from the [2b] work).
+  seed-loop-gdelt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: the-synactic:latest
+    container_name: the-synactic-seed-loop-gdelt
+    # seed-conflict-intel deliberately does NOT run here, though it is the
+    # natural consumer of the bulk keys. It treats ACLED as its primary feed
+    # and fails hard rather than let auxiliary feeds mask a primary-feed
+    # outage — correct behaviour, but ACLED currently answers 403 (the account
+    # has no API tier), so on a 15-minute cycle it would issue ~96 denied
+    # requests a day to prove a fact we already know. It lives on the 3h tier
+    # until ACLED access is granted; move it back here in the same change that
+    # confirms a 200 from /api/acled/read.
+    command: ["sh", "-c", "while true; do for s in seed-gdelt-bulk-materializer; do echo \"[seed-loop-gdelt] running $$s\"; timeout 840 node /repo/scripts/$$s.mjs || echo \"[seed-loop-gdelt] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-gdelt] cycle done; sleeping 15min'; sleep 900; done"]
+    volumes:
+      - ./scripts:/repo/scripts:ro
+      - ./shared:/repo/shared:ro
+      - ./src/config:/repo/src/config:ro
+    environment:
+      UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
+      UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
+      INTEL_HISTORY_BACKEND: "${INTEL_HISTORY_BACKEND:-chroma}"
+      CHROMA_URL: "${CHROMA_URL:-http://chroma:8000}"
+      INTEL_EMBED_BASE_URL: "${INTEL_EMBED_BASE_URL:-http://host.docker.internal:1234/v1}"
+      INTEL_EMBED_MODEL: "${INTEL_EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}"
+      INTEL_EMBED_DIMS: "${INTEL_EMBED_DIMS:-768}"
+      ACLED_MODE: "${ACLED_MODE:-fixture}"
+      ACLED_USERNAME: "${ACLED_USERNAME:-}"
+      ACLED_EMAIL: "${ACLED_EMAIL:-}"
+      ACLED_PASSWORD: "${ACLED_PASSWORD:-}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis-rest:
         condition: service_started

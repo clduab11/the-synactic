@@ -889,10 +889,22 @@ describe('docker runtime dependency guardrails', () => {
     // (xmldoc -> sax) that `npm ci --omit=dev` correctly excludes, so the
     // seeder died with ERR_MODULE_NOT_FOUND in the container while working
     // fine on a full dev install. sax is a zero-dependency parser.
+    //
+    // exceljs / fast-xml-parser / papaparse joined 2026-08-03 for the same
+    // reason, found by a sweep of every failing health check: seed-fuel-prices
+    // (exceljs), seed-global-tenders + seed-portwatch + seed-research
+    // (fast-xml-parser), and seed-conflict-intel + seed-portwatch-disruptions
+    // (papaparse) all died with ERR_MODULE_NOT_FOUND in the loop containers
+    // while working on a dev install. Between them they gate 7 health checks.
+    // exceljs is the only heavy one and is accepted deliberately: the LBMA
+    // gold-vault workbook is published as .xlsx and there is no CSV mirror.
     assert.deepEqual(Object.keys(runtimePackage.dependencies).sort(), [
       '@upstash/ratelimit',
       '@upstash/redis',
       'convex',
+      'exceljs',
+      'fast-xml-parser',
+      'papaparse',
       'sax',
     ]);
     assert.deepEqual(
