@@ -105,6 +105,7 @@ export interface AppContext {
   exportPanel: import('@/utils/export').ExportPanel | null;
   unifiedSettings: UnifiedSettingsController | null;
   pizzintIndicator: import('@/components').PizzIntIndicator | null;
+  defconIndicator: import('@/components').DefconLevelIndicator | null;
   correlationEngine: import('@/services/correlation-engine').CorrelationEngine | null;
   llmStatusIndicator: import('@/components').LlmStatusIndicator | null;
   countryBriefPage: import('@/components/CountryBriefPanel').CountryBriefPanel | null;

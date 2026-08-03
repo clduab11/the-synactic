@@ -1017,6 +1017,7 @@ export class App {
       exportPanel: null,
       unifiedSettings: null,
       pizzintIndicator: null,
+      defconIndicator: null,
       correlationEngine: null,
       llmStatusIndicator: null,
       countryBriefPage: null,
@@ -1703,6 +1704,7 @@ export class App {
     this.eventHandlers.setupPlaybackControl();
     this.eventHandlers.setupStatusPanel();
     this.eventHandlers.setupPizzIntIndicator();
+    this.eventHandlers.setupDefconIndicator();
     this.eventHandlers.setupLlmStatusIndicator();
     this.eventHandlers.setupExportPanel();
     this.eventHandlers.setupSearchControls();
@@ -2237,6 +2239,7 @@ export class App {
           condition: () => this.isPanelNearViewport('forecast'),
         },
         { name: 'pizzint', fn: () => this.dataLoader.loadPizzInt(), intervalMs: REFRESH_INTERVALS.pizzint, condition: () => SITE_VARIANT === 'full' },
+        { name: 'defconLevel', fn: () => this.dataLoader.loadDefconLevel(), intervalMs: REFRESH_INTERVALS.defconLevel, condition: () => SITE_VARIANT === 'full' },
         { name: 'natural', fn: () => this.dataLoader.loadNatural(), intervalMs: REFRESH_INTERVALS.natural, condition: () => this.state.mapLayers.natural },
         { name: 'weather', fn: () => this.dataLoader.loadWeatherAlerts(), intervalMs: REFRESH_INTERVALS.weather, condition: () => this.state.mapLayers.weather },
         { name: 'fred', fn: () => this.dataLoader.loadFredData(), intervalMs: REFRESH_INTERVALS.fred, condition: () => this.isPanelNearViewport('economic') },

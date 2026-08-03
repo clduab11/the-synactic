@@ -17,6 +17,9 @@ export const REFRESH_INTERVALS = {
   forecasts: 30 * 60 * 1000,
   ais: 15 * 60 * 1000,
   pizzint: 10 * 60 * 1000,
+  // Source revises on the order of days and the seed TTL is 3h — polling the
+  // hydration cache faster than this would just re-read the same bytes.
+  defconLevel: 60 * 60 * 1000,
   natural: 60 * 60 * 1000,
   weather: 10 * 60 * 1000,
   fred: 6 * 60 * 60 * 1000,

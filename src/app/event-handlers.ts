@@ -23,6 +23,7 @@ import type { ClusteredEvent } from '@/types';
 import type { DashboardSnapshot } from '@/services/storage';
 import { PlaybackControl } from '@/components/PlaybackControl';
 import { PizzIntIndicator } from '@/components/PizzIntIndicator';
+import { DefconLevelIndicator } from '@/components/DefconLevelIndicator';
 import { LlmStatusIndicator } from '@/components/LlmStatusIndicator';
 import type { PredictionPanel } from '@/components/PredictionPanel';
 import {
@@ -1600,6 +1601,23 @@ export class EventHandlerManager implements AppModule {
     if (headerLeft) {
       headerLeft.appendChild(this.ctx.pizzintIndicator.getElement());
     }
+  }
+
+  /**
+   * Sits immediately after PizzINT in `.header-left`. Kept a separate control
+   * on purpose — the two measure different things and must not read as one
+   * corroborated number. Starts hidden; loadDefconLevel() reveals it only once
+   * a real estimate arrives (see src/services/defcon-level.ts).
+   */
+  setupDefconIndicator(): void {
+    if (SITE_VARIANT !== 'full') return;
+
+    this.ctx.defconIndicator = new DefconLevelIndicator();
+    const headerLeft = this.ctx.container.querySelector('.header-left');
+    if (headerLeft) {
+      headerLeft.appendChild(this.ctx.defconIndicator.getElement());
+    }
+    this.ctx.defconIndicator.hide();
   }
 
   setupLlmStatusIndicator(): void {

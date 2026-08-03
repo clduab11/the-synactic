@@ -160,7 +160,7 @@ export const PUBLIC_PRODUCT_FACTS = {
     "variants": 6,
     "mapLayers": 56,
     "feedDefinitions": 568,
-    "freshnessTrackedSourceGroups": 35
+    "freshnessTrackedSourceGroups": 36
   }
 };
 

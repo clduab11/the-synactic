@@ -13794,6 +13794,267 @@ a.prediction-link:hover {
 }
 
 /* ==========================================================================
+   DEFCON Readiness Estimate (defconlevel.com)
+
+   Sibling of the PizzINT indicator, deliberately a separate control. Shares
+   its metrics so the two badges sit on one visual line, but never merges with
+   it — they measure different things and must not read as corroboration.
+
+   NOT an official DEFCON level. The .defcon-disclaimer row is load-bearing:
+   it must stay visible above every number in the pop-out.
+   ========================================================================== */
+
+.defcon-indicator {
+  position: relative;
+  z-index: 1000;
+  font-family: var(--font-mono);
+}
+
+.defcon-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--overlay-heavy);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.defcon-toggle:hover {
+  background: var(--overlay-medium);
+  border-color: var(--border-strong);
+}
+
+.defcon-icon {
+  font-size: 14px;
+}
+
+.defcon-badge {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--text-ghost);
+  color: var(--accent);
+}
+
+/* Permanent "estimate" marker on the collapsed badge — the caveat has to
+   survive for people who never open the pop-out. */
+.defcon-est-marker {
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  padding: 1px 3px;
+  border: 1px solid var(--text-ghost);
+  border-radius: 2px;
+  color: var(--text-dim);
+}
+
+.defcon-indicator.escalated .defcon-badge {
+  animation: defcon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes defcon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .defcon-indicator.escalated .defcon-badge { animation: none; }
+  /* Keep a non-motion escalation cue so the signal is not motion-only. */
+  .defcon-indicator.escalated .defcon-toggle { border-color: var(--accent); }
+}
+
+.defcon-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  width: 340px;
+  background: var(--bg);
+  border: 1px solid var(--overlay-heavy);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px var(--shadow-color);
+}
+
+.defcon-panel.hidden,
+.defcon-diverging.hidden,
+.defcon-synthetic.hidden {
+  display: none;
+}
+
+.defcon-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--overlay-medium);
+}
+
+.defcon-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.defcon-close {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.defcon-close:hover {
+  color: var(--accent);
+}
+
+.defcon-disclaimer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 16px;
+  background: var(--overlay-light);
+  border-bottom: 1px solid var(--overlay-medium);
+}
+
+.defcon-disclaimer-icon {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.defcon-disclaimer-text {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.defcon-status-bar {
+  padding: 12px 16px;
+  background: var(--overlay-light);
+  text-align: center;
+}
+
+.defcon-level-label {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.defcon-level-desc {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.defcon-diverging {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--overlay-medium);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.defcon-commands,
+.defcon-synthetic {
+  padding: 8px 16px;
+}
+
+.defcon-synthetic {
+  border-top: 1px solid var(--overlay-medium);
+}
+
+.defcon-commands-title,
+.defcon-synthetic-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.defcon-synthetic-note {
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--text-ghost);
+  margin-bottom: 6px;
+}
+
+/* Sized to show all eleven combatant commands without scrolling — clipping
+   mid-list reads as "these are all of them" when it is not. Still scrolls if
+   the source ever adds rows. */
+.defcon-commands-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.defcon-command {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--overlay-light);
+}
+
+.defcon-command:last-child {
+  border-bottom: none;
+}
+
+.defcon-command-abbr {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--text);
+  min-width: 82px;
+}
+
+.defcon-command-name {
+  flex: 1;
+  font-size: 10px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.defcon-command-level {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 3px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.defcon-command.diverging .defcon-command-abbr {
+  color: var(--accent);
+}
+
+.defcon-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--overlay-medium);
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--text-ghost);
+}
+
+.defcon-footer a {
+  color: var(--text-faint);
+  text-decoration: none;
+}
+
+.defcon-footer a:hover {
+  color: var(--accent);
+}
+
+/* ==========================================================================
    Mobile Menu
    ========================================================================== */
 

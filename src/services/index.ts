@@ -26,6 +26,7 @@ export * from './unrest';
 export * from './military-flights';
 export * from './usni-fleet';
 export * from './pizzint';
+export * from './defcon-level';
 export * from './eonet';
 export { analysisWorker } from './analysis-worker';
 export { activityTracker } from './activity-tracker';

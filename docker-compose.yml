@@ -214,7 +214,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop
-    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages; do echo \"[seed-loop] running $$s\"; timeout 900 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
+    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level; do echo \"[seed-loop] running $$s\"; timeout 900 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro

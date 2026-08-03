@@ -281,6 +281,7 @@ const STANDALONE_KEYS = {
   newsThreatSummary:        'news:threat:summary:v1',
   climateNews:              'climate:news-intelligence:v1',
   pizzint:                  'intelligence:pizzint:seed:v1',
+  defconLevel:              'intelligence:defcon-level:seed:v1',
   resilienceStaticIndex:    'resilience:static:index:v1',
   resilienceStaticFao:      'resilience:static:fao',
   resilienceRanking:        'resilience:ranking:v25',
@@ -594,6 +595,7 @@ const SEED_META = {
   socialVelocity:    { key: 'seed-meta:intelligence:social-reddit',    maxStaleMin: 540 }, // relay loop every 180min (3h; was 60min, dropped now that ScrapeCreators handles Reddit); 540 = 3x interval. Co-pinned with SOCIAL_VELOCITY_TTL=43200 (ais-relay.cjs): the data-key TTL must STRICTLY exceed this (720min > 540min) so a dead relay shows STALE_SEED before the key expires to EMPTY.
   wsbTickers:        { key: 'seed-meta:intelligence:wsb-tickers',      maxStaleMin: 540 }, // relay loop every 180min (3h); 540 = 3x interval. Co-pinned with WSB_TICKERS_TTL=43200 (ais-relay.cjs); TTL strictly > maxStaleMin (see socialVelocity note).
   pizzint:           { key: 'seed-meta:intelligence:pizzint',          maxStaleMin: 30 }, // relay loop every 10min; 30 = 3x interval
+  defconLevel:       { key: 'seed-meta:intelligence:defcon-level',     maxStaleMin: 135 }, // seed-loop cycle every 45min; 135 = 3x interval. Co-pinned with CACHE_TTL=10800 (seed-defcon-level.mjs): the data-key TTL must STRICTLY exceed this (180min > 135min) so a dead seeder shows STALE_SEED before the key expires to EMPTY (see socialVelocity note).
   productCatalog:    { key: 'seed-meta:product-catalog',               maxStaleMin: 1080 }, // relay loop every 6h; 1080 = 18h = 3x interval
   vpdTrackerRealtime:   { key: 'seed-meta:health:vpd-tracker',         maxStaleMin: 2880 }, // daily seed (0 2 * * *); 2880min = 48h = 2x interval
   vpdTrackerHistorical: { key: 'seed-meta:health:vpd-tracker',         maxStaleMin: 2880 }, // shares seed-meta key with vpdTrackerRealtime (same run)

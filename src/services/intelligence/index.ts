@@ -14,6 +14,15 @@ export {
   getGdeltStatus,
 } from '../pizzint';
 
+// DEFCON readiness estimate (defconlevel.com OSINT estimate — NOT official;
+// the US publishes no DEFCON level). Separate from PizzINT by design.
+export {
+  fetchDefconEstimate,
+  parseDefconEstimate,
+  divergingCommands,
+  shouldEscalate,
+} from '../defcon-level';
+
 // Risk scores (CII + strategic risk)
 export {
   fetchCachedRiskScores,

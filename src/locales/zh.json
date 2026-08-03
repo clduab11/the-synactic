@@ -2581,6 +2581,38 @@
       "outcome_stop_loss": "stop",
       "outcome_take_profit": "target",
       "outcome_window_close": "window close"
+    },
+    "defcon": {
+      "title": "DEFCON Readiness Estimate",
+      "close": "Close DEFCON panel",
+      "badge": "DEFCON {{level}}",
+      "estMarker": "EST",
+      "disclaimer": "OSINT estimate, not an official status. The U.S. does not publish the current DEFCON level — the real one is classified.",
+      "commandsTitle": "Unified Combatant Commands",
+      "syntheticTitle": "Additional trackers",
+      "syntheticNote": "Publisher's own thematic trackers — not U.S. combatant commands.",
+      "diverging": "{{count}} of {{total}} commands assessed more severe than the headline level",
+      "source": "Source:",
+      "updated": "Source updated {{source}} · collected {{fetched}}",
+      "unknownTime": "unknown",
+      "justNow": "just now",
+      "minutesAgo": "{{m}}m ago",
+      "hoursAgo": "{{h}}h ago",
+      "daysAgo": "{{d}}d ago",
+      "levelNames": {
+        "1": "COCKED PISTOL",
+        "2": "FAST PACE",
+        "3": "ROUND HOUSE",
+        "4": "DOUBLE TAKE",
+        "5": "FADE OUT"
+      },
+      "levelDescs": {
+        "1": "Maximum readiness — nuclear war imminent or underway",
+        "2": "Armed forces ready to deploy and engage in under six hours",
+        "3": "Increased force readiness above normal",
+        "4": "Increased intelligence watch and strengthened security",
+        "5": "Lowest state of readiness — normal peacetime posture"
+      }
     }
   },
   "popups": {

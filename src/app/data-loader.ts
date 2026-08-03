@@ -66,6 +66,7 @@ import {
   addToSignalHistory,
   analysisWorker,
   fetchPizzIntStatus,
+  fetchDefconEstimate,
   fetchGdeltTensions,
   fetchNaturalEvents,
   fetchRecentAwards,
@@ -936,6 +937,7 @@ export class DataLoaderManager implements AppModule {
         tasks.push({ name: 'simulation-outcome', task: () => runGuarded('simulation-outcome', () => this.loadSimulationOutcome()) });
       }
       if (SITE_VARIANT === 'full') tasks.push({ name: 'pizzint', task: () => runGuarded('pizzint', () => this.loadPizzInt()) });
+      if (SITE_VARIANT === 'full') tasks.push({ name: 'defconLevel', task: () => runGuarded('defconLevel', () => this.loadDefconLevel()) });
       if (shouldLoad('economic')) {
         tasks.push({ name: 'fred', task: () => runGuarded('fred', () => this.loadFredData()) });
         tasks.push({ name: 'spending', task: () => runGuarded('spending', () => this.loadGovernmentSpending()) });
@@ -4098,6 +4100,34 @@ export class DataLoaderManager implements AppModule {
       this.callPanel('satellite-fires', 'showError');
       this.ctx.statusPanel?.updateApi('FIRMS', { status: 'error' });
       dataFreshness.recordError('firms', String(e));
+    }
+  }
+
+  /**
+   * DEFCON readiness estimate (defconlevel.com). Hides the indicator whenever
+   * no estimate is available rather than rendering a placeholder level — "5" is
+   * a real reading on this scale, so a fabricated one would be a false measurement.
+   */
+  async loadDefconLevel(): Promise<void> {
+    try {
+      const estimate = await fetchDefconEstimate();
+
+      if (!estimate) {
+        this.ctx.defconIndicator?.hide();
+        this.ctx.statusPanel?.updateApi('DEFCON Estimate', { status: 'error' });
+        dataFreshness.recordError('defconLevel', 'No estimate available');
+        return;
+      }
+
+      this.ctx.defconIndicator?.show();
+      this.ctx.defconIndicator?.updateEstimate(estimate);
+      this.ctx.statusPanel?.updateApi('DEFCON Estimate', { status: 'ok' });
+      dataFreshness.recordUpdate('defconLevel', estimate.commands.length);
+    } catch (error) {
+      console.error('[App] DEFCON estimate load failed:', error);
+      this.ctx.defconIndicator?.hide();
+      this.ctx.statusPanel?.updateApi('DEFCON Estimate', { status: 'error' });
+      dataFreshness.recordError('defconLevel', String(error));
     }
   }
 

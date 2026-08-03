@@ -121,6 +121,10 @@ export const BOOTSTRAP_CACHE_KEYS = Object.freeze({
   energyCrisisPolicies: 'energy:crisis-policies:v1',
   aaiiSentiment: 'market:aaii-sentiment:v1',
   breadthHistory: 'market:breadth-history:v1',
+  // Third-party OSINT readiness estimate (defconlevel.com). NOT an official
+  // DEFCON level -- the US publishes none. Dashboard-only; deliberately absent
+  // from the MCP surface pending a licensing answer. See scripts/seed-defcon-level.mjs.
+  defconLevel: 'intelligence:defcon-level:seed:v1',
 });
 
 const SLOW_KEY_NAMES = new Set([
@@ -154,6 +158,9 @@ const SLOW_KEY_NAMES = new Set([
   'diseaseOutbreaks',
   'economicStress',
   'pizzint',
+  // Slow tier: defconlevel.com's estimate moves on the order of days, and the
+  // seed carries a 3h TTL. Pairs with 'pizzint' in the header indicator row.
+  'defconLevel',
   'oilStocksAnalysis',
   'lngVulnerability',
   'pipelinesGas',

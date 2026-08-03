@@ -10,6 +10,7 @@ export type DataSourceId =
   | 'polymarket'
   | 'predictions'
   | 'pizzint'
+  | 'defconLevel'
   | 'outages'
   | 'cyber_threats'
   | 'weather'
@@ -1073,6 +1074,50 @@ export interface GdeltTensionPair {
   trend: 'rising' | 'stable' | 'falling';
   changePercent: number;
   region: string;
+}
+
+// ---------------------------------------------------------------------------
+// DEFCON readiness estimate (defconlevel.com)
+//
+// NOT an official DEFCON level. The US publishes none — the real level is
+// classified. This is a private OSINT organization's estimate, and the types
+// below carry that framing in-band so it cannot be dropped by accident.
+// See scripts/seed-defcon-level.mjs for the full provenance note.
+// ---------------------------------------------------------------------------
+
+export type DefconEstimateLevel = 1 | 2 | 3 | 4 | 5;
+
+export interface DefconCommandStatus {
+  /** defconlevel.com /alerts/ slug, e.g. 'central-command'. */
+  id: string;
+  /** Short form as the source renders it, e.g. 'CENTCOM'. */
+  abbr: string;
+  name: string;
+  level: DefconEstimateLevel;
+  /**
+   * False for defconlevel.com's own thematic trackers (BIOCOM, DISASTERCOM,
+   * FINCOM) which sit in the same nav as the eleven real unified combatant
+   * commands but are not DoD structure. The UI must not present them as peers.
+   */
+  isCombatantCommand: boolean;
+  sourceUrl: string;
+}
+
+export interface DefconLevelEstimate {
+  level: DefconEstimateLevel;
+  /** Literal, not a free string — nothing here may ever read 'official'. */
+  estimateType: 'osint-estimate';
+  officialStatus: 'classified-not-published';
+  sourceName: string;
+  sourceUrl: string;
+  sourceOperator: string;
+  /** When the SOURCE last revised its estimate. Null if their markup omitted it. */
+  sourceUpdatedAt: Date | null;
+  /** When WE collected it. Distinct from sourceUpdatedAt — do not conflate. */
+  fetchedAt: Date;
+  commands: DefconCommandStatus[];
+  combatantCommandCount: number;
+  syntheticCommandCount: number;
 }
 
 // NASA EONET Natural Events
