@@ -8,7 +8,8 @@ export type OverlayId =
   | 'settings'
   | 'settings-pending'
   | 'map-popup'
-  | 'deep-dive';
+  | 'deep-dive'
+  | 'panel-focus';
 
 export type OverlayCloseOrigin = 'control' | 'history' | 'replacement';
 type OverlayCloseCallback = (origin: OverlayCloseOrigin) => void;
@@ -56,7 +57,8 @@ function isOverlayId(value: unknown): value is OverlayId {
     || value === 'settings'
     || value === 'settings-pending'
     || value === 'map-popup'
-    || value === 'deep-dive';
+    || value === 'deep-dive'
+    || value === 'panel-focus';
 }
 
 function withMarker(state: unknown, marker: OverlayMarker): Record<string, unknown> {

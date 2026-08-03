@@ -1,6 +1,6 @@
 import { Panel, type PanelFocusView } from './Panel';
 import { buildPredictionFocusView } from './prediction-focus-content';
-import { getPredictionPoolSnapshot } from '@/services/prediction';
+import { getPredictionPoolSnapshot, hasAttemptedPredictionFetch } from '@/services/prediction';
 import type { PredictionMarket } from '@/services/prediction';
 import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
 import { t } from '@/services/i18n';
@@ -34,7 +34,7 @@ export class PredictionPanel extends Panel {
    * took the RPC path (no pool structure to expand).
    */
   protected override buildFocusView(): PanelFocusView | null {
-    return buildPredictionFocusView(getPredictionPoolSnapshot());
+    return buildPredictionFocusView(getPredictionPoolSnapshot(), hasAttemptedPredictionFetch());
   }
 
   public renderPredictions(data: PredictionMarket[]): void {

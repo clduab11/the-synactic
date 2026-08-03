@@ -15,6 +15,19 @@ export interface PredictionMarket {
   /** Seeder-published topic tags. Polymarket records carry these; Kalshi records
    *  publish an empty array, so any tag-driven filter must declare that gap. */
   tags?: string[];
+  /** Best bid/ask AT THE TOUCH, normalized to the same 0-100 scale as yesPrice. */
+  bestBid?: number;
+  bestAsk?: number;
+  /** Quoted spread as a percent of mid. A COST-TO-CROSS measure, NOT order-book
+   *  depth — neither venue publishes a book through the seeded endpoints. */
+  spreadPct?: number;
+  /** Kalshi ONLY: contracts resting at the best bid/ask ($1 notional). Real book
+   *  quantity, but only AT the touch — silent about one tick away. */
+  topOfBookBidSize?: number;
+  topOfBookAskSize?: number;
+  /** Polymarket ONLY: venue-computed CLOB scalar. Named "venue…Score" because it
+   *  is not a measured quantity and is NOT comparable to Kalshi contract counts. */
+  venueLiquidityScore?: number;
 }
 
 export type PredictionPoolKey = 'geopolitical' | 'tech' | 'finance';
@@ -38,6 +51,16 @@ export interface PredictionPoolSnapshot {
 }
 
 let poolSnapshot: PredictionPoolSnapshot | null = null;
+let poolFetchAttempted = false;
+
+/**
+ * True once fetchPredictions has been ENTERED at least once this session.
+ * Lets a consumer tell "no snapshot yet" from "no snapshot, ever" — without it,
+ * a pre-load reader cannot distinguish loading from genuinely-nothing.
+ */
+export function hasAttemptedPredictionFetch(): boolean {
+  return poolFetchAttempted;
+}
 
 /**
  * Returns the last captured bootstrap pools, or null when the panel never took the
@@ -121,6 +144,12 @@ function capturePoolSnapshot(hydrated: BootstrapPredictionData): void {
 }
 
 export async function fetchPredictions(opts?: { region?: string }): Promise<PredictionMarket[]> {
+  // Set BEFORE breaker.execute, not inside its callback: the breaker resolves from
+  // cache on several paths without ever invoking the callback, and with
+  // persistCache a warm reload takes one of them — which would leave this false
+  // forever and pin the focus view on "loading".
+  poolFetchAttempted = true;
+
   const markets = await breaker.execute(async () => {
     const hydrated = getHydratedData('predictions') as BootstrapPredictionData | undefined;
     if (hydrated?.fetchedAt && Date.now() - hydrated.fetchedAt < 40 * 60 * 1000) {

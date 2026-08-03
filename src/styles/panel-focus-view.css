@@ -122,11 +122,21 @@ body.panel-focus-open {
   }
 }
 
-/* Desktop-only for this pass. Mobile additionally needs overlayHistory
-   registration so browser Back closes the overlay. */
+/* Mobile is supported: the overlay registers with overlayHistory, so browser Back
+   and the bottom tab bar both close it.
+
+   The tab bar is z-index 10003 (main.css:1665) — ABOVE this overlay at 10000, and
+   deliberately so: mobile-primary-nav dismisses the focus view when a tab is
+   tapped, which only works if the bar stays reachable. Inset the surface instead
+   of out-stacking the bar, using the same pin the rest of main.css uses. */
 @media (max-width: 768px) {
+  .panel-focus-overlay {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Touch has no hover, so the affordance must be permanently visible there. */
   .panel-header .panel-focus-btn {
-    display: none;
+    opacity: 1;
   }
 }
 
@@ -240,3 +250,16 @@ a.pfx-title:hover { text-decoration: underline; }
   background: var(--panel-bg-alt, rgba(255, 255, 255, 0.04));
   border-radius: 3px;
 }
+
+.pfx-loading {
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8b949e);
+}
+
+/* A wide quoted spread is the strongest thin-market signal these endpoints
+   support. Flagged, not hidden. */
+.pfx-wide-spread { color: var(--severity-medium, #d29922); }
+.pfx-spread, .pfx-size { white-space: nowrap; }

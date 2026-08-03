@@ -13,8 +13,10 @@
  *  2. Price is not the same measurement either. Polymarket is outcomePrices[0],
  *     a live quote; Kalshi is last_price_dollars, the last trade, which on a
  *     thin market can be hours stale.
- *  3. True liquidity/depth is not published at all. We state that rather than
- *     drawing a depth bar we would be inventing.
+ *  3. Neither venue publishes a full order book. Kalshi publishes size AT the best
+ *     bid/ask only; Polymarket publishes no size at all, just a venue-computed
+ *     scalar. So the honest measure is quoted spread (cost to cross) plus, where
+ *     it exists, top-of-book size — never anything named "depth".
  */
 import type { PanelFocusView } from '@/components/Panel';
 import type { PredictionMarket, PredictionPoolKey, PredictionPoolSnapshot } from '@/services/prediction';
@@ -86,6 +88,21 @@ function renderMarket(m: PredictionMarket, rank: number, now: number): SafeHtml 
     ? safeHtml`<span class="pfx-vol">${volumeStr}<span class="pfx-basis">${volumeBasis}</span></span>`
     : safeHtml`<span class="pfx-vol pfx-missing">${t('components.predictionFocus.volumeMissing')}</span>`;
 
+  // Cost to cross. A wide quoted spread is the strongest thin-market signal these
+  // endpoints support; absent rather than zero when either side is missing.
+  const spreadCell = typeof m.spreadPct === 'number'
+    ? safeHtml`<span class="pfx-spread${m.spreadPct >= 10 ? ' pfx-wide-spread' : ''}">${m.spreadPct.toFixed(1)}%<span class="pfx-basis">${t('components.predictionFocus.spread')}</span></span>`
+    : safeHtml`<span class="pfx-spread pfx-missing">${t('components.predictionFocus.spreadMissing')}</span>`;
+
+  // Deliberately venue-specific: Kalshi contract counts and Polymarket's CLOB
+  // scalar are different units. Rendering them in one column would imply they
+  // are comparable.
+  const sizeCell = typeof m.topOfBookBidSize === 'number' && typeof m.topOfBookAskSize === 'number'
+    ? safeHtml`<span class="pfx-size">${Math.round(m.topOfBookBidSize)}&nbsp;/&nbsp;${Math.round(m.topOfBookAskSize)}<span class="pfx-basis">${t('components.predictionFocus.topOfBook')}</span></span>`
+    : typeof m.venueLiquidityScore === 'number'
+      ? safeHtml`<span class="pfx-size">${formatVolume(m.venueLiquidityScore)}<span class="pfx-basis">${t('components.predictionFocus.venueScore')}</span></span>`
+      : safeHtml`<span class="pfx-size pfx-missing">${t('components.predictionFocus.sizeMissing')}</span>`;
+
   const days = daysToResolution(m.endDate, now);
   const horizonCell = days === null
     ? safeHtml`<span class="pfx-horizon pfx-missing">${t('components.predictionFocus.horizonUnknown')}</span>`
@@ -120,6 +137,8 @@ function renderMarket(m: PredictionMarket, rank: number, now: number): SafeHtml 
       <div class="pfx-meta">
         <span class="pfx-price">${yesPercent}%<span class="pfx-basis">${priceBasis}</span></span>
         ${volumeCell}
+        ${spreadCell}
+        ${sizeCell}
         ${horizonCell}
       </div>
       <div class="pfx-chips">${chipsCell}</div>
@@ -146,8 +165,20 @@ function renderPool(key: PredictionPoolKey, markets: PredictionMarket[], isRende
  * structure, so there is genuinely nothing richer to show and the overlay should
  * say so rather than repeat the compact view.
  */
-export function buildPredictionFocusView(snapshot: PredictionPoolSnapshot | null): PanelFocusView | null {
-  if (!snapshot || snapshot.pools.length === 0) return null;
+export function buildPredictionFocusView(
+  snapshot: PredictionPoolSnapshot | null,
+  attempted: boolean,
+): PanelFocusView | null {
+  // Three distinct states, deliberately not collapsed into two:
+  //   snapshot            -> render it
+  //   no snapshot, !tried -> still loading (say so)
+  //   no snapshot, tried  -> the RPC path ran; there is no pool structure to show
+  if (!snapshot || snapshot.pools.length === 0) {
+    if (attempted) return null;
+    return {
+      body: safeHtml`<p class="pfx-loading">${t('components.predictionFocus.loading')}</p>`,
+    };
+  }
 
   const now = Date.now();
   const total = snapshot.pools.reduce((n, p) => n + p.markets.length, 0);

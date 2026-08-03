@@ -2020,7 +2020,13 @@
       "closed": "closed",
       "noTags": "no tags published",
       "basisNote": "Volume and price are not comparable across venues: Polymarket reports an event-level volume with a live quote, Kalshi reports the selected contract volume with its last traded price.",
-      "liquidityNote": "Neither venue publishes order-book depth, so thin and deep markets cannot be distinguished beyond volume."
+      "liquidityNote": "Neither venue publishes a full order book. Kalshi publishes size at the best bid and ask only; Polymarket publishes no size at all, just a venue-computed score. Quoted spread is the cost to cross, not depth.",
+      "spread": "spread",
+      "spreadMissing": "no quote",
+      "topOfBook": "top of book",
+      "venueScore": "venue score",
+      "sizeMissing": "no size published",
+      "loading": "Loading market data…"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Map labels currently fall back to English for Vietnamese."

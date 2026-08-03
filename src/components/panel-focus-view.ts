@@ -20,12 +20,16 @@ import { createMarketChartFocusController } from '@/components/market-chart-inte
 import type { PanelFocusView } from '@/components/Panel';
 import { t } from '@/services/i18n';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+import { overlayHistory, type OverlayCloseOrigin } from '@/utils/overlay-history';
 import { escapeHtml, safeHtmlToString } from '@/utils/sanitize';
 
 type FocusController = ReturnType<typeof createMarketChartFocusController>;
 
 let activeOverlay: HTMLElement | null = null;
 let activeController: FocusController | null = null;
+// Tracks whether WE pushed a history entry, so a close driven BY history
+// ('history') or by the mobile tab bar ('replacement') does not try to pop again.
+let historyRegistered = false;
 
 /** Whether the focus view is currently on screen. */
 export function isPanelFocusViewOpen(): boolean {
@@ -64,9 +68,16 @@ function buildFreshnessHtml(fetchedAt: number | undefined): string {
 }
 
 /** Close the focus view if open. Safe to call when nothing is open. */
-export function closePanelFocusView(options: { restoreFocus?: boolean } = {}): void {
-  const { restoreFocus = true } = options;
+export function closePanelFocusView(
+  options: { restoreFocus?: boolean; origin?: OverlayCloseOrigin } = {},
+): void {
+  const { restoreFocus = true, origin = 'control' } = options;
   if (!activeOverlay) return;
+
+  // Only unwind history when the user closed us directly. On origin "history" the
+  // pop already happened; on 'replacement' (mobile tab tap) the manager owns it.
+  if (origin === 'control' && historyRegistered) overlayHistory.close('panel-focus');
+  historyRegistered = false;
 
   activeController?.deactivate({ restoreFocus });
   activeController = null;
@@ -90,7 +101,8 @@ export function openPanelFocusView(opts: {
   const { panelId, title, view, returnFocus = null } = opts;
 
   // Replace rather than stack, and do not bounce focus back to the old trigger on
-  // the way through — the new overlay is about to take it.
+  // the way through — the new overlay is about to take it. Closed as "control" so
+  // the prior history entry unwinds before a fresh one is pushed.
   closePanelFocusView({ restoreFocus: false });
 
   const overlay = document.createElement('div');
@@ -151,4 +163,10 @@ export function openPanelFocusView(opts: {
     returnFocus,
   );
   activeController.activate(overlay.querySelector<HTMLElement>('.panel-focus-close'));
+
+  // Registered on every viewport, not just mobile: browser Back should close a
+  // modal surface everywhere. The callback receives the origin so we do not
+  // double-pop when history itself drove the close.
+  historyRegistered = true;
+  overlayHistory.open('panel-focus', (origin) => closePanelFocusView({ origin }));
 }

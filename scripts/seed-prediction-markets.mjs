@@ -22,6 +22,33 @@ const KALSHI_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 const FETCH_TIMEOUT = 10_000;
 const TAG_DELAY_MS = 300;
 
+/**
+ * Quoted spread at the touch, as a percentage of the mid.
+ *
+ * This is a COST-TO-CROSS measure, NOT order-book depth. Neither venue exposes a
+ * book through these endpoints: Polymarket publishes no size at all, and Kalshi
+ * publishes size only at the best bid/ask. Never rename this toward "depth".
+ * Returns undefined (key dropped by JSON.stringify) rather than 0 when either
+ * side is missing — a fabricated 0 would read as a perfectly tight market.
+ */
+function quotedSpreadPct(bid, ask) {
+  if (!Number.isFinite(bid) || !Number.isFinite(ask)) return undefined;
+  const mid = (ask + bid) / 2;
+  if (mid <= 0) return undefined;
+  return +(((ask - bid) / mid) * 100).toFixed(2);
+}
+
+/** Kalshi publishes every numeric as a JSON STRING; Polymarket as a number. */
+function kalshiNum(raw) {
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Venue prices are 0-1; the published yesPrice is 0-100. Match it. */
+function toPercentScale(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? +(v * 100).toFixed(1) : undefined;
+}
+
 const GEOPOLITICAL_TAGS = predictionTags.geopolitical;
 const TECH_TAGS = predictionTags.tech;
 const FINANCE_TAGS = predictionTags.finance;
@@ -104,6 +131,14 @@ async function fetchKalshiMarkets() {
     const marketTitle = topMarket.yes_sub_title || topMarket.title || '';
     const title = kalshiTitle(marketTitle, event.title);
 
+    // Top-of-book. Kalshi is the ONLY venue here that publishes resting size, and
+    // only AT the touch — it says nothing about one tick away. Deliberately NOT
+    // reading liquidity_dollars: it is 0.0000 on every surviving market, so mapping
+    // it would publish "zero liquidity" for every Kalshi record. Nor the no_* side,
+    // which is an exact complement of the yes_* side and carries no information.
+    const bestBid = toPercentScale(kalshiNum(topMarket.yes_bid_dollars));
+    const bestAsk = toPercentScale(kalshiNum(topMarket.yes_ask_dollars));
+
     results.push({
       title,
       yesPrice,
@@ -112,6 +147,11 @@ async function fetchKalshiMarkets() {
       endDate: topMarket.close_time ?? undefined,
       tags: [],
       source: 'kalshi',
+      bestBid,
+      bestAsk,
+      spreadPct: quotedSpreadPct(bestBid, bestAsk),
+      topOfBookBidSize: kalshiNum(topMarket.yes_bid_size_fp),
+      topOfBookAskSize: kalshiNum(topMarket.yes_ask_size_fp),
     });
   }
 
@@ -152,6 +192,12 @@ async function fetchAllPredictions() {
           const yesPrice = parseYesPrice(topMarket);
           if (yesPrice === null) continue;
 
+          // Polymarket publishes NO size at the touch — only a venue-computed CLOB
+          // scalar. It is named venueLiquidityScore, not liquidity, so no consumer
+          // reads it as a measured quantity comparable to Kalshi contract counts.
+          const pmBestBid = toPercentScale(topMarket.bestBid);
+          const pmBestAsk = toPercentScale(topMarket.bestAsk);
+
           markets.push({
             title: topMarket.question || event.title,
             yesPrice,
@@ -160,6 +206,12 @@ async function fetchAllPredictions() {
             endDate: topMarket.endDate ?? event.endDate ?? undefined,
             tags: (event.tags ?? []).map(t => t.slug),
             source: 'polymarket',
+            bestBid: pmBestBid,
+            bestAsk: pmBestAsk,
+            spreadPct: quotedSpreadPct(pmBestBid, pmBestAsk),
+            venueLiquidityScore: typeof topMarket.liquidityNum === 'number'
+              ? topMarket.liquidityNum
+              : undefined,
           });
         }
       }
