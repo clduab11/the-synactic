@@ -326,7 +326,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop-slow
-    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
+    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies seed-economy seed-eia-petroleum; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro
@@ -334,6 +334,19 @@ services:
     environment:
       UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
       UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
+      # Free-tier keys, provisioned by the operator 2026-08-03. Until then the
+      # FRED and EIA layers were EMPTY, not broken — seed-economy degrades
+      # politely without them, so nothing failed loudly and 14 health checks
+      # simply never populated. They are passed HERE (not only to the app
+      # container, which already had them) because the seeders that consume
+      # them run in this container.
+      #   FRED  -> economic:fred:v1:* (fredBatch + 9 forecastFred* checks)
+      #   EIA   -> crude inventories, nat-gas storage, petroleum, refinery
+      # Cadence: these are daily-cron-shaped upstreams (health budgets are
+      # 1500 min / 25h), so a 3h loop is generous headroom, not pressure —
+      # well inside both providers' published limits.
+      FRED_API_KEY: "${FRED_API_KEY:-}"
+      EIA_API_KEY: "${EIA_API_KEY:-}"
     depends_on:
       redis-rest:
         condition: service_started
