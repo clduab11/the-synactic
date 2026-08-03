@@ -1416,8 +1416,82 @@ export class UnifiedSettings {
     }
   }
 
+  /**
+   * Self-host / desktop API-keys panel.
+   *
+   * The hosted tab manages keys ISSUED BY worldmonitor.app against a Clerk
+   * account (createApiKey/listApiKeys hit hosted endpoints). A self-host has no
+   * such account, so showing that UI would give the operator buttons that all
+   * fail — and the previous "Sign in to unlock" wall was worse than useless,
+   * because signing in would still not produce a credential this deployment uses.
+   *
+   * The self-host credential is WORLDMONITOR_VALID_KEYS in .env, presented as
+   * the X-WorldMonitor-Key header. It is SERVER-SIDE ONLY and is deliberately
+   * never shipped to the browser (tests/browser-bundle-secret-guard.test.mts
+   * enforces that), so this panel reports CONFIGURATION and EFFECTIVE
+   * ENTITLEMENT — never a secret value.
+   */
+  private renderSelfHostApiKeysContent(): string {
+    const st = getEntitlementState();
+    const origin = typeof location !== 'undefined' ? location.origin : '';
+    const row = (label: string, value: string) =>
+      `<div class="api-keys-selfhost-row"><span class="api-keys-selfhost-label">${escapeHtml(label)}</span>` +
+      `<span class="api-keys-selfhost-value">${escapeHtml(value)}</span></div>`;
+    const yn = (b: boolean) => (b ? 'yes' : 'no');
+    const lim = (n: number | null | undefined) => (n === null || n === undefined ? 'unlimited' : String(n));
+    const pl = st?.features.planLimits;
+
+    return `
+      <div class="api-keys-section api-keys-selfhost">
+        <div class="api-keys-header">
+          <p class="api-keys-desc">
+            This deployment authenticates with its own operator key, not a hosted account.
+            Set <code>WORLDMONITOR_VALID_KEYS</code> in <code>.env</code> (comma-separated) and
+            present it as the <code>X-WorldMonitor-Key</code> header. The key is server-side only
+            and is never sent to this page, so it cannot be displayed here.
+          </p>
+        </div>
+
+        <div class="api-keys-selfhost-group">
+          <div class="api-keys-selfhost-title">Endpoints</div>
+          ${row('MCP', `${origin}/api/mcp`)}
+          ${row('REST', `${origin}/api/`)}
+          ${row('Auth header', 'X-WorldMonitor-Key')}
+          ${row('Configured in', '.env -> WORLDMONITOR_VALID_KEYS')}
+        </div>
+
+        <div class="api-keys-selfhost-group">
+          <div class="api-keys-selfhost-title">Effective entitlement</div>
+          ${st
+            ? row('Plan', st.planKey) +
+              row('Tier', String(st.features.tier)) +
+              row('API access', yn(st.features.apiAccess)) +
+              row('MCP access', yn(!!st.features.mcpAccess)) +
+              row('Data export', yn(!!st.features.dataExport)) +
+              row('Export formats', st.features.exportFormats.join(', ') || 'none') +
+              row('Priority support', yn(st.features.prioritySupport)) +
+              row('API requests/day', lim(pl?.apiRequestsPerDay)) +
+              row('MCP calls/day', lim(pl?.mcpCallsPerDay))
+            : row('Status', 'no entitlement resolved')}
+        </div>
+
+        <p class="api-keys-desc api-keys-selfhost-note">
+          Premium surfaces are unlocked by two independent gates: <code>VITE_SELFHOST_PRO=1</code>
+          at build time (this UI) and <code>SELFHOST_PREMIUM_KEY</code> at runtime (nginx stamps it
+          onto every <code>/api/</code> request). Both must be set. Features that call the hosted
+          worldmonitor.app service still require a hosted account and are not affected by either.
+        </p>
+      </div>`;
+  }
+
   private renderApiKeysContent(): string {
     const authState = getAuthState();
+
+    // Self-host / desktop: show local configuration instead of a hosted-account
+    // wall. A real signed-in account still takes precedence below.
+    if (!authState.user && isSelfHostPremiumUnlock()) {
+      return this.renderSelfHostApiKeysContent();
+    }
 
     if (!authState.user) {
       const lockIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`;

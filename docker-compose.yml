@@ -202,7 +202,11 @@ services:
   # get_country_risk gate key whose lapse masquerades as the Trap-5 deadlock.
   # 45-min cadence = >=2.6x refresh margin on the shortest TTL while staying
   # gentler than upstream's own 30-min crons for aviation/prediction-markets.
-  # The eight seeders are dependency-free pure Node (verified: only node:*
+  # ORDER MATTERS at the tail: seed-natural-events writes natural:events:v1, and
+  # seed-climate-disasters now reads it as its SOLE source (ReliefWeb was removed
+  # 2026-08-03). Natural-events must therefore run first within a cycle, or the
+  # disasters seed fails its first pass on a cold cache.
+  # The ten seeders are dependency-free pure Node (verified: only node:*
   # builtins + ./scripts-relative imports), so bind-mounting scripts/ + shared/
   # suffices — no node_modules, no rebuild on seeder edits. busybox `timeout`
   # bounds a hung seeder so one stall cannot stop the whole cadence. Inline
@@ -214,7 +218,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop
-    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level seed-fire-detections; do echo \"[seed-loop] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
+    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level seed-fire-detections seed-natural-events seed-climate-disasters; do echo \"[seed-loop] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro

@@ -25612,6 +25612,67 @@ body.map-width-resizing {
   line-height: 1.5;
 }
 
+/* Self-host API-keys panel — reports configuration and effective entitlement.
+   Never renders a secret value; the operator key is server-side only. */
+.api-keys-selfhost code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--overlay-medium);
+  color: var(--text);
+}
+
+.api-keys-selfhost-group {
+  margin-bottom: 16px;
+  border: 1px solid var(--overlay-medium);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.api-keys-selfhost-title {
+  padding: 8px 12px;
+  background: var(--overlay-light);
+  border-bottom: 1px solid var(--overlay-medium);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-faint);
+}
+
+.api-keys-selfhost-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 12px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--overlay-light);
+}
+
+.api-keys-selfhost-row:last-child {
+  border-bottom: none;
+}
+
+.api-keys-selfhost-label {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.api-keys-selfhost-value {
+  font-family: var(--font-mono);
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.api-keys-selfhost-note {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--overlay-medium);
+  font-size: 11px;
+}
+
 .api-keys-create-form {
   display: flex;
   gap: 8px;

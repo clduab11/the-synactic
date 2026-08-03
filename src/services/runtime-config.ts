@@ -408,6 +408,27 @@ function notifyConfigChanged(): void {
 }
 
 function seedSecretsFromEnvironment(): void {
+  // ADV-34: advertise presence WITHOUT a plaintext value — the same shape the
+  // desktop vault uses (see RuntimeSecretState.value). `present` is what gates
+  // premium UI (hasPremiumAccess, ProBanner.hasLocalUnlockPremium); leaving
+  // `value` undefined keeps premiumFetch from attaching a bogus header, so the
+  // real credential is whatever nginx injects.
+  //
+  // DELIBERATELY ABOVE the desktop early-return (2026-08-03 fix). This is a
+  // BUILD-TIME boolean, not an environment secret, so it is runtime-independent
+  // — and a desktop build of the self-host needs it exactly as much as the
+  // browser build does. Previously desktop returned first and never reached
+  // this, so VITE_SELFHOST_PRO silently did nothing in the desktop app and
+  // every premium surface stayed padlocked there.
+  //
+  // Safe against the vault: loadDesktopSecrets() purges only entries whose
+  // `source === 'vault'` (see :577-579), and this one is 'env', so a vault load
+  // does not clear it. A REAL vault-held WORLDMONITOR_API_KEY simply overwrites
+  // it in the same slot, which is the correct precedence.
+  if (readSelfHostPremiumUnlock()) {
+    runtimeConfig.secrets.WORLDMONITOR_API_KEY = { source: 'env' };
+  }
+
   if (isDesktopRuntime()) return;
 
   const keys = new Set<RuntimeSecretKey>(RUNTIME_FEATURES.flatMap(feature => feature.requiredSecrets));
@@ -416,15 +437,6 @@ function seedSecretsFromEnvironment(): void {
     if (value) {
       runtimeConfig.secrets[key] = { value, source: 'env' };
     }
-  }
-
-  // ADV-34: advertise presence WITHOUT a plaintext value — the same shape the
-  // desktop vault uses (see RuntimeSecretState.value). `present` is what gates
-  // premium UI (hasPremiumAccess, ProBanner.hasLocalUnlockPremium); leaving
-  // `value` undefined keeps premiumFetch from attaching a bogus header, so the
-  // real credential is whatever nginx injects.
-  if (readSelfHostPremiumUnlock()) {
-    runtimeConfig.secrets.WORLDMONITOR_API_KEY = { source: 'env' };
   }
 }
 
