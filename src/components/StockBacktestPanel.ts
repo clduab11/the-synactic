@@ -1,4 +1,5 @@
-import { Panel } from './Panel';
+import { Panel, type PanelFocusView } from './Panel';
+import { buildStockBacktestFocusView } from './stock-backtest-focus-content';
 import { t } from '@/services/i18n';
 import type { StockBacktestResult } from '@/services/stock-backtest';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
@@ -30,13 +31,33 @@ function backtestSignalLabel(winRate: number): string {
 
 export class StockBacktestPanel extends Panel {
   private tableView?: WatchlistTableView<StockBacktestResult>;
+  // renderBacktests hands items straight to the table view and retains nothing;
+  // the focus view needs them, so keep a reference.
+  private items: StockBacktestResult[] = [];
+  private fetchedAt: number | undefined;
 
   constructor() {
-    super({ id: 'stock-backtest', title: 'Premium Backtesting', infoTooltip: t('components.stockBacktest.infoTooltip'), premium: 'locked' });
+    super({ id: 'stock-backtest', title: 'Premium Backtesting', infoTooltip: t('components.stockBacktest.infoTooltip'), premium: 'locked', focusable: true });
     this.header.appendChild(createWatchlistButton('Edit Watchlist'));
   }
 
+  /**
+   * The compact table is a per-symbol summary; the focus view renders the
+   * per-trade ledger behind it plus the response fields nothing displays.
+   */
+  protected override buildFocusView(): PanelFocusView | null {
+    return buildStockBacktestFocusView(this.items, this.fetchedAt);
+  }
+
   public renderBacktests(items: StockBacktestResult[], source: 'live' | 'cached' = 'live'): void {
+    this.items = items;
+    // generatedAt is per-symbol; the newest is the honest age for the whole view.
+    const newest = items.reduce((max, i) => {
+      const ms = Date.parse(i.generatedAt);
+      return Number.isFinite(ms) && ms > max ? ms : max;
+    }, 0);
+    this.fetchedAt = newest > 0 ? newest : undefined;
+
     if (items.length === 0) {
       this.setDataBadge('unavailable');
       this.showRetrying('No stock backtests available yet.');
