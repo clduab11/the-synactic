@@ -13,6 +13,12 @@ Kept as a separate file so upstream merges never conflict with fork knowledge.
 
 Also landed 2026-08-03 and reflected below: the brand rename to **the-synactic** for user-visible identity, **ReliefWeb removed** as a data source, and a **DEFCON OSINT indicator**.
 
+**v7 — 2026-08-03.** Owner amendment to boundary 1: **Trader mode is approved** (dashboard +
+MCP only; execution stays downstream), and **the MCP consumer set is the owner himself** —
+which reframes every clause whose operative restriction is *third-party* redistribution.
+Pyth is reclassified from boundary-blocked to a cost decision; OANDA stays out on a clause that
+reaches the licensee's own estate. See boundary 1.
+
 **v6 — 2026-08-03.** **defconlevel.com granted MCP redistribution**, conditional on **no model training**. The `get_defcon_level` tool ships (registry now **69**), and the condition is carried in-band on every record as `usageRestrictions.training = 'prohibited'` — not in prose alone, because the consumer is a machine. Do not strip that field.
 
 > **Provenance, right-sized 2026-08-03.** The permission rests on an owner-relayed account of the email rather than an attached artifact — the same shape as the Kalshi and Kraken records. **This is deliberately NOT flagged as urgent**, because the owner has stated he is the sole consumer of this MCP surface and expects to remain so. The failure mode that made the Kalshi gap expensive — a paraphrased term reaching third parties who cannot check it against the original — does not apply to a consumer set of one.
@@ -75,6 +81,52 @@ Consequences that shape every decision here:
    > an artifact is attached, treat the SCOPE as "what Kraken agreed", not "whatever we build" —
    > the session-09 integration (4 spot pairs, Ticker + daily OHLC, 45-min cadence, re-served
    > over MCP with `redistributionScope` in-band) is the current outer edge of what is built.
+
+   **v7 AMENDMENT 2026-08-03 (owner) — TRADER MODE IS APPROVED, AND THE CONSUMER SET IS
+   CLARIFIED. Both parts matter; the second one corrects an analytical error of mine.**
+
+   **Trader mode is authorized as a dashboard + MCP surface.** It is NOT an exception to
+   boundary 1 — it is precisely the topology boundary 1 describes. The-synactic renders panels
+   for the owner's own visibility and serves intelligence over MCP; **downstream repos (e.g.
+   `oanda-autobot`) hold their own venue accounts, their own licences, and their own trading
+   authorization, and THOSE repos execute.** No order-placement, transfer, or execution code
+   enters this repo — that line is unchanged and non-negotiable. Do not add one "for testing".
+
+   **The consumer set is the owner, and that is load-bearing for licensing.** Several clauses
+   surveyed in `docs/plans/venue-licensing-01.md` are scoped to redistribution to **third
+   parties**. There are none here: the MCP surface serves the owner's own systems, and he
+   decides what any downstream repo of his consumes. A session-09 analysis flattened Douro
+   Labs DaaS §2.1(b) ("no such display provides any **third party** with access to the Data in
+   the form of a data feed … or other systematic or machine-readable delivery") into a blanket
+   "MCP re-serving is prohibited". **That was wrong.** Owner-to-own-systems delivery is
+   §2.1(a) "internal business purposes". Apply this reading to any clause whose operative
+   restriction is third-party redistribution.
+
+   **Consequences, stated precisely so they are not over-applied:**
+   - **Pyth is no longer boundary-blocked — it is a COST decision.** FX / equities /
+     commodities live in the Pro tier (from $2,500/mo); Starter ($500/mo) is crypto-only. The
+     public Hermes endpoint goes key-mandatory **2026-08-18**. Wire it if and when the owner
+     decides the tier is worth paying for.
+   - **Residual Pyth item, and it is NOT cured by the consumer-set clarification:** DaaS
+     restriction (i) bars using the Data to "develop, train, or improve" an ML model without
+     written consent. That constrains the customer's OWN use, not just third parties. It is
+     very likely inference-safe — the same training-vs-inference distinction Kalshi's counsel
+     confirmed for their clause, and Pyth ships its own MCP server for agent consumption — but
+     it is a separate question from §2.1(b) and should be answered on its own terms if Pyth is
+     ever wired. Channel: `ops@dourolabs.xyz`.
+   - **OANDA stays out, and for a reason the consumer-set clarification does NOT dissolve.**
+     OANDA §15.0(a) bars re-transmission *"including retransmission to other premises of the
+     Licensee"* — it reaches the licensee's own estate, so "it is all one operator" is not an
+     answer to it. This costs nothing: `oanda-autobot` holds the OANDA account and fetches its
+     own feed directly, which is lower-latency and fresher than anything this instrument could
+     relay. Binance and Coinbase likewise stay unwired; Kraken remains the one authorized venue.
+   - The **DEFCON no-training condition** (v6) is unaffected — it is a publisher term carried
+     in-band, not a third-party-redistribution question. Keep `usageRestrictions` intact.
+
+   **Design consequence for Trader mode:** build the OSINT baseline a price feed cannot
+   reconstruct, plus the non-venue and authorized-venue market context already wired — Kraken,
+   CoinGecko/CoinPaprika, Yahoo, Polymarket, Kalshi. Keep `source`, `fetched_at` and freshness
+   state on every record so the downstream repo can reason about staleness before it trades.
 
    **Design consequence:** do not build cross-venue spread, funding-stress, or depth-decay tools here. Those need venue data. Build the OSINT surface a machine consumer cannot reconstruct — and keep `source`, `fetched_at` and freshness state on every record so the consumer can reason about staleness.
 
