@@ -10,10 +10,10 @@
     "energy": 18
   },
   "variantCount": 6,
-  "componentTopLevelTsFiles": 183,
-  "serviceTopLevelEntries": 220,
+  "componentTopLevelTsFiles": 184,
+  "serviceTopLevelEntries": 221,
   "apiEndpointEntries": 89,
-  "panelClasses": 107,
+  "panelClasses": 108,
   "protoFiles": 290,
   "protoServices": 35,
   "protoDomainFolders": 36,
@@ -76,7 +76,7 @@
     "typecheck.yml"
   ],
   "workflowCount": 26,
-  "freshnessSources": 36,
+  "freshnessSources": 37,
   "freshnessRequiredForRisk": 2,
   "feedDefinitions": 568,
   "airportCount": 115,
@@ -91,7 +91,7 @@
   "leaderNames": 16,
   "populationPriorityCountries": 20,
   "sebufVersion": "v0.11.1",
-  "mcpToolCount": 69,
+  "mcpToolCount": 70,
   "mcpApps": {
     "specVersion": "2026-01-26",
     "mimeType": "text/html;profile=mcp-app",

@@ -14055,6 +14055,57 @@ a.prediction-link:hover {
 }
 
 /* ==========================================================================
+   Kraken Spot panel (kraken-markets)
+   ========================================================================== */
+
+.kraken-markets {
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+}
+
+.kraken-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.kraken-table th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--overlay-medium);
+}
+
+.kraken-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--overlay-light, rgba(255, 255, 255, 0.04));
+}
+
+.kraken-table .kraken-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kraken-up { color: #8df0b2; }
+.kraken-down { color: #ff8c8c; }
+.kraken-flat { color: var(--text-dim); }
+
+.kraken-failed {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.kraken-attribution {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+/* ==========================================================================
    Mobile Menu
    ========================================================================== */
 

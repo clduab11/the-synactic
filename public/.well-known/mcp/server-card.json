@@ -133,6 +133,10 @@
       "description": "DEFCON readiness ESTIMATE from defconlevel.com — NOT an official status. The United States publishes no DEFCON level; the real one is classified and becomes public only after declassification or congressional testimony. This is a private OSINT organization's assessment (they state on their own page that they are not affiliated with the U.S. Government), and every record carries estimateType='osint-estimate' and officialStatus='classified-not-published' in-band so it cannot be mistaken for a reading. Returns one global level plus 14 per-command rows. IMPORTANT: only 11 of those are real U.S. unified combatant commands — BIOCOM, DISASTERCOM and FINCOM are the publisher's own thematic trackers and are flagged isCombatantCommand=false; do not present them as DoD structure. The most informative signal is usually DIVERGENCE: commands assessed more severe than the headline level (use diverging_only). LICENCE: the publisher permits redistribution of this estimate, including over MCP, for inference and analysis — but NOT as training data for a model. That term travels with the payload in usageRestrictions; honour it and do not strip it."
     },
     {
+      "name": "get_kraken_market_data",
+      "description": "Kraken spot quotes for major crypto pairs (BTC/ETH/SOL/XRP vs USD): last, bid/ask, 24h high/low/vwap/volume, and change vs today's open, previous daily close, 7d and 30d closes. Sourced from Kraken's public market-data API under an owner-obtained permission to re-serve downstream (redistributionScope travels in-band). Field names are deliberately precise: changeSincePrevClosePct measures against the previous DAILY close, not a rolling 24h window. Refreshed on a 45-minute seed cycle — this is a trend surface, not a live tick feed."
+    },
+    {
       "name": "get_research_signals",
       "description": "Tech and research event signals: emerging technology events bootstrap data from curated research feeds."
     },

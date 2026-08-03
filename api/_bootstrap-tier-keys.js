@@ -125,9 +125,15 @@ export const BOOTSTRAP_CACHE_KEYS = Object.freeze({
   aaiiSentiment: 'market:aaii-sentiment:v1',
   breadthHistory: 'market:breadth-history:v1',
   // Third-party OSINT readiness estimate (defconlevel.com). NOT an official
-  // DEFCON level -- the US publishes none. Dashboard-only; deliberately absent
-  // from the MCP surface pending a licensing answer. See scripts/seed-defcon-level.mjs.
+  // DEFCON level -- the US publishes none. On the MCP surface since 4a33cee76:
+  // the publisher granted redistribution, conditional on NO MODEL TRAINING --
+  // the condition travels in-band on every record (`usageRestrictions`).
+  // See scripts/seed-defcon-level.mjs and CONTEXT.md v6.
   defconLevel: 'intelligence:defcon-level:seed:v1',
+  // Kraken spot markets (public API, no key). Boundary-1 v4: Kraken ONLY is
+  // authorized for ingest + re-serve, conditioned on gentle cadence -- the
+  // seeder documents the arithmetic. See scripts/seed-kraken-markets.mjs.
+  krakenMarkets: 'market:kraken:v1',
 });
 
 const SLOW_KEY_NAMES = new Set([
@@ -164,6 +170,9 @@ const SLOW_KEY_NAMES = new Set([
   // Slow tier: defconlevel.com's estimate moves on the order of days, and the
   // seed carries a 3h TTL. Pairs with 'pizzint' in the header indicator row.
   'defconLevel',
+  // Slow tier: refreshed by the 45-min seed-loop with a 3h TTL; the panel is a
+  // trend surface, not a live ticker, per the boundary-1 gentle-cadence condition.
+  'krakenMarkets',
   'oilStocksAnalysis',
   'lngVulnerability',
   'pipelinesGas',

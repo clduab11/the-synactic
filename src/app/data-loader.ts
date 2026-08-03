@@ -144,6 +144,8 @@ import { mountCommunityWidget } from '@/components/CommunityWidget';
 
 import type { StockAnalysisPanel } from '@/components/StockAnalysisPanel';
 import type { StockBacktestPanel } from '@/components/StockBacktestPanel';
+import type { KrakenMarketsPanel } from '@/components/KrakenMarketsPanel';
+import { fetchKrakenMarkets } from '@/services/kraken-markets';
 import type { PredictionPanel } from '@/components/PredictionPanel';
 import type { MonitorPanel } from '@/components/MonitorPanel';
 import type { InsightsPanel } from '@/components/InsightsPanel';
@@ -938,6 +940,7 @@ export class DataLoaderManager implements AppModule {
       }
       if (SITE_VARIANT === 'full') tasks.push({ name: 'pizzint', task: () => runGuarded('pizzint', () => this.loadPizzInt()) });
       if (SITE_VARIANT === 'full') tasks.push({ name: 'defconLevel', task: () => runGuarded('defconLevel', () => this.loadDefconLevel()) });
+      if (shouldLoad('kraken-markets')) tasks.push({ name: 'krakenMarkets', task: () => runGuarded('krakenMarkets', () => this.loadKrakenMarkets()) });
       if (shouldLoad('economic')) {
         tasks.push({ name: 'fred', task: () => runGuarded('fred', () => this.loadFredData()) });
         tasks.push({ name: 'spending', task: () => runGuarded('spending', () => this.loadGovernmentSpending()) });
@@ -4108,6 +4111,30 @@ export class DataLoaderManager implements AppModule {
    * no estimate is available rather than rendering a placeholder level — "5" is
    * a real reading on this scale, so a fabricated one would be a false measurement.
    */
+  /**
+   * Kraken spot snapshot — slow bootstrap tier, no RPC fallback by design
+   * (the whole Kraken request budget lives in one seeder; see the service).
+   * The panel shows its waiting state rather than fabricated quotes when no
+   * snapshot has ever arrived.
+   */
+  async loadKrakenMarkets(): Promise<void> {
+    const panel = this.ctx.panels['kraken-markets'] as KrakenMarketsPanel | undefined;
+    if (!panel) return;
+    try {
+      const snapshot = await fetchKrakenMarkets();
+      panel.renderSnapshot(snapshot);
+      if (snapshot) {
+        dataFreshness.recordUpdate('krakenMarkets', snapshot.quotes.length);
+      } else {
+        dataFreshness.recordError('krakenMarkets', 'No snapshot available');
+      }
+    } catch (error) {
+      console.error('[App] Kraken markets load failed:', error);
+      panel.renderSnapshot(null);
+      dataFreshness.recordError('krakenMarkets', String(error));
+    }
+  }
+
   async loadDefconLevel(): Promise<void> {
     try {
       const estimate = await fetchDefconEstimate();

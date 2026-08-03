@@ -1922,6 +1922,7 @@ export class PanelLayoutManager implements AppModule {
     this.lazyDefaultPanel('stock-backtest', () => import('@/components/StockBacktestPanel'), 'StockBacktestPanel');
     // Web premium gating for stock-analysis and stock-backtest is handled
     // reactively by updatePanelGating() via auth state subscription.
+    this.lazyDefaultPanel('kraken-markets', () => import('@/components/KrakenMarketsPanel'), 'KrakenMarketsPanel');
 
     this.lazyImportedPanel('monitors', () => import('@/components/MonitorPanel'), 'MonitorPanel', (MonitorPanel) => {
       const monitorPanel = new MonitorPanel(this.ctx.monitors);

@@ -11,6 +11,7 @@ export type DataSourceId =
   | 'predictions'
   | 'pizzint'
   | 'defconLevel'
+  | 'krakenMarkets'
   | 'outages'
   | 'cyber_threats'
   | 'weather'
@@ -1118,6 +1119,51 @@ export interface DefconLevelEstimate {
   commands: DefconCommandStatus[];
   combatantCommandCount: number;
   syntheticCommandCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// Kraken spot markets (public API; boundary-1 v4 authorized venue)
+//
+// Field names are deliberately precise: changeSincePrevClosePct measures
+// against the previous DAILY close, changeSinceOpenPct against today's open.
+// Neither is a rolling 24h window, so neither is named "24h change".
+// Null means "the source did not provide it", never a fabricated zero.
+// See scripts/seed-kraken-markets.mjs for the authorization + cadence note.
+// ---------------------------------------------------------------------------
+
+export interface KrakenQuote {
+  /** Public pair alias we requested, e.g. 'XBTUSD'. */
+  pair: string;
+  /** Kraken's internal result key, e.g. 'XXBTZUSD'. Kept for traceability. */
+  internalPair: string;
+  base: string;
+  quote: string;
+  display: string;
+  last: number;
+  bid: number | null;
+  ask: number | null;
+  openToday: number | null;
+  high24h: number | null;
+  low24h: number | null;
+  vwap24h: number | null;
+  volume24hBase: number | null;
+  trades24h: number | null;
+  prevDailyClose: number | null;
+  changeSinceOpenPct: number | null;
+  changeSincePrevClosePct: number | null;
+  change7dPct: number | null;
+  change30dPct: number | null;
+  fetchedAt: Date;
+}
+
+export interface KrakenMarketSnapshot {
+  sourceVenue: 'kraken';
+  attribution: string;
+  quotes: KrakenQuote[];
+  /** Pairs the seeder requested but could not parse this cycle — honest degradation. */
+  failedPairs: string[];
+  requestedPairCount: number;
+  fetchedAt: Date;
 }
 
 // NASA EONET Natural Events

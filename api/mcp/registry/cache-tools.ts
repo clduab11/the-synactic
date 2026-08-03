@@ -2165,6 +2165,65 @@ export const CACHE_TOOLS: ToolDef[] = [
     _maxStaleMin: 135,
   },
   {
+    name: 'get_kraken_market_data',
+    _outputBudgetBytes: 131072,
+    description: 'Kraken spot quotes for major crypto pairs (BTC/ETH/SOL/XRP vs USD): last, bid/ask, 24h high/low/vwap/volume, and change vs today\'s open, previous daily close, 7d and 30d closes. Sourced from Kraken\'s public market-data API under an owner-obtained permission to re-serve downstream (redistributionScope travels in-band). Field names are deliberately precise: changeSincePrevClosePct measures against the previous DAILY close, not a rolling 24h window. Refreshed on a 45-minute seed cycle — this is a trend surface, not a live tick feed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pair: {
+          type: 'string',
+          description: 'Filter to one pair by base asset, public pair name, or display name (case-insensitive substring), e.g. "BTC", "XBTUSD", "ETH/USD".',
+        },
+      },
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      kraken: {
+        type: ['object', 'null'],
+        properties: {
+          sourceVenue: { type: 'string' },
+          sourceName: { type: 'string' },
+          sourceUrl: { type: 'string' },
+          redistributionScope: { type: 'string' },
+          attribution: { type: 'string' },
+          quotes: { type: 'array', items: { type: 'object', properties: {
+            pair: { type: 'string' }, internalPair: { type: 'string' },
+            base: { type: 'string' }, quote: { type: 'string' }, display: { type: 'string' },
+            last: { type: 'number' },
+            bid: { type: ['number', 'null'] }, ask: { type: ['number', 'null'] },
+            openToday: { type: ['number', 'null'] },
+            high24h: { type: ['number', 'null'] }, low24h: { type: ['number', 'null'] },
+            vwap24h: { type: ['number', 'null'] },
+            volume24hBase: { type: ['number', 'null'] }, trades24h: { type: ['number', 'null'] },
+            prevDailyClose: { type: ['number', 'null'] },
+            changeSinceOpenPct: { type: ['number', 'null'] },
+            changeSincePrevClosePct: { type: ['number', 'null'] },
+            change7dPct: { type: ['number', 'null'] }, change30dPct: { type: ['number', 'null'] },
+            dailyBarCount: { type: 'number' },
+            fetchedAt: { type: 'string' },
+          } } },
+          failedPairs: { type: 'array', items: { type: 'string' } },
+          requestedPairCount: { type: 'number' },
+          fetchedAt: { type: 'string' },
+        },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _postFilter: (data, params) => {
+      const pair = argStr(params.pair);
+      if (pair) {
+        narrowNested(data, 'kraken', 'quotes', (q) => ciIncludes(q.pair, pair) || ciIncludes(q.base, pair) || ciIncludes(q.display, pair));
+      }
+      return data;
+    },
+    _cacheKeys: ['market:kraken:v1'],
+    // Cache-only surface: the seeder writes the key, no OpenAPI op serves it.
+    _apiPaths: [],
+    _seedMetaKey: 'seed-meta:market:kraken',
+    _maxStaleMin: 135,
+  },
+  {
     name: 'get_research_signals',
     _outputBudgetBytes: 131072,
     description: 'Tech and research event signals: emerging technology events bootstrap data from curated research feeds.',
