@@ -14,6 +14,7 @@
 
 import { extractFirstJsonObject, cleanJsonText } from '../_llm-json.mjs';
 import { buildLlmCallEvent, emitLlmEvents } from '../lib/llm-telemetry.cjs';
+import { openrouterModel } from '../_openrouter-model.mjs';
 
 const CHROME_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -28,7 +29,7 @@ const DEFAULT_PROVIDERS = [
     name: 'openrouter',
     envKey: 'OPENROUTER_API_KEY',
     apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-v4-flash',
+    model: openrouterModel(),
     timeout: 35_000,
     headers: (key) => ({
       Authorization: `Bearer ${key}`,

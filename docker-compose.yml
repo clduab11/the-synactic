@@ -326,7 +326,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop-slow
-    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies seed-economy seed-eia-petroleum seed-unrest-events seed-portwatch seed-fear-greed seed-fx-rates seed-hormuz seed-climate-ocean-ice seed-bls-series seed-supply-chain-trade seed-regulatory-actions seed-gold-etf-flows seed-energy-spine seed-conflict-intel seed-regional-snapshots; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
+    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies seed-economy seed-eia-petroleum seed-unrest-events seed-portwatch seed-fear-greed seed-fx-rates seed-hormuz seed-climate-ocean-ice seed-bls-series seed-supply-chain-trade seed-regulatory-actions seed-gold-etf-flows seed-fuel-prices seed-energy-spine seed-conflict-intel seed-resilience-scores seed-insights seed-regional-snapshots; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro
@@ -379,6 +379,25 @@ services:
       INTEL_EMBED_BASE_URL: "${INTEL_EMBED_BASE_URL:-http://host.docker.internal:1234/v1}"
       INTEL_EMBED_MODEL: "${INTEL_EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}"
       INTEL_EMBED_DIMS: "${INTEL_EMBED_DIMS:-768}"
+      # seed-resilience-scores drives a recompute through the app's own gateway
+      # rather than fetching upstream, so it needs the seed-refresh credential
+      # the gateway checks plus an operator key and a reachable origin. All
+      # three were already in .env and simply never reached a loop container.
+      WORLDMONITOR_SEED_REFRESH_KEY: "${WORLDMONITOR_SEED_REFRESH_KEY:-}"
+      WORLDMONITOR_VALID_KEYS: "${WORLDMONITOR_VALID_KEYS:-}"
+      WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
+      API_BASE_URL: "http://the-synactic:8080"
+      # LLM for the summarisation seeders. OPENROUTER_MODEL is pinned to a
+      # FREE model (owner instruction 2026-08-03) — upstream hardcodes a paid
+      # DeepSeek default at ~8 call sites, so scripts/_openrouter-model.mjs
+      # single-sources the choice and this var overrides it. The provider chain
+      # is ollama -> openrouter -> groq, so a rate-limited free tier degrades
+      # to the next provider rather than failing the seed.
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      OPENROUTER_MODEL: "${OPENROUTER_MODEL:-}"
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      OLLAMA_API_URL: "${OLLAMA_API_URL:-}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -408,7 +427,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop-fast
-    command: ["sh", "-c", "while true; do for s in seed-earthquakes seed-military-flights seed-military-cii seed-infra seed-cross-source-signals; do echo \"[seed-loop-fast] running $$s\"; timeout 540 node /repo/scripts/$$s.mjs || echo \"[seed-loop-fast] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-fast] cycle done; sleeping 10min'; sleep 600; done"]
+    command: ["sh", "-c", "while true; do for s in seed-earthquakes seed-military-flights seed-military-cii seed-infra seed-gold-extended seed-correlation seed-cross-source-signals; do echo \"[seed-loop-fast] running $$s\"; timeout 540 node /repo/scripts/$$s.mjs || echo \"[seed-loop-fast] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-fast] cycle done; sleeping 10min'; sleep 600; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro

@@ -41,6 +41,7 @@ import { buildLlmCallEvent, emitLlmEvents, flushPendingLlmEvents } from './lib/l
 // line above. PR #3836 review caught this. See skill
 // railway-deploy-gotchas/reference/nixpacks-root-dir-scripts-cross-dir-import-escape.
 import { validateNoHallucinatedProperNouns } from './shared/brief-llm-core.js';
+import { openrouterModel } from './_openrouter-model.mjs';
 
 // Hallucination validator rollout mode (PR-2 of brief-content-quality
 // regressions). `shadow` = log violations to Sentry but ship the LLM
@@ -369,7 +370,7 @@ const LLM_PROVIDERS = [
     name: 'openrouter',
     envKey: 'OPENROUTER_API_KEY',
     apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-v4-flash',
+    model: openrouterModel(),
     headers: (key) => ({ 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor', 'User-Agent': CHROME_UA }),
     extraBody: { reasoning: { enabled: false } },
     timeout: 20_000,
