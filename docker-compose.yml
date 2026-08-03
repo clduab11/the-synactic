@@ -427,7 +427,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop-fast
-    command: ["sh", "-c", "while true; do for s in seed-earthquakes seed-military-flights seed-military-cii seed-infra seed-gold-extended seed-correlation seed-cross-source-signals; do echo \"[seed-loop-fast] running $$s\"; timeout 540 node /repo/scripts/$$s.mjs || echo \"[seed-loop-fast] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-fast] cycle done; sleeping 10min'; sleep 600; done"]
+    command: ["sh", "-c", "while true; do for s in seed-earthquakes seed-military-flights seed-military-cii seed-infra seed-commodity-quotes seed-correlation seed-cross-source-signals; do echo \"[seed-loop-fast] running $$s\"; timeout 540 node /repo/scripts/$$s.mjs || echo \"[seed-loop-fast] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-fast] cycle done; sleeping 10min'; sleep 600; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro

@@ -13,6 +13,13 @@ Kept as a separate file so upstream merges never conflict with fork knowledge.
 
 Also landed 2026-08-03 and reflected below: the brand rename to **the-synactic** for user-visible identity, **ReliefWeb removed** as a data source, and a **DEFCON OSINT indicator**.
 
+**v9 — 2026-08-03.** Owner amendment to boundary 2: **a block is a prompt to RE-SOURCE, not a dead
+end.** When an upstream refuses us, actively search for a sanctioned alternative route — a
+different endpoint at the same provider, a different provider with equivalent data and better
+terms, a mirror, or a one-email permission request — and report BLOCKED only after that search
+comes back empty, naming what was tried. The prohibition on defeating a control by impersonation
+or identity-cycling is unchanged. See boundary 2.
+
 **v8 — 2026-08-03.** Owner amendment to boundary 3: **ACLED's AI/LLM restriction is scoped to
 TRAINING, not inference** — confirmed by Chris with ACLED's CIO office, which supersedes a
 session-09 read of the public documents. **ACLED is cleared for use here.** Two non-AI clauses
@@ -142,7 +149,36 @@ Consequences that shape every decision here:
 
    **The one line that stays:** measures whose only purpose is to defeat a third party's control in order to take more than that party permits — impersonating a browser to get around an anti-bot product that has deliberately blocked us, or cycling identities to evade a published per-IP quota — remain out. Respect published rate limits and back off. Path diversity for reliability is fine; laundering identity to exceed a quota is not.
 
-   Reading them, keeping them compiling, and refactoring around them is fine and expected.
+   **v9 AMENDMENT 2026-08-03 (owner) — A BLOCK IS A PROMPT TO RE-SOURCE, NOT A DEAD END.**
+
+   Session 09 closed ~30 health checks as "blocked" and stopped there. That was too passive.
+   When an upstream refuses us — a 403, a 429, a "not available for scraping" notice, a dead
+   endpoint — the required next step is to **actively re-explore contextually relevant resources
+   for a route around the obstacle**, and only report BLOCKED once that search comes back empty.
+
+   **What "a route around" means here — all of these are in scope and expected:**
+   - A different, sanctioned access path at the SAME provider: an official API instead of the
+     HTML page, a bulk/archive download instead of the live endpoint, an RSS or S3 mirror, a
+     documented data dump.
+   - A different PROVIDER carrying equivalent data, weighed on licence terms as well as
+     coverage. This is exactly how ACLED was resolved — blocked, so GDELT (a materially more
+     permissive licence) plus UCDP VPP and CCC replaced it, and the result was *better*.
+   - An aggregator, mirror, or government/academic redistribution of the same source.
+   - A free tier, an account, or a one-email permission request. The Kraken and defconlevel.com
+     unblocks both came from simply asking through a named channel. **Ask before concluding.**
+   - Reconstructing the signal from primary sources we already hold.
+
+   **What it does NOT mean, and this line is unchanged:** using a technical measure whose purpose
+   is to make a party who has deliberately refused us believe we are someone else. Do not
+   impersonate a browser to defeat an anti-bot product, do not rotate IPs or identities to evade
+   a published per-IP quota, and do not retry through a 429 rather than backing off. If the only
+   way "around" is to look like a different requester than we are, that is not a route around —
+   it is the thing this boundary forbids, and it also converts a fixable licensing conversation
+   into an unfixable one.
+
+   **Record the search, not just the verdict.** A BLOCKED entry should name the alternatives
+   considered and why each failed, so the next session does not silently re-derive it. A bare
+   "blocked" is now an incomplete finding.
 
 3. **Blocked upstreams — do not wire NEW live paths:** Kalshi, Finnhub, ACLED.
    Existing upstream paths are retained per the 2026-07-29 retention decision — notably Finnhub is already live-called at `api/symbol-search.ts:224` with `FINNHUB_API_KEY` passed through in docker-compose. Retention ≠ authorization to add new integrations against these providers.
