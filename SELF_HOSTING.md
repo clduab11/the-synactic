@@ -57,7 +57,7 @@ Create a `docker-compose.override.yml` to inject your keys. This file is **gitig
 
 ```yaml
 services:
-  worldmonitor:
+  the-synactic:
     environment:
       # 🤖 LLM — pick one or both (used for intelligence assessments)
       GROQ_API_KEY: ""            # https://console.groq.com (free, 14.4K req/day)
@@ -208,10 +208,10 @@ Never point the warmer at the hosted `api.worldmonitor.app` — the hosted stack
 
 | Container | Purpose | Port |
 |-----------|---------|------|
-| `worldmonitor` | nginx + Node.js API (supervisord) | 3000 → 8080 |
-| `worldmonitor-redis` | Data store | 6379 (internal) |
-| `worldmonitor-redis-rest` | Upstash-compatible REST proxy | 8079 |
-| `worldmonitor-ais-relay` | Live vessel tracking WebSocket | 3004 (internal) |
+| `the-synactic` | nginx + Node.js API (supervisord) | 3000 → 8080 |
+| `the-synactic-redis` | Data store | 6379 (internal) |
+| `the-synactic-redis-rest` | Upstash-compatible REST proxy | 8079 |
+| `the-synactic-ais-relay` | Live vessel tracking WebSocket | 3004 (internal) |
 
 > **`redis-rest` command allowlist**: the bundled proxy (`docker/redis-rest-proxy.mjs`) only
 > forwards a fixed allowlist of Redis commands and rejects `EVAL`/`EVALSHA`/`SCRIPT` (no Lua
@@ -234,7 +234,7 @@ Never point the warmer at the hosted `api.worldmonitor.app` — the hosted stack
 npx vite build
 
 # Full Docker image
-docker build -t worldmonitor:latest -f Dockerfile .
+docker build -t the-synactic:latest -f Dockerfile .
 
 # Rebuild and restart
 docker compose down && docker compose up -d
@@ -277,7 +277,7 @@ Any OpenAI-compatible endpoint works (Ollama, vLLM, llama.cpp server, etc.):
 ```yaml
 # docker-compose.override.yml
 services:
-  worldmonitor:
+  the-synactic:
     environment:
       LLM_API_URL: "http://your-host:8000/v1/chat/completions"
       LLM_API_KEY: "your-key"
@@ -291,9 +291,9 @@ services:
 | Issue | Fix |
 |-------|-----|
 | 📡 `0/55 OK` on health check | Seeders haven't run — `./scripts/run-seeders.sh` |
-| 🔴 nginx won't start | Check `podman logs worldmonitor` — likely missing `gettext` package |
+| 🔴 nginx won't start | Check `podman logs the-synactic` — likely missing `gettext` package |
 | 🔑 Seeders say "Missing UPSTASH_REDIS_REST_URL" | Stack isn't running, or run via `./scripts/run-seeders.sh` (auto-sets env vars) |
 | 📦 `npm ci` fails in Docker build | Lockfile mismatch — regenerate with `docker run --rm -v $(pwd):/app -w /app node:24-alpine npm install --package-lock-only` |
-| 🚢 No vessel data | Set `AISSTREAM_API_KEY` in both `worldmonitor` and `ais-relay` services |
+| 🚢 No vessel data | Set `AISSTREAM_API_KEY` in both `the-synactic` and `ais-relay` services |
 | 🔥 No wildfire data | Set `NASA_FIRMS_API_KEY` |
 | 🌐 No outage data | Requires `CLOUDFLARE_API_TOKEN` (paid Radar access) |

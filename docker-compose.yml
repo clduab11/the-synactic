@@ -16,16 +16,16 @@
 # AND silently creating a fresh empty redis-data volume (orphaning every
 # seeded key). The running stack, its labels, and worldmonitor_redis-data
 # stay continuous under the original name.
-name: worldmonitor
+name: the-synactic
 
 services:
 
-  worldmonitor:
+  the-synactic:
     build:
       context: .
       dockerfile: Dockerfile
-    image: worldmonitor:latest
-    container_name: worldmonitor
+    image: the-synactic:latest
+    container_name: the-synactic
     ports:
       # Loopback by default. nginx stamps SELFHOST_PREMIUM_KEY onto every /api/
       # request (docker/entrypoint.sh), so a published 0.0.0.0 bind hands any host
@@ -126,13 +126,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: worldmonitor:latest
-    container_name: worldmonitor-cii-warmer
+    image: the-synactic:latest
+    container_name: the-synactic-cii-warmer
     command: ["node", "/tmp/warm-cii-stale.mjs"]
     volumes:
       - ./scripts/warm-cii-stale.mjs:/tmp/warm-cii-stale.mjs:ro
     environment:
-      CII_WARM_URL: "http://worldmonitor:8080/api/intelligence/v1/get-risk-scores"
+      CII_WARM_URL: "http://the-synactic:8080/api/intelligence/v1/get-risk-scores"
       WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
       # Write-verification path. In-network address — the host-published
       # 127.0.0.1:8079 is this container's OWN loopback and always refuses.
@@ -142,7 +142,7 @@ services:
       CII_WARM_REDIS_URL: "http://redis-rest:80"
       CII_WARM_REDIS_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
     depends_on:
-      worldmonitor:
+      the-synactic:
         condition: service_started
       redis-rest:
         condition: service_started
@@ -168,13 +168,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: worldmonitor:latest
-    container_name: worldmonitor-cii-warmer-loop
+    image: the-synactic:latest
+    container_name: the-synactic-cii-warmer-loop
     command: ["sh", "-c", "while true; do if node /tmp/warm-cii-stale.mjs; then sleep 2700; else sleep 300; fi; done"]
     volumes:
       - ./scripts/warm-cii-stale.mjs:/tmp/warm-cii-stale.mjs:ro
     environment:
-      CII_WARM_URL: "http://worldmonitor:8080/api/intelligence/v1/get-risk-scores"
+      CII_WARM_URL: "http://the-synactic:8080/api/intelligence/v1/get-risk-scores"
       WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
       # Same CII_WARM_* isolation rule as the one-shot above: the script
       # deliberately ignores UPSTASH_* so hosted creds in a hybrid .env can
@@ -182,7 +182,7 @@ services:
       CII_WARM_REDIS_URL: "http://redis-rest:80"
       CII_WARM_REDIS_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
     depends_on:
-      worldmonitor:
+      the-synactic:
         condition: service_started
       redis-rest:
         condition: service_started
@@ -212,8 +212,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: worldmonitor:latest
-    container_name: worldmonitor-seed-loop
+    image: the-synactic:latest
+    container_name: the-synactic-seed-loop
     command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages; do echo \"[seed-loop] running $$s\"; timeout 900 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
@@ -243,8 +243,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.relay
-    image: worldmonitor-ais-relay:latest
-    container_name: worldmonitor-ais-relay
+    image: the-synactic-ais-relay:latest
+    container_name: the-synactic-ais-relay
     environment:
       # The relay FATALs at boot without this (scripts/ais-relay.cjs) unless
       # I_UNDERSTAND_THIS_DISABLES_AUTH=true — fail compose validation early
@@ -262,7 +262,7 @@ services:
       # and 401'd ("WORLDMONITOR_RELAY_KEY not set"), so local cable-health-v1
       # was never written and health.js reported STALE_SEED indefinitely.
       # The key IS in .env but was simply never passed to this service.
-      CABLE_HEALTH_WARM_URL: "http://worldmonitor:8080/api/infrastructure/v1/get-cable-health"
+      CABLE_HEALTH_WARM_URL: "http://the-synactic:8080/api/infrastructure/v1/get-cable-health"
       WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
       # Widget agent (ADV-34). This relay IS the widget-agent backend that
       # proxy.worldmonitor.app deploys — /widget-agent lives here, so a self-host
@@ -292,7 +292,7 @@ services:
 
   redis:
     image: docker.io/redis:7-alpine
-    container_name: worldmonitor-redis
+    container_name: the-synactic-redis
     # --requirepass closes off the network so any future sidecar / compromised
     # dependency added to the worldmonitor network can't read or write cache
     # entries without the password. Defense-in-depth alongside the REST token.
@@ -309,8 +309,8 @@ services:
     build:
       context: docker
       dockerfile: Dockerfile.redis-rest
-    image: worldmonitor-redis-rest:latest
-    container_name: worldmonitor-redis-rest
+    image: the-synactic-redis-rest:latest
+    container_name: the-synactic-redis-rest
     ports:
       - "127.0.0.1:8079:80"
     environment:
