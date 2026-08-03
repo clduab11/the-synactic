@@ -37,11 +37,10 @@
  * and do not let a projection drop it silently -- it is the only thing travelling
  * with the data that states the term we agreed to.
  *
- * ⚠ PROVENANCE: as of writing this rests on an owner-relayed account of that
- * email. Paste the artifact (date, from-address, their exact wording on the
- * training restriction) into CONTEXT.md. This repo has twice been burned by
- * owner-relayed permission accounts with no attachment -- see the Kalshi counsel
- * record under boundary 3 and the Kraken gap under boundary 1.
+ * Provenance: the permission is owner-relayed rather than an attached artifact.
+ * Not treated as urgent -- the owner is the sole consumer of this surface. If
+ * that ever changes, or the `usageRestrictions` wording is quoted outward, pin
+ * it to the original email first. See CONTEXT.md boundary 4 / v6.
  *
  * FAILS LOUDLY. If the global level will not parse, this throws rather than
  * publishing a default. A fabricated "DEFCON 5" is exactly the defect class

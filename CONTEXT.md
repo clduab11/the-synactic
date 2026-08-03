@@ -15,7 +15,9 @@ Also landed 2026-08-03 and reflected below: the brand rename to **the-synactic**
 
 **v6 — 2026-08-03.** **defconlevel.com granted MCP redistribution**, conditional on **no model training**. The `get_defcon_level` tool ships (registry now **69**), and the condition is carried in-band on every record as `usageRestrictions.training = 'prohibited'` — not in prose alone, because the consumer is a machine. Do not strip that field.
 
-> ⚠ **PROVENANCE GAP — close this, it is now the THIRD instance.** The permission above rests on an owner-relayed account of an email with no artifact attached. That is the same shape as the Kalshi counsel record under boundary 3 (which later proved impossible to rely on) and the Kraken amendment under boundary 1. Paste the reference — date, from-address, and their exact wording on the training restriction — into this block. Until then treat the SCOPE as "what they actually wrote", not "what we built".
+> **Provenance, right-sized 2026-08-03.** The permission rests on an owner-relayed account of the email rather than an attached artifact — the same shape as the Kalshi and Kraken records. **This is deliberately NOT flagged as urgent**, because the owner has stated he is the sole consumer of this MCP surface and expects to remain so. The failure mode that made the Kalshi gap expensive — a paraphrased term reaching third parties who cannot check it against the original — does not apply to a consumer set of one.
+>
+> What that leaves is ordinary hygiene: if the surface is ever opened to another consumer, or the `usageRestrictions` wording is ever quoted outward, pin it to the actual email first (date, from-address, their exact phrasing on training). Widening the consumer set is the trigger, not the calendar.
 
 ---
 
