@@ -101,6 +101,22 @@ forked private, hardened end to end, and extended with Praxen's original
 core ([synactic/](synactic/README.md)). Upstream's honesty patterns didn't
 just survive the fork; they were promoted to house style.
 
+## The scarce good
+
+Agentic systems do not fail because the model reasons badly. They fail because
+the context lied and nothing in the pipeline said so — a zero that meant
+"absent", a score that was a floor wearing the costume of a measurement, a
+column that implied two venues were comparable when they were not.
+
+In one engineering pass against this codebase we found six such defects, and
+not one of them raised an error. All six are now labelled, fixed, or disclosed
+in the payload. That discipline is the product: not more data, but **context
+that refuses to lie**, in a shape an agent can consume.
+
+**[Where the money is →](USE-CASES.md)** — the six defects in detail, the
+commercial use cases they unlock across financial intelligence and OSINT, and
+the four things we will not sell.
+
 * * *
 
 Praxen builds the machines that build the briefings. Own your instrument.
