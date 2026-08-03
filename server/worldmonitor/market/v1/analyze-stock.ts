@@ -10,7 +10,7 @@ import type {
 } from '../../../../src/generated/server/worldmonitor/market/v1/service_server';
 import { callLlm } from '../../../_shared/llm';
 import { cachedFetchJson, getCachedJson } from '../../../_shared/redis';
-import { CHROME_UA, yahooGate } from '../../../_shared/constants';
+import { YAHOO_UA, yahooGate } from '../../../_shared/constants';
 import { UPSTREAM_TIMEOUT_MS, sanitizeSymbol } from './_shared';
 import { storeStockAnalysisSnapshot } from './premium-stock-store';
 import { searchRecentStockHeadlines } from './stock-news-search';
@@ -225,7 +225,7 @@ async function fetchPayoutRatio(symbol: string): Promise<number | undefined> {
     await yahooGate();
     const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=summaryDetail`;
     const response = await fetch(url, {
-      headers: { 'User-Agent': CHROME_UA },
+      headers: { 'User-Agent': YAHOO_UA },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (!response.ok) return undefined;
@@ -315,7 +315,7 @@ export async function fetchDividendProfile(symbol: string, currentPrice: number)
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5y&interval=1mo&includePrePost=true&events=div`;
     const [chartResponse, payoutRatio] = await Promise.all([
       fetch(url, {
-        headers: { 'User-Agent': CHROME_UA },
+        headers: { 'User-Agent': YAHOO_UA },
         signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       }),
       fetchPayoutRatio(symbol),
@@ -792,7 +792,7 @@ export async function fetchExtendedHoursQuote(
     await yahooGate();
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m&includePrePost=true`;
     const response = await fetch(url, {
-      headers: { 'User-Agent': CHROME_UA },
+      headers: { 'User-Agent': YAHOO_UA },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (!response.ok) return null;
@@ -834,7 +834,7 @@ export async function fetchYahooHistory(symbol: string): Promise<{ candles: Cand
   await yahooGate();
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=6mo&interval=1d&includePrePost=true&events=div,splits`;
   const response = await fetch(url, {
-    headers: { 'User-Agent': CHROME_UA },
+    headers: { 'User-Agent': YAHOO_UA },
     signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
   });
   if (!response.ok) return null;
@@ -915,7 +915,7 @@ export async function fetchYahooAnalystData(symbol: string): Promise<AnalystData
     const modules = 'recommendationTrend,financialData,upgradeDowngradeHistory';
     const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${modules}`;
     const response = await fetch(url, {
-      headers: { 'User-Agent': CHROME_UA },
+      headers: { 'User-Agent': YAHOO_UA },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (!response.ok) return EMPTY_ANALYST_DATA;

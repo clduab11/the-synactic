@@ -1,5 +1,21 @@
 export const CHROME_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
+/**
+ * Yahoo Finance throttles CHROME_UA specifically. Measured 2026-08-03 from inside
+ * the app container against the exact backtest URL:
+ *
+ *   CHROME_UA (macOS Chrome/131) -> HTTP 429, 0 candles
+ *   honest UA                    -> HTTP 200, 125 candles
+ *   no User-Agent at all         -> HTTP 200, 125 candles
+ *
+ * fetchYahooHistory has no relay fallback, so that 429 silently returned an
+ * unavailable backtest for every symbol. The browser UA was not buying access
+ * here — it was the thing denying it. Same conclusion as the prediction-market
+ * venues (scripts/_seed-utils.mjs HONEST_UA); the honest posture is also the
+ * working one.
+ */
+export const YAHOO_UA = 'the-synactic/0.1 (Praxen internal research tool; +chrisldukes@gmail.com)';
+
 export function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(value as number)));

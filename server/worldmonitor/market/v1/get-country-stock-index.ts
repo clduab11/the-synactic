@@ -10,7 +10,7 @@ import type {
 } from '../../../../src/generated/server/worldmonitor/market/v1/service_server';
 import filterParamContracts from '../../../../shared/openapi-filter-param-contracts.json';
 import { UPSTREAM_TIMEOUT_MS, type YahooChartResponse } from './_shared';
-import { CHROME_UA, yahooGate } from '../../../_shared/constants';
+import { YAHOO_UA, yahooGate } from '../../../_shared/constants';
 import { cachedFetchJson, getCachedJson } from '../../../_shared/redis';
 
 // ========================================================================
@@ -84,7 +84,7 @@ export async function getCountryStockIndex(
 
     await yahooGate();
     const res = await fetch(yahooUrl, {
-      headers: { 'User-Agent': CHROME_UA },
+      headers: { 'User-Agent': YAHOO_UA },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
 

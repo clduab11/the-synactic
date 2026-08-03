@@ -1,7 +1,7 @@
 /**
  * Shared helpers, types, and constants for the market service handler RPCs.
  */
-import { CHROME_UA, finnhubGate, yahooGate } from '../../../_shared/constants';
+import { CHROME_UA, YAHOO_UA, finnhubGate, yahooGate } from '../../../_shared/constants';
 import { getRelayBaseUrl, getRelayHeaders } from '../../../_shared/relay';
 export { getRelayBaseUrl, getRelayHeaders };
 import cryptoConfig from '../../../../shared/crypto.json';
@@ -284,7 +284,7 @@ export async function fetchYahooQuote(
     await yahooGate();
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`;
     const resp = await fetch(url, {
-      headers: { 'User-Agent': CHROME_UA },
+      headers: { 'User-Agent': YAHOO_UA },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (resp.ok) {
