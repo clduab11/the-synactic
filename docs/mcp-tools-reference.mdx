@@ -213,6 +213,35 @@ curl -s https://worldmonitor.app/mcp \
 
 </CodeGroup>
 
+### `get_kraken_market_data`
+
+Kraken spot quotes for major crypto pairs (BTC/ETH/SOL/XRP vs USD): last, bid/ask, 24h high/low/vwap/volume, and change vs today's open, previous daily close, 7d and 30d closes. Sourced from Kraken's public market-data API under an owner-obtained permission to re-serve downstream (`redistributionScope` travels in-band). Field names are deliberately precise: `changeSincePrevClosePct` measures against the previous **daily** close, not a rolling 24h window. Refreshed on a 45-minute seed cycle — this is a trend surface, not a live tick feed.
+
+**Parameters (tool-specific):**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `pair` | string | Filter to one pair by base asset, public pair name, or display name (case-insensitive substring), e.g. "BTC", "XBTUSD", "ETH/USD". |
+
+- **API endpoints:** none directly — reads from a bootstrap-aggregate cache key (no 1:1 REST endpoint).
+- **Kind:** cache read — sub-second response from Redis bootstrap cache.
+- **Freshness budget:** up to **2 h 15 min** before `stale: true` is flagged (set by the seeder cron's expected interval).
+
+<CodeGroup>
+
+```bash curl
+curl -s https://worldmonitor.app/mcp \
+  -H "X-WorldMonitor-Key: $WM_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc":"2.0","id":1,
+    "method":"tools/call",
+    "params":{"name":"get_kraken_market_data","arguments":{"pair":"BTC"}}
+  }'
+```
+
+</CodeGroup>
+
 ### `get_economic_data`
 
 Macro economic indicators: Fed Funds rate (FRED), economic calendar events, fuel prices, ECB FX rates, EU yield curve, earnings calendar, COT positioning, energy storage data, BIS household debt service ratio (DSR, quarterly, leading indicator of household financial stress across ~40 advanced economies), and BIS residential + commercial property price indices (real, quarterly).
@@ -1271,6 +1300,37 @@ curl -s https://worldmonitor.app/mcp \
     "jsonrpc":"2.0","id":1,
     "method":"tools/call",
     "params":{"name":"get_military_posture","arguments":{}}
+  }'
+```
+
+</CodeGroup>
+
+### `get_defcon_level`
+
+Third-party OSINT **estimate** of US defense readiness (defconlevel.com) — the United States publishes no official DEFCON level; the real one is classified. Global estimate plus per-command detail for the 11 unified combatant commands and the publisher's own three thematic trackers (kept distinguishable via `isCombatantCommand`). Every record carries `usageRestrictions` in-band: the publisher permits redistribution over MCP for inference and analysis, and prohibits model **training** on this data. Do not strip that field or let a projection drop it.
+
+**Parameters (tool-specific):**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `combatant_commands_only` | boolean | Drop the publisher's own thematic trackers (BIOCOM/DISASTERCOM/FINCOM) and keep only the 11 real U.S. unified combatant commands. |
+| `diverging_only` | boolean | Keep only commands whose estimate is MORE SEVERE (numerically lower) than the global level — the detail a single headline number discards. |
+| `command` | string | Filter to one command by abbreviation or name (case-insensitive substring), e.g. "CENTCOM" or "Central". |
+
+- **API endpoints:** none directly — reads from a bootstrap-aggregate cache key (no 1:1 REST endpoint).
+- **Kind:** cache read — sub-second response from Redis bootstrap cache.
+- **Freshness budget:** up to **2 h 15 min** before `stale: true` is flagged (set by the seeder cron's expected interval).
+
+<CodeGroup>
+
+```bash curl
+curl -s https://worldmonitor.app/mcp \
+  -H "X-WorldMonitor-Key: $WM_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc":"2.0","id":1,
+    "method":"tools/call",
+    "params":{"name":"get_defcon_level","arguments":{"combatant_commands_only":true}}
   }'
 ```
 
