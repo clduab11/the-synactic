@@ -12,19 +12,6 @@ const CANONICAL_KEY = 'climate:disasters:v1';
 const NATURAL_EVENTS_KEY = 'natural:events:v1';
 const CACHE_TTL = 64800; // 18h — 3x the 6h cron interval (gold standard)
 
-const RELIEFWEB_ENDPOINTS = [
-  'https://api.reliefweb.int/v1/disasters',
-  'https://api.reliefweb.int/v2/disasters',
-];
-
-const RELIEFWEB_TYPE_TO_CANONICAL = {
-  FL: 'flood',
-  TC: 'cyclone',
-  DR: 'drought',
-  HT: 'heatwave',
-  WF: 'wildfire',
-};
-
 const COUNTRY_BBOXES = loadSharedConfig('country-bboxes.json');
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ISO3_TO_ISO2 = loadSharedConfig('iso3-to-iso2.json');
@@ -79,18 +66,6 @@ function normalizeDisasterName(value) {
   return String(value || '')
     .replace(/^[\u{1F534}\u{1F7E0}\u{1F7E2}\s-]+/u, '')
     .trim();
-}
-
-function mapReliefType(typeCode, typeName) {
-  const code = String(typeCode || '').toUpperCase();
-  if (RELIEFWEB_TYPE_TO_CANONICAL[code]) return RELIEFWEB_TYPE_TO_CANONICAL[code];
-  const lower = String(typeName || '').toLowerCase();
-  if (lower.includes('flood')) return 'flood';
-  if (lower.includes('cyclone') || lower.includes('hurricane') || lower.includes('typhoon') || lower.includes('storm')) return 'cyclone';
-  if (lower.includes('drought')) return 'drought';
-  if (lower.includes('heat')) return 'heatwave';
-  if (lower.includes('wildfire') || lower.includes('fire')) return 'wildfire';
-  return '';
 }
 
 function getNaturalSourceMeta(event) {
@@ -207,135 +182,6 @@ function resolveCountryInfo({ code = '', iso3 = '', name = '', lat = NaN, lng = 
     countryCode,
     country: normalizedName || getCountryName(countryCode),
   };
-}
-
-// Railway must set RELIEFWEB_APPNAME to an approved ReliefWeb appname
-// before enabling this seed, or ReliefWeb fetches will fail closed.
-function getReliefWebAppname() {
-  const appname = String(process.env.RELIEFWEB_APPNAME || process.env.RELIEFWEB_APP_NAME || '').trim();
-  if (!appname) return null;
-  return appname;
-}
-
-function buildReliefWebRequestBodies() {
-  return [
-    {
-      limit: 250,
-      sort: ['date.event:desc'],
-      fields: {
-        include: ['name', 'country', 'primary_country', 'primary_type', 'type', 'date', 'glide', 'status', 'url'],
-      },
-      filter: {
-        operator: 'AND',
-        conditions: [
-          { field: 'status', value: ['alert', 'current', 'ongoing'], operator: 'OR' },
-          { field: 'type.code', value: ['FL', 'TC', 'DR', 'HT', 'WF'], operator: 'OR' },
-        ],
-      },
-    },
-  ];
-}
-
-function mapReliefItem(item) {
-  const fields = item?.fields || {};
-
-  const typedEntries = asArray(fields.type);
-  const primaryType = typedEntries.find((entry) => entry?.primary) || typedEntries[0] || {};
-  const fallbackPrimaryType = asArray(fields.primary_type)[0] || {};
-  const type = mapReliefType(primaryType.code, primaryType.name || fallbackPrimaryType.name);
-  if (!type) return null;
-
-  const status = normalizeStatus(fields.status);
-  if (status !== 'alert' && status !== 'ongoing') return null;
-
-  const countries = [
-    ...asArray(fields.primary_country),
-    ...asArray(fields.country),
-  ];
-  const countryEntry = countries.find((country) => country?.primary) || countries[0] || {};
-  const { country, countryCode } = resolveCountryInfo({
-    code: countryEntry.code,
-    iso3: countryEntry.iso3,
-    name: countryEntry.shortname || countryEntry.name,
-    fallbackText: fields.name,
-  });
-  if (!countryCode) return null;
-  const coords = getCountryCenter(countryCode);
-
-  const startedAt = parseTimestamp(fields?.date?.event || fields?.date?.created || fields?.date?.changed);
-  const name = normalizeDisasterName(fields.name || '');
-  const reliefId = fields.glide || item?.id || stableHash(`${name}-${country}-${startedAt}`);
-
-  return {
-    id: `reliefweb-${reliefId}`,
-    type,
-    name,
-    country,
-    countryCode,
-    lat: coords.lat,
-    lng: coords.lng,
-    severity: status === 'alert' ? 'high' : 'medium',
-    startedAt,
-    status,
-    affectedPopulation: 0,
-    source: 'ReliefWeb',
-    sourceUrl: String(fields.url || '').trim(),
-  };
-}
-
-async function fetchReliefWeb() {
-  const appname = getReliefWebAppname();
-  if (!appname) {
-    console.log('  [ReliefWeb] RELIEFWEB_APPNAME not set, skipping ReliefWeb fetch');
-    return [];
-  }
-  console.log(`  [ReliefWeb] Fetching with appname="${appname}"`);
-  const requestBodies = buildReliefWebRequestBodies();
-
-  let lastError = null;
-  for (const endpoint of RELIEFWEB_ENDPOINTS) {
-    for (const body of requestBodies) {
-      try {
-        const url = `${endpoint}?appname=${encodeURIComponent(appname)}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': CHROME_UA,
-          },
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(20_000),
-        });
-        if (!response.ok) {
-          const text = await response.text().catch(() => '');
-          throw new Error(`HTTP ${response.status} ${text.slice(0, 160)}`);
-        }
-
-        const payload = await response.json();
-        const rows = asArray(payload?.data);
-        if (!rows.length) continue;
-
-        const mapped = rows.map(mapReliefItem).filter(Boolean);
-        if (mapped.length > 0) {
-          console.log(`  [ReliefWeb] ${mapped.length} disasters from ${rows.length} rows`);
-          return mapped;
-        }
-        if (rows.length > 0) console.log(`  [ReliefWeb] ${rows.length} rows returned but all mapped to null`);
-      } catch (err) {
-        lastError = err;
-        const message = String(err?.message || err);
-        if (/approved appname/i.test(message) || /HTTP 40[13]/.test(message)) {
-          const cfgErr = new Error(`ReliefWeb rejected RELIEFWEB_APPNAME="${appname}" — configure an approved appname`);
-          cfgErr.isConfigError = true;
-          throw cfgErr;
-        }
-      }
-    }
-  }
-
-  if (lastError) throw lastError;
-  throw new Error('ReliefWeb returned no climate disaster rows');
 }
 
 function mapNaturalEvent(event) {
@@ -463,18 +309,21 @@ function collectDisasterSourceResults(results) {
 }
 
 async function fetchClimateDisasters() {
+  // ReliefWeb removed 2026-08-03 (owner decision): it required a ReliefWeb-approved
+  // appname, and its rows carried affectedPopulation:0 and country-bbox-centre
+  // coordinates rather than event locations. The natural-events cache is now the
+  // sole source. Kept as allSettled (not a bare await) so collectDisasterSourceResults
+  // still owns the partial-failure and isConfigError contract, and so adding a second
+  // source back is a one-line change.
   const results = await Promise.allSettled([
-    fetchReliefWeb(),
     fetchNaturalClimateDisasters(),
   ]);
   return { disasters: collectDisasterSourceResults(results).map(toRedisDisaster) };
 }
 
 export {
-  buildReliefWebRequestBodies,
   collectDisasterSourceResults,
   getNaturalSourceMeta,
-  getReliefWebAppname,
   isClimateNaturalEvent,
   findCountryCodeByCoordinates,
   mapNaturalEvent,
@@ -494,7 +343,7 @@ if (isMain()) {
     validateFn: (data) => Array.isArray(data?.disasters) && data.disasters.length > 0,
     recordCount: (data) => data?.disasters?.length || 0,
     ttlSeconds: CACHE_TTL,
-    sourceVersion: 'reliefweb+natural-cache-v1',
+    sourceVersion: 'natural-cache-v1',
   
     declareRecords,
     schemaVersion: 1,

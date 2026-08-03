@@ -1,43 +1,19 @@
-import { afterEach, describe, it } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
+// ReliefWeb was removed 2026-08-03 (owner decision). The two tests that covered
+// its request-body filter and appname resolution went with it, along with the
+// afterEach that saved/restored RELIEFWEB_APPNAME — nothing else in this file
+// touches process.env.
 import {
-  buildReliefWebRequestBodies,
   collectDisasterSourceResults,
   findCountryCodeByCoordinates,
-  getReliefWebAppname,
   isClimateNaturalEvent,
   mapNaturalEvent,
   toRedisDisaster,
 } from '../scripts/seed-climate-disasters.mjs';
 
-const ORIGINAL_APPNAME = process.env.RELIEFWEB_APPNAME;
-const ORIGINAL_ALT_APPNAME = process.env.RELIEFWEB_APP_NAME;
-
-afterEach(() => {
-  if (ORIGINAL_APPNAME == null) delete process.env.RELIEFWEB_APPNAME;
-  else process.env.RELIEFWEB_APPNAME = ORIGINAL_APPNAME;
-
-  if (ORIGINAL_ALT_APPNAME == null) delete process.env.RELIEFWEB_APP_NAME;
-  else process.env.RELIEFWEB_APP_NAME = ORIGINAL_ALT_APPNAME;
-});
-
 describe('seed-climate-disasters helpers', () => {
-  it('uses the documented ReliefWeb disaster type filter', () => {
-    const [body] = buildReliefWebRequestBodies();
-    const typeFilter = body.filter.conditions.find((condition) => condition.field.includes('type'));
-
-    assert.equal(typeFilter.field, 'type.code');
-    assert.deepEqual(typeFilter.value, ['FL', 'TC', 'DR', 'HT', 'WF']);
-  });
-
-  it('returns null when RELIEFWEB_APPNAME is not configured', () => {
-    delete process.env.RELIEFWEB_APPNAME;
-    delete process.env.RELIEFWEB_APP_NAME;
-
-    assert.equal(getReliefWebAppname(), null);
-  });
-
   it('accepts climate events from known sources and rejects unrecognized ones', () => {
     assert.equal(isClimateNaturalEvent({ category: 'floods', sourceName: 'GDACS', id: 'gdacs-FL-123' }), true);
     assert.equal(isClimateNaturalEvent({ category: 'wildfires', sourceName: 'NASA FIRMS', id: 'EONET_1' }), true);
@@ -148,14 +124,17 @@ describe('seed-climate-disasters helpers', () => {
     assert.equal(gdacsEvent.country, 'Japan');
   });
 
-  it('fails hard on config errors even when other sources succeed (missing appname)', () => {
-    const configErr = new Error('RELIEFWEB_APPNAME is required');
+  it('fails hard on config errors even when other sources succeed (missing credential)', () => {
+    // Source-agnostic on purpose: this asserts the isConfigError CONTRACT, not
+    // any one provider. It used to be phrased around RELIEFWEB_APPNAME, which
+    // was removed 2026-08-03 — the contract it guards outlived that source.
+    const configErr = new Error('SOME_REQUIRED_CREDENTIAL is required');
     configErr.isConfigError = true;
 
     assert.throws(() => collectDisasterSourceResults([
       { status: 'fulfilled', value: [{ id: 'nat-1', source: 'GDACS', type: 'flood', name: 'Floods', country: 'Japan', countryCode: 'JP', lat: 35.6, lng: 139.7, severity: 'high', startedAt: 1_700_000_000_000, status: 'alert', affectedPopulation: 0, sourceUrl: '' }] },
       { status: 'rejected', reason: configErr },
-    ]), { message: /RELIEFWEB_APPNAME/ });
+    ]), { message: /SOME_REQUIRED_CREDENTIAL/ });
   });
 
   it('fails hard on config errors even when other sources succeed (rejected appname)', () => {
@@ -170,12 +149,12 @@ describe('seed-climate-disasters helpers', () => {
 
   it('keeps successful source payloads when another source fails', () => {
     const merged = collectDisasterSourceResults([
-      { status: 'fulfilled', value: [{ id: 'relief-1', source: 'ReliefWeb', type: 'flood', name: 'Floods', country: 'Japan', countryCode: 'JP', lat: 35.6, lng: 139.7, severity: 'high', startedAt: 1_700_000_000_000, status: 'alert', affectedPopulation: 0, sourceUrl: 'https://reliefweb.int/' }] },
+      { status: 'fulfilled', value: [{ id: 'gdacs-1', source: 'GDACS', type: 'flood', name: 'Floods', country: 'Japan', countryCode: 'JP', lat: 35.6, lng: 139.7, severity: 'high', startedAt: 1_700_000_000_000, status: 'alert', affectedPopulation: 0, sourceUrl: 'https://gdacs.org/' }] },
       { status: 'rejected', reason: new Error('natural cache unavailable') },
     ]);
 
     assert.equal(merged.length, 1);
-    assert.equal(merged[0].source, 'ReliefWeb');
+    assert.equal(merged[0].source, 'GDACS');
   });
 
   it('emits the required camelCase Redis output shape', () => {

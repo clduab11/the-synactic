@@ -1,6 +1,7 @@
 /**
  * ListClimateDisasters RPC -- reads seeded climate disaster data from Railway seed cache.
- * ReliefWeb and natural-event transforms happen in seed-climate-disasters.mjs on Railway.
+ * Natural-event transforms happen in seed-climate-disasters.mjs on Railway.
+ * (ReliefWeb was removed as a source 2026-08-03.)
  */
 
 import type {

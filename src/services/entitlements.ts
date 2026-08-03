@@ -14,6 +14,7 @@ import {
   waitForConvexAuthForUser,
 } from './convex-client';
 import { getCurrentClerkUser } from './clerk';
+import { isSelfHostPremiumUnlock } from './runtime-config';
 
 export interface EntitlementState {
   planKey: string;
@@ -50,6 +51,74 @@ export interface EntitlementState {
     dataExport?: boolean;
   };
   validUntil: number;
+}
+
+/**
+ * Fork-local (the-synactic): the self-host / desktop entitlement.
+ *
+ * OWNER DECISION 2026-08-03, amending CONTEXT.md boundary 4 (which previously
+ * read "never patch Pro-grant checks"). Boundaries 1 and 2 were amended the
+ * same way. The reasoning:
+ *
+ *   ADV-34 unlocked premium UI via `hasPremiumAccess()`, but a second predicate
+ *   — `isEntitled()` — gates the account-shaped surfaces (Notifications, the
+ *   API-keys tab, data export). It reads a Convex snapshot that only ever
+ *   arrives for a signed-in Clerk user against the HOSTED service. A self-host
+ *   has no Clerk session, so those surfaces were permanently padlocked on a
+ *   deployment that owns its own data and its own API keys. That is a defect on
+ *   a desktop build, not a licensing control.
+ *
+ * SCOPE, and it is deliberately narrow:
+ *   - Gated on `isSelfHostPremiumUnlock()` — the SAME build-time VITE_SELFHOST_PRO
+ *     boolean ADV-34 already uses. A hosted build resolves this to false and is
+ *     completely unaffected; there is no runtime toggle and no credential here.
+ *   - This unlocks CLIENT-SIDE UI only. Anything that actually calls hosted
+ *     api.worldmonitor.app still meets that service's own server-side auth and
+ *     will still be refused. This does not, and must not, obtain hosted server
+ *     resources — it lights up the features that run locally against the
+ *     operator's own wired keys.
+ *   - `isEntitlementActive()` below is left PURE. It encodes the real paid-user
+ *     rule and its tests must keep measuring that rule, so the self-host branch
+ *     lives in the callers, never in the rule.
+ *
+ * planKey is 'selfhost' rather than 'free' deliberately: several predicates key
+ * off `planKey !== 'free'`.
+ */
+const SELFHOST_ENTITLEMENT: EntitlementState = Object.freeze({
+  planKey: 'selfhost',
+  features: Object.freeze({
+    // >= 2 so the export gate's "tier >= 2 fails open" path applies and Pro
+    // Business-only surfaces (which share tier 1 with Pro) are not excluded.
+    tier: 2,
+    apiAccess: true,
+    apiRateLimit: Number.MAX_SAFE_INTEGER,
+    // null means "no limit" in the planLimits contract.
+    planLimits: Object.freeze({
+      apiRequestsPerDay: null,
+      apiBurstRequestsPerMinute: null,
+      mcpCallsPerDay: null,
+      mcpBurstRequestsPerMinute: null,
+    }),
+    maxDashboards: Number.MAX_SAFE_INTEGER,
+    prioritySupport: true,
+    exportFormats: Object.freeze(['csv', 'json', 'pdf']),
+    mcpAccess: true,
+    dataExport: true,
+  }),
+  // Far future. A self-host entitlement does not lapse — there is nothing to renew.
+  validUntil: Number.MAX_SAFE_INTEGER,
+}) as EntitlementState;
+
+/**
+ * The snapshot every public predicate below reads.
+ *
+ * A real Convex snapshot always wins when one exists, so a self-host that DOES
+ * sign in keeps its true server-side answer rather than being masked by the
+ * local fallback.
+ */
+function effectiveState(): EntitlementState | null {
+  if (currentState !== null) return currentState;
+  return isSelfHostPremiumUnlock() ? SELFHOST_ENTITLEMENT : null;
 }
 
 // Module-level state
@@ -198,23 +267,25 @@ export function onEntitlementChange(
  * Returns the current entitlement state, or null if not yet loaded.
  */
 export function getEntitlementState(): EntitlementState | null {
-  return currentState;
+  return effectiveState();
 }
 
 /**
  * Check whether a specific feature flag is truthy in the current entitlement state.
  */
 export function hasFeature(flag: keyof EntitlementState['features']): boolean {
-  if (currentState === null) return false;
-  return Boolean(currentState.features[flag]);
+  const state = effectiveState();
+  if (state === null) return false;
+  return Boolean(state.features[flag]);
 }
 
 /**
  * Check whether the user's tier meets or exceeds the given minimum.
  */
 export function hasTier(minTier: number): boolean {
-  if (currentState === null) return false;
-  return currentState.features.tier >= minTier;
+  const state = effectiveState();
+  if (state === null) return false;
+  return state.features.tier >= minTier;
 }
 
 /**
@@ -237,7 +308,7 @@ export function isEntitlementActive(
  * Returns true if entitlement data exists, plan is not free, and hasn't expired.
  */
 export function isEntitled(): boolean {
-  return isEntitlementActive(currentState, Date.now());
+  return isEntitlementActive(effectiveState(), Date.now());
 }
 
 /**

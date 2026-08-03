@@ -32,6 +32,7 @@ import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { track, trackApiAction } from '@/services/analytics';
 import { isEntitled, hasFeature, onEntitlementChange, getEntitlementState } from '@/services/entitlements';
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { isSelfHostPremiumUnlock } from '@/services/runtime-config';
 import { getSubscription, onSubscriptionChange, openBillingPortal, prereserveBillingPortalTab } from '@/services/billing';
 import { BusinessSeatsSection } from '@/components/BusinessSeatsSection';
 import { deriveBillingUxState, getReactivationHref } from '@/services/billing-state';
@@ -634,14 +635,25 @@ export class UnifiedSettings {
     this.pendingNotifs = null;
 
     const isSignedIn = !this.config.isDesktopApp && (getAuthState().user !== null);
+    /**
+     * Fork-local (the-synactic, 2026-08-03 owner decision): local Pro surfaces.
+     *
+     * DELIBERATELY SEPARATE from `isSignedIn`, which also gates the "Plan &
+     * billing" tab. Billing needs a real hosted account to mean anything, so
+     * folding the self-host unlock into `isSignedIn` would surface a billing tab
+     * whose every action errors. This predicate is only for feature surfaces.
+     */
+    const hasLocalPro = isSignedIn || isSelfHostPremiumUnlock();
     const prefs = renderPreferences({
       isDesktopApp: this.config.isDesktopApp,
       onMapProviderChange: this.config.onMapProviderChange,
       isSignedIn,
     });
-    const showNotificationsTab = !this.config.isDesktopApp;
+    // Desktop previously hid this tab outright. A self-host desktop build is
+    // exactly where the operator wants it, so the unlock flag re-enables it.
+    const showNotificationsTab = !this.config.isDesktopApp || isSelfHostPremiumUnlock();
     const notifs = showNotificationsTab
-      ? renderNotificationsSettings({ isSignedIn })
+      ? renderNotificationsSettings({ isSignedIn: hasLocalPro })
       : null;
     const showMcpClientsTab = hasFeature('mcpAccess');
     const availableTabs: TabId[] = [

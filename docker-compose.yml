@@ -202,7 +202,7 @@ services:
   # get_country_risk gate key whose lapse masquerades as the Trap-5 deadlock.
   # 45-min cadence = >=2.6x refresh margin on the shortest TTL while staying
   # gentler than upstream's own 30-min crons for aviation/prediction-markets.
-  # The six seeders are dependency-free pure Node (verified: only node:*
+  # The eight seeders are dependency-free pure Node (verified: only node:*
   # builtins + ./scripts-relative imports), so bind-mounting scripts/ + shared/
   # suffices — no node_modules, no rebuild on seeder edits. busybox `timeout`
   # bounds a hung seeder so one stall cannot stop the whole cadence. Inline
@@ -214,7 +214,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop
-    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level; do echo \"[seed-loop] running $$s\"; timeout 900 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
+    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level seed-fire-detections; do echo \"[seed-loop] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro
@@ -230,6 +230,12 @@ services:
       # seed-aviation's intl leg is AviationStack-budgeted (MONTHLY_BUDGET
       # guards in-script); absent key degrades gracefully to FAA-only.
       AVIATIONSTACK_API: "${AVIATIONSTACK_API:-}"
+      # seed-fire-detections HARD-EXITS 1 without this (scripts/seed-fire-detections.mjs:148-151)
+      # — it does not degrade. One run issues 27 requests (3 satellites x 9
+      # regions), paced 6s apart in-script, so ~3.2 min best case and ~32.4 min
+      # worst case; that worst case is why the per-seeder timeout above is 1800s
+      # and not 900s. Well inside the MAP_KEY ceiling of 5000 per 10 min.
+      NASA_FIRMS_API_KEY: "${NASA_FIRMS_API_KEY:-}"
     depends_on:
       redis-rest:
         condition: service_started
