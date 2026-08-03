@@ -866,10 +866,19 @@ describe('docker runtime dependency guardrails', () => {
   });
 
   it('keeps raw JS handler packages without copying the full app dependency graph', () => {
+    // This list is a DECISION RECORD, not a snapshot — every entry must earn
+    // its place in the runtime image. `sax` was added 2026-08-03: the
+    // self-host seed-loop runs seeders from this same image, and
+    // scripts/seed-sanctions-pressure.mjs imports sax directly for streaming
+    // XML parsing. It resolved only through a dev-dependency chain
+    // (xmldoc -> sax) that `npm ci --omit=dev` correctly excludes, so the
+    // seeder died with ERR_MODULE_NOT_FOUND in the container while working
+    // fine on a full dev install. sax is a zero-dependency parser.
     assert.deepEqual(Object.keys(runtimePackage.dependencies).sort(), [
       '@upstash/ratelimit',
       '@upstash/redis',
       'convex',
+      'sax',
     ]);
     assert.deepEqual(
       Object.keys(runtimeLock.packages[''].dependencies).sort(),
@@ -2795,13 +2804,17 @@ describe('section-scoped llms.txt files', () => {
 describe('skeleton brand text extraction (#5541)', () => {
   const indexHtml = readFileSync(resolve(__dirname, '../index.html'), 'utf-8');
 
-  it('.skeleton-brand raw textContent does not contain "WWorld"', () => {
+  it('.skeleton-brand raw textContent carries the brand once, with no glyph prefix', () => {
     const match = indexHtml.match(/<div class="skeleton-brand">([\s\S]*?)<\/div>/);
     assert.ok(match, 'index.html must contain .skeleton-brand element');
     // Simulate raw textContent: strip all HTML tags
     const rawText = match[1].replace(/<[^>]+>/g, '');
-    assert.doesNotMatch(rawText, /WWorld/, 'skeleton-brand raw text must not concatenate as "WWorld Monitor"');
-    assert.match(rawText, /World Monitor/, 'skeleton-brand raw text must contain "World Monitor"');
+    // The original defect (#5541) was the mark glyph concatenating into the
+    // brand text ("WWorld Monitor"). The glyph is now "S" and the brand is
+    // "the-synactic", so the same defect would read "Sthe-synactic" — assert
+    // the invariant, not the old literal.
+    assert.doesNotMatch(rawText, /Sthe-synactic/, 'skeleton-brand raw text must not concatenate the mark glyph into the brand');
+    assert.match(rawText, /the-synactic/, 'skeleton-brand raw text must contain "the-synactic"');
   });
 
   it('.skeleton-brand-mark is aria-hidden and has no text content', () => {
@@ -2812,7 +2825,7 @@ describe('skeleton brand text extraction (#5541)', () => {
     assert.equal(markText, '', 'skeleton-brand-mark must have no text content (use CSS ::after instead)');
   });
 
-  it('.skeleton-brand-mark renders "W" via CSS content pseudo-element', () => {
-    assert.match(indexHtml, /\.skeleton-brand-mark::after\s*\{\s*content:\s*"W"\s*\}/, 'skeleton-brand-mark must render W via CSS ::after content');
+  it('.skeleton-brand-mark renders "S" via CSS content pseudo-element', () => {
+    assert.match(indexHtml, /\.skeleton-brand-mark::after\s*\{\s*content:\s*"S"\s*\}/, 'skeleton-brand-mark must render S via CSS ::after content');
   });
 });
