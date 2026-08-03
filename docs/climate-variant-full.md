@@ -1,5 +1,15 @@
 # Climate Variant: Full Implementation Plan
 
+> **HISTORICAL PLAN — partly superseded. Do not read as current architecture.**
+> The "Current State" table below describes the repo as it was when this plan was
+> written and has since drifted substantially.
+>
+> Specifically: **ReliefWeb was removed as a data source on 2026-08-03** (owner
+> decision). Every ReliefWeb reference below — the disasters endpoint, the news
+> feed, the `"ReliefWeb"` value of `ClimateDisaster.source`, and the API table
+> row — is retained as a record of what was planned, not what runs.
+> `seed-climate-disasters.mjs` now sources solely from the natural-events cache.
+
 ## Current State
 
 | Component | Status |

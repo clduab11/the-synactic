@@ -850,7 +850,7 @@ components:
                     description: Event longitude.
                 severity:
                     type: string
-                    description: 'Severity level. GDACS: green/orange/red. ReliefWeb: low/medium/high.'
+                    description: 'Severity level. GDACS: green/orange/red.'
                 startedAt:
                     type: integer
                     format: int64
@@ -864,7 +864,7 @@ components:
                     description: Affected population when available.
                 source:
                     type: string
-                    description: 'Source system: GDACS, ReliefWeb, NASA FIRMS.'
+                    description: 'Source system: GDACS, NASA FIRMS. (ReliefWeb removed 2026-08-03.)'
                 sourceUrl:
                     type: string
                     description: Source URL for drill-down.
