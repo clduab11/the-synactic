@@ -209,26 +209,32 @@ Proto definitions include `buf.validate` field constraints (e.g., latitude ∈ [
 
 ### Bootstrap Hydration
 
-The dashboard eliminates cold-start latency by pre-fetching 38 commonly needed datasets in a single Redis pipeline call before any panel renders. On page load, the client fires two parallel requests — a **fast tier** and a **slow tier** — to the `/api/bootstrap` edge function, both with an 800ms abort timeout to avoid blocking first paint.
+The dashboard eliminates cold-start latency by pre-fetching 94 commonly needed datasets (26 fast + 68 slow) in a single Redis pipeline call per tier before any panel renders. On page load, the client fires two parallel requests — a **fast tier** and a **slow tier** — to the `/api/bootstrap` edge function, both with an 800ms abort timeout to avoid blocking first paint.
 
 ```
 Page Load → parallel fetch ─┬─ /api/bootstrap?tier=fast  (s-maxage=1200)
-                             │    earthquakes, outages, serviceStatuses,
-                             │    macroSignals, chokepoints, marketQuotes,
-                             │    commodityQuotes, positiveGeoEvents,
-                             │    riskScores, flightDelays, insights,
-                             │    predictions, iranEvents
+                             │    26 keys, e.g. earthquakes, outages,
+                             │    marketQuotes, riskScores, predictions,
+                             │    theaterPosture, weatherAlerts, gdeltIntel
                              │
                              └─ /api/bootstrap?tier=slow  (s-maxage=7200)
-                                  bisPolicy, bisExchange, bisCredit,
-                                  minerals, giving, sectors, etfFlows,
-                                  shippingRates, wildfires, climateAnomalies,
-                                  cyberThreats, techReadiness, theaterPosture,
-                                  naturalEvents, cryptoQuotes, gulfQuotes,
-                                  stablecoinMarkets, unrestEvents, ucdpEvents
+                                  68 keys, e.g. bisPolicy, minerals, sectors,
+                                  wildfires, cyberThreats, naturalEvents,
+                                  cryptoQuotes, ucdpEvents, pizzint,
+                                  defconLevel
+
+                             (+ a third, 20-key `on-demand` tier fetched
+                              per-key when a panel or map layer asks for it —
+                              not part of page load)
 ```
 
-The edge function reads all keys in a single Upstash Redis pipeline — one HTTP round-trip for up to 38 keys. Results are stored in an in-memory `hydrationCache` Map. When panels initialize, they call `getHydratedData(key)` which returns the pre-fetched data and evicts it from the cache (one-time read) to free memory. Panels that find hydrated data skip their initial API call entirely, rendering instantly with pre-loaded content. Panels that mount after the hydration data has been consumed fall back to their normal fetch cycle.
+The key names above are an illustrative **sample**, not the inventory. The
+authoritative registry is `shared/bootstrap-tier-keys.js`; a hand-maintained
+list of 94 names drifts within a release, which is exactly what happened to the
+previous version of this diagram (it named 13 fast and 19 slow keys, and placed
+`theaterPosture` in the slow tier when the registry has always had it in fast).
+
+The edge function reads all keys in a single Upstash Redis pipeline — one HTTP round-trip for up to 68 keys (the larger of the two tiers). Results are stored in an in-memory `hydrationCache` Map. When panels initialize, they call `getHydratedData(key)` which returns the pre-fetched data and evicts it from the cache (one-time read) to free memory. Panels that find hydrated data skip their initial API call entirely, rendering instantly with pre-loaded content. Panels that mount after the hydration data has been consumed fall back to their normal fetch cycle.
 
 **Negative sentinel caching** — when a Redis key contains no data, the bootstrap endpoint stores a `__WM_NEG__` sentinel in the response rather than omitting the key. This allows consumers to distinguish between "data not yet loaded" (key absent from hydration) and "data source has no content" (negative sentinel), preventing unnecessary RPC fallback calls for empty data sources.
 
@@ -236,7 +242,7 @@ The edge function reads all keys in a single Upstash Redis pipeline — one HTTP
 
 **Selective fetching** — clients can request a custom subset of keys via `?keys=earthquakes,flightDelays,insights` for targeted hydration, enabling partial bootstrap recovery when a specific panel needs re-initialization.
 
-This converts 38 independent API calls (each with its own DNS lookup, TLS handshake, and Redis round-trip) into exactly 2, cutting first-meaningful-paint time by 2–4 seconds on typical connections.
+This converts 94 independent API calls (each with its own DNS lookup, TLS handshake, and Redis round-trip) into exactly 2, cutting first-meaningful-paint time by 2–4 seconds on typical connections.
 
 ### SmartPollLoop — Adaptive Data Refresh
 
@@ -254,7 +260,7 @@ The `SmartPollLoop` is the core refresh orchestration primitive used by all data
 
 ### Railway Seed Data Pipeline
 
-21 Railway cron jobs continuously refresh the Redis cache with pre-computed data from external APIs. Seeds run on configurable schedules from minutes to daily cadence and write both a canonical domain key (for RPC handler lookups) and a bootstrap key (for page-load hydration). This dual-key strategy ensures that bootstrap hydration and RPC handlers always agree on data format and freshness.
+Scheduled seed jobs continuously refresh the Redis cache with pre-computed data from external APIs. The repo ships 164 `seed-*.mjs` scripts; the table below is a **selection of the highest-traffic seeds**, not an inventory (a self-hosted stack runs a different, smaller set — see `docker-compose.yml`). Seeds run on configurable schedules from minutes to daily cadence and write both a canonical domain key (for RPC handler lookups) and a bootstrap key (for page-load hydration). This dual-key strategy ensures that bootstrap hydration and RPC handlers always agree on data format and freshness.
 
 | Seed Script | Data Source | Update Frequency | Bootstrap Key |
 | --- | --- | --- | --- |

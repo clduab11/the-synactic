@@ -61,7 +61,7 @@ description: "Every data source, feed tier, and collection method used by World 
 - **Customizable market watchlist** — user-defined stock/commodity/crypto symbol lists (up to 50 symbols) with optional friendly labels, persisted to localStorage, synchronized across panels via CustomEvent
 - **Gulf Economies panel** — live data for GCC financial markets across three sections: **Indices** (Tadawul/Saudi Arabia, Dubai Financial Market, Abu Dhabi, Qatar, WisdomTree Gulf Dividend, Muscat MSM 30), **Currencies** (SAR, AED, QAR, KWD, BHD, OMR vs USD), and **Oil** (WTI Crude, Brent Crude). All quotes fetched from Yahoo Finance with staggered batching, Redis-cached for 8 minutes, with mini sparklines per quote and 60-second polling
 - Real-time crypto prices (BTC, ETH, SOL, XRP, and more) via CoinGecko
-- **Prediction markets** — Polymarket geopolitical contracts with 4-tier fetch (bootstrap → RPC → browser-direct → Tauri native TLS), country-specific market matching, and volume-weighted ranking
+- **Prediction markets** — Polymarket geopolitical contracts with 2-tier fetch (bootstrap → RPC), country-specific market matching, and volume-weighted ranking
 - BTC spot ETF flow tracker (IBIT, FBTC, GBTC, and 7 more)
 - Stablecoin peg health monitor (USDT, USDC, DAI, FDUSD, USDe)
 - Fear & Greed Index with 30-day history
@@ -115,11 +115,22 @@ The channel set intentionally includes official, state-affiliated, partisan, and
 
 Messages are deduplicated by ID, filtered to exclude media-only posts (images without text), truncated to 800 characters, and stored in a rolling 200-item buffer. The relay connects with a 60-second startup delay to prevent `AUTH_KEY_DUPLICATED` errors during Railway container restarts (the old container must fully disconnect before the new one authenticates). Topic classification (breaking, conflict, alerts, osint, politics, middleeast) and channel-based filtering happen at query time via the `/telegram/feed` relay endpoint.
 
-### OREF Rocket Alert Integration
+### Israeli Siren Alert Integration (Tzeva Adom primary, OREF fallback)
 
 The dashboard monitors Israel's Home Front Command (Pikud HaOref) alert system for incoming rocket, missile, and drone sirens — a real-time signal that is difficult to obtain programmatically due to Akamai WAF protection.
 
-**Data flow**: The Railway relay polls `oref.org.il` using `curl` (not Node.js fetch, which is JA3-blocked) through a residential proxy with an Israeli exit IP. On startup, the relay bootstraps history via a two-phase strategy: Phase 1 loads from Redis (filtering entries older than 7 days); if Redis is empty, Phase 2 fetches from the upstream OREF API with exponential backoff retry (up to 3 attempts, delays of 3s/6s/12s + jitter). Alert history is persisted to Redis with dirty-flag deduplication to prevent redundant writes. Live alerts are polled every 5 minutes. Wave detection groups individual siren records by timestamp to identify distinct attack waves. Israel-local timestamps are converted to UTC with DST-aware offset calculation. **1,480 Hebrew→English location translations** — an auto-generated dictionary (from the pikud-haoref-api `cities.json` source) enables automatic translation of Hebrew city names in alert data. Unicode bidirectional control characters are stripped via `sanitizeHebrew()` before translation lookups to prevent mismatches.
+**Data flow**: Two sources, in order. **Primary — Tzeva Adom**
+(`api.tzevaadom.co.il/notifications`): a plain fetch, no proxy, no credential,
+no cost. **Fallback — OREF direct**: only attempted when the primary returns
+nothing AND `OREF_PROXY_AUTH` is set, polling `oref.org.il` with `curl` (not
+Node.js fetch, which is JA3-blocked) through a residential proxy with an Israeli
+exit IP.
+
+This ordering is operationally important for self-hosters: earlier revisions of
+this page documented the OREF path as the *only* path, which read as though
+sirens require a paid residential proxy. They do not — the primary needs none,
+and the OREF branch is skipped entirely when `OREF_PROXY_AUTH` is unset
+(`scripts/ais-relay.cjs`). Everything below applies to both sources. On startup, the relay bootstraps history via a two-phase strategy: Phase 1 loads from Redis (filtering entries older than 7 days); if Redis is empty, Phase 2 fetches from the upstream OREF API with exponential backoff retry (up to 3 attempts, delays of 3s/6s/12s + jitter). Alert history is persisted to Redis with dirty-flag deduplication to prevent redundant writes. Live alerts are polled every 5 minutes. Wave detection groups individual siren records by timestamp to identify distinct attack waves. Israel-local timestamps are converted to UTC with DST-aware offset calculation. **1,480 Hebrew→English location translations** — an auto-generated dictionary (from the pikud-haoref-api `cities.json` source) enables automatic translation of Hebrew city names in alert data. Unicode bidirectional control characters are stripped via `sanitizeHebrew()` before translation lookups to prevent mismatches.
 
 **CII integration**: Active OREF alerts boost Israel's CII conflict component by up to 50 points (`25 + min(25, alertCount × 5)`). Rolling 24-hour history adds a secondary boost: 3–9 alerts in the window contribute +5, 10+ contribute +10 to the blended score. This means a sustained multi-wave rocket barrage drives Israel's CII significantly higher than a single isolated alert.
 
@@ -578,26 +589,29 @@ A singleton tracker monitors 35 data sources (GDELT, GDELT Doc, RSS, AIS, OpenSk
 
 Polymarket geopolitical markets are queried using tag-based filters (Ukraine, Iran, China, Taiwan, etc.) with 5-minute caching. Market probability shifts are correlated with news volume: if a prediction market moves significantly before matching news arrives, this is flagged as a potential early-warning signal.
 
-**4-tier fetch strategy** — prediction markets use a cascading fetch chain to maximize data availability:
+**2-tier fetch strategy** — prediction markets use a short cascading fetch chain:
 
-1. **Bootstrap hydration** — zero-network, page-load-embedded data from the Redis-cached `predictions` key. If fresh (&lt;20 min), the panel renders instantly without any API call
+1. **Bootstrap hydration** — zero-network, page-load-embedded data from the Redis-cached `predictions` key. If fresh (&lt;40 min), the panel renders instantly without any API call
 2. **Sebuf RPC** — `GET /api/prediction/v1/list-prediction-markets` queries Redis for the seed-script-maintained cache. Single request, sub-100ms cold start
-3. **Browser-direct Polymarket** — the browser fetches Polymarket's Gamma API directly, bypassing JA3 fingerprinting (browser TLS passes Cloudflare)
-4. **Sidecar native TLS** — on Tauri desktop, Rust's `reqwest` TLS fingerprint differs from Node.js, providing another bypass vector
+
+If neither returns markets the panel surfaces the failure rather than falling
+through to a third path — there isn't one (`src/services/prediction/index.ts`).
 
 **Country-specific markets** — `fetchCountryMarkets(country)` maps 40+ countries to Polymarket tag variants (e.g., "Russia" matches ["russia", "russian", "moscow", "kremlin", "putin"]), enabling the Country Brief to display prediction contracts relevant to any nation.
 
 **Smart filtering** — markets are ranked by 24h trading volume, filtered to exclude sports and entertainment (100+ exclusion keywords: NBA, NFL, Oscar, Grammy, etc.), and require meaningful price divergence from 50% or volume above $50K to suppress noise. Each variant gets different tag sets — geopolitical queries politics/world/ukraine/middle-east tags, tech queries ai/crypto/business tags.
 
-**Cloudflare JA3 bypass** — Polymarket's API is protected by Cloudflare TLS fingerprinting (JA3) that blocks all server-side requests. The system uses a 3-tier fallback:
+**No TLS-fingerprint (JA3) handling exists.** Earlier revisions of this page
+described a three-tier "Cloudflare JA3 bypass" — browser-direct fetch, Tauri
+native TLS via `reqwest`, and a Vercel edge proxy. **None of that is implemented.**
+The live path is the two tiers above; both read our own Redis, and neither
+contacts Polymarket from the client. The Rust `fetch_polymarket` command that
+prose referred to has been dead code since `20af4e55b` (2026-03-07): it is a
+stock `reqwest` GET on OS-native TLS with no fingerprint manipulation and no
+caller. Polymarket is contacted only server-side, by
+`scripts/seed-prediction-markets.mjs`.
 
-| Tier  | Method                     | When It Works                                           |
-| ----- | -------------------------- | ------------------------------------------------------- |
-| **1** | Browser-direct fetch       | Always (browser TLS passes Cloudflare)                  |
-| **2** | Tauri native TLS (reqwest) | Desktop app (Rust TLS fingerprint differs from Node.js) |
-| **3** | Vercel edge proxy          | Rarely (edge runtime sometimes passes)                  |
-
-Once browser-direct succeeds, the system caches this state and skips fallback tiers on subsequent requests. Country-specific markets are fetched by mapping countries to Polymarket tags with name-variant matching (e.g., "Russia" matches titles containing "Russian", "Moscow", "Kremlin", "Putin").
+Country-specific markets are fetched by mapping countries to Polymarket tags with name-variant matching (e.g., "Russia" matches titles containing "Russian", "Moscow", "Kremlin", "Putin").
 
 Markets are filtered to exclude sports and entertainment (100+ exclusion keywords), require meaningful price divergence from 50% or volume above $50K, and are ranked by trading volume. Each variant gets different tag sets — geopolitical focus queries politics/world/ukraine/middle-east tags, while tech focus queries ai/crypto/business tags.
 

@@ -182,7 +182,7 @@ Proto 定义包含 `buf.validate` 字段约束（例如，纬度 ∈ [−90, 90]
 
 ### 引导水合
 
-仪表盘通过在任何面板渲染前于单次 Redis pipeline 调用中预抓取 38 个常用数据集，消除了冷启动延迟。页面加载时，客户端并行发起两个请求 — 一个**快速层**和一个**慢速层** — 到 `/api/bootstrap` 边缘函数，两者均带 800ms 中止超时以避免阻塞首次渲染。
+仪表盘通过在任何面板渲染前于单次 Redis pipeline 调用中预抓取 94 个常用数据集（26 个快速层 + 68 个慢速层），消除了冷启动延迟。页面加载时，客户端并行发起两个请求 — 一个**快速层**和一个**慢速层** — 到 `/api/bootstrap` 边缘函数，两者均带 800ms 中止超时以避免阻塞首次渲染。
 
 ```
 Page Load → parallel fetch ─┬─ /api/bootstrap?tier=fast  (s-maxage=1200)
@@ -201,7 +201,7 @@ Page Load → parallel fetch ─┬─ /api/bootstrap?tier=fast  (s-maxage=1200)
                                    stablecoinMarkets, unrestEvents, ucdpEvents
 ```
 
-边缘函数在单次 Upstash Redis pipeline 中读取所有键 — 一次 HTTP 往返最多 38 个键。结果存储在内存中的 `hydrationCache` Map 里。面板初始化时调用 `getHydratedData(key)`，返回预抓取的数据并从缓存中驱逐（一次性读取）以释放内存。找到水合数据的面板完全跳过其初始 API 调用，使用预加载内容即时渲染。在水合数据已被消费后挂载的面板回退到其正常抓取周期。
+边缘函数在单次 Upstash Redis pipeline 中读取所有键 — 一次 HTTP 往返最多 68 个键（两层中较大的一层）。结果存储在内存中的 `hydrationCache` Map 里。面板初始化时调用 `getHydratedData(key)`，返回预抓取的数据并从缓存中驱逐（一次性读取）以释放内存。找到水合数据的面板完全跳过其初始 API 调用，使用预加载内容即时渲染。在水合数据已被消费后挂载的面板回退到其正常抓取周期。
 
 **负哨兵缓存** — 当 Redis 键中无数据时，引导端点在响应中存储一个 `__WM_NEG__` 哨兵值，而不是省略该键。这使消费者能够区分"数据尚未加载"（水合中不存在该键）和"数据源无内容"（负哨兵），防止对空数据源进行不必要的 RPC 回退调用。
 
@@ -209,7 +209,7 @@ Page Load → parallel fetch ─┬─ /api/bootstrap?tier=fast  (s-maxage=1200)
 
 **选择性抓取** — 客户端可通过 `?keys=earthquakes,flightDelays,insights` 请求自定义键子集进行定向水合，在特定面板需要重新初始化时实现部分引导恢复。
 
-这将 38 次独立 API 调用（每次都有 DNS 查询、TLS 握手和 Redis 往返）减少为恰好 2 次，在典型连接上将首次有意义渲染时间缩短 2–4 秒。
+这将 94 次独立 API 调用（每次都有 DNS 查询、TLS 握手和 Redis 往返）减少为恰好 2 次，在典型连接上将首次有意义渲染时间缩短 2–4 秒。
 
 ### SmartPollLoop — 自适应数据刷新
 
@@ -227,7 +227,7 @@ Page Load → parallel fetch ─┬─ /api/bootstrap?tier=fast  (s-maxage=1200)
 
 ### Railway 种子数据管道
 
-21 个 Railway 定时任务持续用从外部 API 预计算的数据刷新 Redis 缓存。种子按可配置计划运行（从数分钟到每日），同时写入规范域名键（用于 RPC 处理器查找）和引导键（用于页面加载水合）。这种双键策略确保引导水合和 RPC 处理器在数据格式和新鲜度上始终一致。
+定时种子任务持续用从外部 API 预计算的数据刷新 Redis 缓存。本仓库包含 164 个 `seed-*.mjs` 脚本；下表是**高流量种子的选摘**，并非完整清单（自托管栈运行的是另一组更小的集合，参见 `docker-compose.yml`）。种子按可配置计划运行（从数分钟到每日），同时写入规范域名键（用于 RPC 处理器查找）和引导键（用于页面加载水合）。这种双键策略确保引导水合和 RPC 处理器在数据格式和新鲜度上始终一致。
 
 | 种子脚本 | 数据来源 | 更新频率 | 引导键 |
 | --- | --- | --- | --- |
@@ -239,7 +239,7 @@ Page Load → parallel fetch ─┬─ /api/bootstrap?tier=fast  (s-maxage=1200)
 | `seed-internet-outages` | Cloudflare Radar | 5 分钟 | `infra:outages:v1` |
 | `seed-fire-detections` | NASA FIRMS VIIRS | 10 分钟 | `wildfire:fires:v1` |
 | `seed-climate-anomalies` | Open-Meteo ERA5 | 15 分钟 | `climate:anomalies:v2` |
-| `seed-natural-events` | USGS + GDACS + NASA EONET | 2 小时 | `natural:events:v1` |
+| `seed-natural-events` | NHC + GDACS + NASA EONET + HKO 警报 | 3 小时 | `natural:events:v1` |
 | `seed-airport-delays` | FAA + AviationStack + ICAO NOTAM | 10 分钟 | `aviation:delays-bootstrap:v1` |
 | `seed-insights` | Groq LLM 世界简报 + 头条 | 10 分钟 | `news:insights:v1` |
 | `seed-prediction-markets` | Polymarket Gamma API | 10 分钟 | `prediction:markets-bootstrap:v1` |

@@ -61,7 +61,7 @@ description: "World Monitor 所使用的每一个数据源、信息源分级体�
 - **可自定义的市场关注列表** — 用户定义的股票/大宗商品/加密货币代码列表（最多 50 个代码），可带友好名称标签，持久化到 localStorage，通过 CustomEvent 在各面板间同步
 - **海湾经济体面板** — 跨三个板块提供 GCC 金融市场实时数据：**指数**（沙特 Tadawul/沙特阿拉伯、迪拜金融市场、阿布扎比、卡塔尔、WisdomTree 海湾股息、马斯喀特 MSM 30）、**货币**（SAR、AED、QAR、KWD、BHD、OMR 对 USD）以及**石油**（WTI 原油、布伦特原油）。所有报价均来自 Yahoo Finance 并采用错峰批量获取，Redis 缓存 8 分钟，每条报价带迷你迷你图，轮询间隔 60 秒
 - 通过 CoinGecko 获取实时加密货币价格（BTC、ETH、SOL、XRP 等）
-- **预测市场** — Polymarket 地缘政治合约，采用 4 级获取（bootstrap → RPC → 浏览器直连 → Tauri 原生 TLS），按国家匹配市场，并按交易量加权排名
+- **预测市场** — Polymarket 地缘政治合约，采用 2 级获取（bootstrap → RPC），按国家匹配市场，并按交易量加权排名
 - BTC 现货 ETF 流向跟踪（IBIT、FBTC、GBTC 等 10 只）
 - 稳定币锚定健康度监测（USDT、USDC、DAI、FDUSD、USDe）
 - 恐惧与贪婪指数，含 30 天历史
@@ -115,11 +115,20 @@ description: "World Monitor 所使用的每一个数据源、信息源分级体�
 
 消息按 ID 去重，过滤掉纯媒体帖子（无文字的图片），截断为 800 字符，并存入一个滚动 200 条的缓冲区。中继以 60 秒启动延迟连接，以防止 Railway 容器重启期间出现 `AUTH_KEY_DUPLICATED` 错误（旧容器必须在新容器认证之前完全断开）。主题分类（突发、冲突、警报、osint、政治、中东）和基于频道的过滤在查询时通过 `/telegram/feed` 中继端点完成。
 
-### OREF 火箭警报集成
+### 以色列警报集成（Tzeva Adom 为主，OREF 为备）
 
 仪表盘监测以色列后方司令部（Pikud HaOref）警报系统，获取来袭火箭弹、导弹和无人机警报 — 这是一个难以通过编程方式获取的实时信号，因受 Akamai WAF 保护而难以直连。
 
-**数据流**：Railway 中继通过住宅代理（以色列出口 IP）使用 `curl` 轮询 `oref.org.il`（而非 Node.js fetch，后者会被 JA3 阻断）。启动时，中继采用两阶段策略引导历史数据：阶段 1 从 Redis 加载（过滤 7 天前的记录）；若 Redis 为空，阶段 2 通过指数退避重试（最多 3 次，延迟 3 秒/6 秒/12 秒 + 抖动）从上游 OREF API 获取。警报历史以脏标记去重方式持久化到 Redis，避免冗余写入。实时警报每 5 分钟轮询一次。波次检测按时间戳将单条警报记录分组，以识别不同的攻击波。以色列本地时间戳通过 DST 感知的偏移计算转换为 UTC。**1,480 条希伯来语→英语地名翻译** — 一份自动生成的字典（源自 pikud-haoref-api 的 `cities.json`）支持对警报数据中希伯来语城市名的自动翻译。在翻译查找前，通过 `sanitizeHebrew()` 剥除 Unicode 双向控制字符，以防止匹配失败。
+**数据流**：两个来源，按顺序使用。**主源 — Tzeva Adom**
+（`api.tzevaadom.co.il/notifications`）：普通 fetch，无需代理、无需凭据、无成本。
+**备源 — OREF 直连**：仅当主源无返回**且**已设置 `OREF_PROXY_AUTH` 时才尝试，通过
+住宅代理（以色列出口 IP）使用 `curl` 轮询 `oref.org.il`（而非 Node.js fetch，后者
+会被 JA3 阻断）。
+
+这一顺序对自托管者具有实际意义：本页早期版本把 OREF 路径写成**唯一**路径，读起来
+仿佛警报功能必须依赖付费住宅代理。事实并非如此 —— 主源无需代理，且在未设置
+`OREF_PROXY_AUTH` 时 OREF 分支会被完全跳过（`scripts/ais-relay.cjs`）。以下内容对
+两个来源均适用。启动时，中继采用两阶段策略引导历史数据：阶段 1 从 Redis 加载（过滤 7 天前的记录）；若 Redis 为空，阶段 2 通过指数退避重试（最多 3 次，延迟 3 秒/6 秒/12 秒 + 抖动）从上游 OREF API 获取。警报历史以脏标记去重方式持久化到 Redis，避免冗余写入。实时警报每 5 分钟轮询一次。波次检测按时间戳将单条警报记录分组，以识别不同的攻击波。以色列本地时间戳通过 DST 感知的偏移计算转换为 UTC。**1,480 条希伯来语→英语地名翻译** — 一份自动生成的字典（源自 pikud-haoref-api 的 `cities.json`）支持对警报数据中希伯来语城市名的自动翻译。在翻译查找前，通过 `sanitizeHebrew()` 剥除 Unicode 双向控制字符，以防止匹配失败。
 
 **CII 集成**：活跃的 OREF 警报会将以色列的 CII 冲突分项最高提升 50 分（`25 + min(25, alertCount × 5)`）。滚动 24 小时历史提供二次加成：窗口内 3–9 次警报贡献 +5，10+ 次贡献 +10，计入综合分。这意味着持续的多波次火箭弹齐射会将以色列的 CII 推得远高于单次孤立警报。
 
@@ -491,26 +500,26 @@ Client (1 RPC call) → listFeedDigest → Redis check (digest:v1:{variant}:{lan
 
 Polymarket 地缘政治市场使用基于标签的过滤器（乌克兰、伊朗、中国、台湾等）查询，缓存 5 分钟。市场概率变化与新闻量相关联：如果预测市场在匹配新闻到达之前显著变动，则被标记为潜在的早期预警信号。
 
-**4 级获取策略** — 预测市场使用级联获取链以最大化数据可用性：
+**2 级获取策略** — 预测市场使用一条简短的级联获取链：
 
-1. **Bootstrap 水合** — 零网络、页面加载时嵌入的数据，来自 Redis 缓存的 `predictions` 键。若新鲜（&lt;20 分钟），面板无需任何 API 调用即可即时渲染
+1. **Bootstrap 水合** — 零网络、页面加载时嵌入的数据，来自 Redis 缓存的 `predictions` 键。若新鲜（&lt;40 分钟），面板无需任何 API 调用即可即时渲染
 2. **Sebuf RPC** — `GET /api/prediction/v1/list-prediction-markets` 查询 Redis 中由种子脚本维护的缓存。单次请求，冷启动低于 100 毫秒
-3. **浏览器直连 Polymarket** — 浏览器直接获取 Polymarket 的 Gamma API，绕过 JA3 指纹识别（浏览器 TLS 可通过 Cloudflare）
-4. **Sidecar 原生 TLS** — 在 Tauri 桌面端，Rust 的 `reqwest` TLS 指纹与 Node.js 不同，提供另一条绕过路径
+
+若两者都未返回市场数据，面板会直接暴露该失败，而不会回退到第三条路径 —— 因为并不存在第三条路径（`src/services/prediction/index.ts`）。
 
 **按国家匹配市场** — `fetchCountryMarkets(country)` 将 40+ 个国家映射到 Polymarket 标签变体（例如，"Russia" 匹配 ["russia"、"russian"、"moscow"、"kremlin"、"putin"]），使国家简报能够显示与任何国家相关的预测合约。
 
 **智能筛选** — 市场按 24 小时交易量排名，过滤掉体育和娱乐（100+ 个排除关键词：NBA、NFL、Oscar、Grammy 等），并要求与 50% 的价格偏离显著或交易量高于 50,000 美元以抑制噪声。每个变体获得不同的标签集 — 地缘政治查询 politics/world/ukraine/middle-east 标签，科技查询 ai/crypto/business 标签。
 
-**Cloudflare JA3 绕过** — Polymarket 的 API 受 Cloudflare TLS 指纹识别（JA3）保护，会阻断所有服务端请求。系统使用 3 级回退：
+**本项目不存在任何 TLS 指纹（JA3）处理。** 本页早期版本曾描述过一套三级
+"Cloudflare JA3 绕过"：浏览器直连获取、通过 `reqwest` 的 Tauri 原生 TLS，以及
+Vercel 边缘代理。**这些均未实现。** 实际路径就是上面的两级；两者都读取我们自己的
+Redis，都不会从客户端联系 Polymarket。那段描述所指的 Rust `fetch_polymarket`
+命令自 `20af4e55b`（2026-03-07）起已是死代码：它只是一个使用操作系统原生 TLS 的
+标准 `reqwest` GET，没有任何指纹操纵，也没有调用方。Polymarket 仅在服务端由
+`scripts/seed-prediction-markets.mjs` 联系。
 
-| 级别  | 方法                     | 适用场景                                           |
-| ----- | ------------------------ | -------------------------------------------------- |
-| **1** | 浏览器直连获取           | 始终（浏览器 TLS 可通过 Cloudflare）                  |
-| **2** | Tauri 原生 TLS（reqwest） | 桌面应用（Rust TLS 指纹与 Node.js 不同） |
-| **3** | Vercel 边缘代理           | 较少（边缘运行时有时可通过）                  |
-
-一旦浏览器直连成功，系统会缓存此状态并在后续请求中跳过回退层级。按国家匹配的市场通过将国家映射到 Polymarket 标签并使用名称变体匹配来获取（例如，"Russia" 匹配包含 "Russian"、"Moscow"、"Kremlin"、"Putin" 的标题）。
+按国家匹配的市场通过将国家映射到 Polymarket 标签并使用名称变体匹配来获取（例如，"Russia" 匹配包含 "Russian"、"Moscow"、"Kremlin"、"Putin" 的标题）。
 
 市场被过滤以排除体育和娱乐（100+ 个排除关键词），要求与 50% 的价格偏离显著或交易量高于 50,000 美元，并按交易量排名。每个变体获得不同的标签集 — 地缘政治侧重查询 politics/world/ukraine/middle-east 标签，而科技侧重查询 ai/crypto/business 标签。
 
