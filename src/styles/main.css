@@ -1854,6 +1854,17 @@ canvas,
   user-select: none;
 }
 
+/* Header controls must out-stack .panel-col-resize-handle above: it is a 20px
+   absolutely-positioned strip down the panel's full height at z-index 100 with
+   pointer-events: auto !important, so on any panel whose header controls reach the
+   right edge it silently swallowed the click. Measured 2026-08-03 with
+   elementFromPoint across every mounted panel: 7 panels had an unclickable
+   .panel-close-btn for exactly this reason. */
+.panel-header .icon-btn {
+  position: relative;
+  z-index: 101;
+}
+
 .panel-col-resize-handle:hover,
 .panel-col-resize-handle.active {
   background: linear-gradient(to left, rgba(68, 136, 255, 0.5), transparent);

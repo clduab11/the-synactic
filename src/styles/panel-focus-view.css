@@ -106,13 +106,8 @@ body.panel-focus-open {
    order matters: .panel-close-btn is 999 and .panel-collapse-btn is 998; a button
    with no order renders left of both regardless of DOM position. */
 .panel-header .panel-focus-btn {
-  /* .panel-col-resize-handle is an absolutely-positioned 20px strip down the
-     panel's whole right edge at z-index 100 with pointer-events:auto !important
-     (main.css:1842-1854). On panels with an extra header button it lands on top of
-     this one and swallows the click — verified with elementFromPoint. Give the
-     button its own stacking context above it. */
-  position: relative;
-  z-index: 101;
+  /* Stacking above .panel-col-resize-handle is handled generally by
+     ".panel-header .icon-btn" in main.css. */
   order: 997;
   opacity: 0;
   transition: opacity 0.15s ease;
