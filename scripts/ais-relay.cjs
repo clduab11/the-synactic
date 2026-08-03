@@ -10992,10 +10992,35 @@ async function handleWidgetAgentRequest(req, res) {
         const textBlock = response.content.find(b => b.type === 'text');
         const text = textBlock?.text ?? '';
         const htmlMatch = text.match(/<!--\s*widget-html\s*-->([\s\S]*?)<!--\s*\/widget-html\s*-->/);
-        const html = (htmlMatch?.[1] ?? text).slice(0, maxHtml);
+        // Do NOT ship whatever the model said as a finished widget. `end_turn`
+        // also covers a refusal ("I can't build that because…") and an empty
+        // text block, and the old `htmlMatch?.[1] ?? text` forwarded both as
+        // html_complete + done — the client shows a green "Ready" state and an
+        // enabled Add to Dashboard for a widget that is prose or nothing.
+        // That is fabricated success, the same defect class as backtest's
+        // zero-valued metrics. The partial-recovery path below already
+        // validates with `?.trim()`; this branch now matches it.
+        //
+        // Marker-less output is still accepted when it actually looks like
+        // markup, because models do sometimes emit bare HTML — the check is
+        // "is there a widget here", not "did it follow the format".
+        const marked = htmlMatch?.[1]?.trim();
+        const bare = text.trim();
+        const html = marked || (/<[a-z][\s\S]*>/i.test(bare) ? bare : '');
+        if (!html) {
+          sendWidgetSSE(res, 'error', {
+            message: bare
+              // The prose is usually the model explaining why it declined —
+              // far more actionable than a generic failure string.
+              ? `The widget agent returned no widget: ${bare.slice(0, 400)}`
+              : 'The widget agent returned an empty response.',
+          });
+          completed = true;
+          break;
+        }
         const titleMatch = text.match(/<!--\s*title:\s*([^\n]+?)\s*-->/);
         const title = titleMatch?.[1]?.trim() ?? 'Custom Widget';
-        sendWidgetSSE(res, 'html_complete', { html });
+        sendWidgetSSE(res, 'html_complete', { html: html.slice(0, maxHtml) });
         sendWidgetSSE(res, 'done', { title });
         completed = true;
         break;
