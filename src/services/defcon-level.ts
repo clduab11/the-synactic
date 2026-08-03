@@ -131,26 +131,34 @@ export function divergingCommands(est: DefconLevelEstimate): DefconCommandStatus
  * Whether the indicator should visually escalate (pulse / accent) rather than
  * sit quiet in the header.
  *
- * TODO(chris): this is a product judgement, not a mechanical one — see the
- * trade-offs in the session notes. Three defensible readings:
+ * SETTLED 2026-08-03 (session 09): divergence breadth, retained deliberately
+ * rather than by default. Two alternatives were on the table and both lose on
+ * their merits, not on effort:
  *
- *   a) Level alone.        `return est.level <= 2;`
- *      Simple and predictable, but the global level moves rarely, so the badge
- *      would sit inert for months at a time.
+ *   a) Level alone (`est.level <= 2`). The global estimate moves rarely, so the
+ *      badge would sit inert for months and then jump — no gradient, and it
+ *      discards the per-command detail the source actually publishes.
  *
- *   b) Divergence breadth. e.g. escalate when >= 3 combatant commands sit below
- *      the global level. Right now 5 of 11 do while the headline reads 3 — that
- *      spread is arguably the real signal and (a) shows none of it.
+ *   c) Change-since-last-seen. Best signal-to-noise in principle, but it makes
+ *      the badge a function of THIS BROWSER'S history rather than of the world.
+ *      Two operators would see different escalation states from identical data,
+ *      it reads silent on first load (exactly when a new viewer needs it most),
+ *      and it needs persisted state, which makes it impure — the component
+ *      calls this on every render.
  *
- *   c) Change-since-last-seen. Escalate when the level moved since the operator
- *      last opened the pop-out. Highest signal-to-noise, but needs a persisted
- *      "last seen" value and will read as silent on first load.
+ * Breadth wins because it is a pure function of the estimate, degrades
+ * gracefully (an empty command list simply falls back to the level test), and
+ * surfaces the spread a single headline number throws away — the same reason
+ * the pop-out renders diverging commands as their own group.
  *
- * (b) is implemented below as a working default so the feature ships; swap in
- * whichever you want. Keep it a pure function of the estimate — the component
- * calls it on every render.
+ * The threshold is 3 of the 11 real combatant commands. Synthetic trackers are
+ * excluded on purpose: they are the publisher's own thematic products, not DoD
+ * structure, and letting them trip a readiness badge would import their
+ * editorial choices into ours.
  */
+const DIVERGING_COMMANDS_TO_ESCALATE = 3;
+
 export function shouldEscalate(est: DefconLevelEstimate): boolean {
   const diverging = divergingCommands(est).filter((c) => c.isCombatantCommand);
-  return est.level <= 2 || diverging.length >= 3;
+  return est.level <= 2 || diverging.length >= DIVERGING_COMMANDS_TO_ESCALATE;
 }

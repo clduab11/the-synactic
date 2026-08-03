@@ -213,6 +213,35 @@ curl -s https://worldmonitor.app/mcp \
 
 </CodeGroup>
 
+### `get_kraken_market_data`
+
+Kraken 主要加密货币交易对（BTC/ETH/SOL/XRP 兑 USD）的现货报价：最新价、买入/卖出价、24 小时最高/最低价、加权均价与成交量，以及相对今日开盘价、前一交易日收盘价、7 日和 30 日收盘价的变动。数据来自 Kraken 的公开市场数据 API，依据所有者取得的向下游转发许可（`redistributionScope` 随数据内联传递）。字段命名刻意精确：`changeSincePrevClosePct` 衡量的是相对**前一交易日**收盘价的变动，而非滚动 24 小时窗口。每 45 分钟刷新一次 — 这是趋势视图，而非实时逐笔行情。
+
+**参数（工具特定）：**
+
+| 名称 | 类型 | 描述 |
+|------|------|-------------|
+| `pair` | string | 按基础资产、公开交易对名称或显示名称筛选单个交易对（不区分大小写的子串匹配），例如 "BTC"、"XBTUSD"、"ETH/USD"。 |
+
+- **API 端点：** 无直接端点 — 从引导聚合缓存键读取（无一一对应的 REST 端点）。
+- **类型：** 缓存读取 — 来自 Redis 引导缓存的亚秒级响应。
+- **新鲜度预算：** 标记 `stale: true` 前最多 **2 小时 15 分钟**（由 seeder cron 的预期间隔设定）。
+
+<CodeGroup>
+
+```bash curl
+curl -s https://worldmonitor.app/mcp \
+  -H "X-WorldMonitor-Key: $WM_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc":"2.0","id":1,
+    "method":"tools/call",
+    "params":{"name":"get_kraken_market_data","arguments":{"pair":"BTC"}}
+  }'
+```
+
+</CodeGroup>
+
 ### `get_economic_data`
 
 宏观经济指标：联邦基金利率（FRED）、经济日历事件、燃料价格、ECB 外汇汇率、EU 收益率曲线、财报日历、COT 持仓、能源存储数据、BIS 家庭偿债比率（DSR，季度，约 40 个发达经济体家庭财务压力的领先指标），以及 BIS 住宅 + 商业地产价格指数（实际值，季度）。
@@ -1662,6 +1691,37 @@ curl -s https://worldmonitor.app/mcp \
     "jsonrpc":"2.0","id":1,
     "method":"tools/call",
     "params":{"name":"get_radiation_data","arguments":{}}
+  }'
+```
+
+</CodeGroup>
+
+### `get_defcon_level`
+
+第三方 OSINT 对美国战备状态的**估计值**（defconlevel.com）— 美国不公布官方 DEFCON 等级，真实等级属于机密。返回全局估计值以及 11 个联合作战司令部的分项明细，另含发布方自有的三个主题追踪项（通过 `isCombatantCommand` 区分，切勿混为一谈）。每条记录都内联携带 `usageRestrictions`：发布方允许经 MCP 转发用于推理与分析，但**禁止用于模型训练**。请勿剥离该字段，也不要让投影把它丢掉。
+
+**参数（工具特定）：**
+
+| 名称 | 类型 | 描述 |
+|------|------|-------------|
+| `combatant_commands_only` | boolean | 剔除发布方自有的主题追踪项（BIOCOM/DISASTERCOM/FINCOM），仅保留 11 个真实的美国联合作战司令部。 |
+| `diverging_only` | boolean | 仅保留估计值比全局等级**更严重**（数值更低）的司令部 — 这正是单一标题数字所丢弃的细节。 |
+| `command` | string | 按缩写或名称筛选单个司令部（不区分大小写的子串匹配），例如 "CENTCOM" 或 "Central"。 |
+
+- **API 端点：** 无直接端点 — 从引导聚合缓存键读取（无一一对应的 REST 端点）。
+- **类型：** 缓存读取 — 来自 Redis 引导缓存的亚秒级响应。
+- **新鲜度预算：** 标记 `stale: true` 前最多 **2 小时 15 分钟**（由 seeder cron 的预期间隔设定）。
+
+<CodeGroup>
+
+```bash curl
+curl -s https://worldmonitor.app/mcp \
+  -H "X-WorldMonitor-Key: $WM_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc":"2.0","id":1,
+    "method":"tools/call",
+    "params":{"name":"get_defcon_level","arguments":{"combatant_commands_only":true}}
   }'
 ```
 
