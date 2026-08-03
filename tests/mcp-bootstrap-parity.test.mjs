@@ -183,8 +183,6 @@ const EXCLUDED_FROM_MCP = new Map([
     'deferred to a future space-domain tool. Not in v1 brainstorm inventory.'],
   ['intelligence:pizzint:seed:v1',
     'deferred to a future expanded intelligence tool. Not in v1 brainstorm inventory.'],
-  ['intelligence:defcon-level:seed:v1',
-    'WITHHELD PENDING LICENSING, not deferred for lack of demand. This is a third-party OSINT readiness estimate scraped from defconlevel.com. Reading and displaying their public homepage is inside their robots.txt (Allow: /); RE-SERVING their assessment to downstream MCP consumers is a separate right we have not established. The site publishes no Terms of Use — only contact@defconlevel.com. Per the Kraken precedent (CONTEXT.md boundary 1 v4), a named permission channel gets used, not assumed. Do NOT add a tool for this key until that email is sent and answered.'],
   ['intelligence:wsb-tickers:v1',
     'deferred: companion to get_social_velocity (Reddit r/wallstreetbets sentiment). Future expanded social-sentiment tool would bundle this with reddit feed.'],
   ['intelligence:telegram-feed:v1',

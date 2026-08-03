@@ -23,12 +23,25 @@
  *   - Honest UA, one request per seeder run. Crawl-delay is 1s; the seed-loop
  *     cycle is 45 min, so we are ~2700x gentler than their stated floor.
  *
- * NOT EXPOSED OVER MCP, deliberately. Displaying a public page in our own
- * dashboard is ordinary use; re-serving a third party's assessment to downstream
- * MCP consumers is a licensing question with no Terms of Use page to answer it.
- * There is a named channel -- contact@defconlevel.com -- and the Kraken precedent
- * says use it rather than assume. Until that happens this stays dashboard-only;
- * the exclusion is recorded in tests/mcp-bootstrap-parity.test.mjs.
+ * MCP REDISTRIBUTION IS PERMITTED, WITH ONE CONDITION.
+ *
+ * This was dashboard-only until 2026-08-03 pending a licensing answer, because
+ * displaying a public page in our own dashboard is ordinary use while re-serving
+ * a third party's assessment to downstream consumers is a separate right. The
+ * publisher was asked through their named channel (contact@defconlevel.com --
+ * the Kraken precedent: use the channel, do not assume) and granted it, subject
+ * to: **no model TRAINING on this data.** Inference and analysis are fine.
+ *
+ * That condition is carried IN-BAND on every record (`usageRestrictions`) rather
+ * than left in prose, because the consumer here is a machine. Do not strip it,
+ * and do not let a projection drop it silently -- it is the only thing travelling
+ * with the data that states the term we agreed to.
+ *
+ * ⚠ PROVENANCE: as of writing this rests on an owner-relayed account of that
+ * email. Paste the artifact (date, from-address, their exact wording on the
+ * training restriction) into CONTEXT.md. This repo has twice been burned by
+ * owner-relayed permission accounts with no attachment -- see the Kalshi counsel
+ * record under boundary 3 and the Kraken gap under boundary 1.
  *
  * FAILS LOUDLY. If the global level will not parse, this throws rather than
  * publishing a default. A fabricated "DEFCON 5" is exactly the defect class
@@ -116,6 +129,13 @@ async function fetchDefconLevel() {
     sourceName: 'DEFCON Level (defconlevel.com)',
     sourceUrl: SOURCE_URL,
     sourceOperator: 'Private OSINT organization; not affiliated with the U.S. Government',
+    // The licence condition, carried with the data so an MCP consumer cannot
+    // receive the records without also receiving the term. See the header note.
+    usageRestrictions: {
+      training: 'prohibited',
+      redistribution: 'permitted',
+      note: 'Publisher permits redistribution of this estimate, including over MCP, for inference and analysis. Using it as training data for a model is NOT permitted.',
+    },
     sourceUpdatedAt,
     fetchedAt: new Date().toISOString(),
     commands,

@@ -336,7 +336,7 @@ so no consumer, human or model, can mistake it for a reading.
 |---|---|
 | Redis key | `intelligence:defcon-level:seed:v1` (TTL 3h) |
 | Records | 1 global level + 14 command rows |
-| Surface | Header indicator + pop-out. **Dashboard only — deliberately not an MCP tool.** |
+| Surface | Header indicator + pop-out, **and** the `get_defcon_level` MCP tool |
 
 Two details the source's own headline discards, which the pop-out surfaces:
 
@@ -350,11 +350,28 @@ Two details the source's own headline discards, which the pop-out surfaces:
 
 Collection posture: the seeder reads the publisher's homepage only — their
 `robots.txt` disallows `/api/` — with an honest User-Agent, once per 45-minute
-cycle against a stated `Crawl-delay: 1`. It is **not** exposed over MCP pending a
-licensing answer; re-serving a third party's assessment to downstream consumers
-is a separate right from displaying their public page. The exclusion and its
-reason are recorded in `tests/mcp-bootstrap-parity.test.mjs`, which fails hard if
-a tool is added for that key.
+cycle against a stated `Crawl-delay: 1`.
+
+**Redistribution and the training restriction.** This was dashboard-only until
+2026-08-03, because displaying a public page is ordinary use while re-serving a
+third party's assessment to downstream consumers is a separate right. The
+publisher was asked through their named channel (`contact@defconlevel.com`) and
+granted it, on one condition: **the data may not be used for model training.**
+Inference and analysis are permitted.
+
+That condition travels **in-band** on every record rather than living only in
+prose, because the consumer is a machine:
+
+```json
+"usageRestrictions": {
+  "training": "prohibited",
+  "redistribution": "permitted",
+  "note": "Publisher permits redistribution of this estimate, including over MCP, for inference and analysis. Using it as training data for a model is NOT permitted."
+}
+```
+
+Do not strip that field, and do not let a JMESPath projection drop it silently —
+it is the only thing travelling with the data that states the term agreed to.
 
 ### Natural Disaster Monitoring
 

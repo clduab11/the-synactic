@@ -11,7 +11,11 @@ Kept as a separate file so upstream merges never conflict with fork knowledge.
 
 **v5 — 2026-08-03.** Owner amendment to boundary 4: **local self-host / desktop entitlement is authorized**, gated on the build-time `VITE_SELFHOST_PRO` flag and strictly client-side. Hosted server-side auth is untouched and still governs anything calling `api.worldmonitor.app`. See boundary 4.
 
-Also landed 2026-08-03 and reflected below: the brand rename to **the-synactic** for user-visible identity, **ReliefWeb removed** as a data source, and a **DEFCON OSINT indicator** (dashboard-only, deliberately absent from the MCP surface pending a licensing answer).
+Also landed 2026-08-03 and reflected below: the brand rename to **the-synactic** for user-visible identity, **ReliefWeb removed** as a data source, and a **DEFCON OSINT indicator**.
+
+**v6 — 2026-08-03.** **defconlevel.com granted MCP redistribution**, conditional on **no model training**. The `get_defcon_level` tool ships (registry now **69**), and the condition is carried in-band on every record as `usageRestrictions.training = 'prohibited'` — not in prose alone, because the consumer is a machine. Do not strip that field.
+
+> ⚠ **PROVENANCE GAP — close this, it is now the THIRD instance.** The permission above rests on an owner-relayed account of an email with no artifact attached. That is the same shape as the Kalshi counsel record under boundary 3 (which later proved impossible to rely on) and the Kraken amendment under boundary 1. Paste the reference — date, from-address, and their exact wording on the training restriction — into this block. Until then treat the SCOPE as "what they actually wrote", not "what we built".
 
 ---
 

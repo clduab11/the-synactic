@@ -2085,6 +2085,86 @@ export const CACHE_TOOLS: ToolDef[] = [
     ],
   },
   {
+    name: 'get_defcon_level',
+    _outputBudgetBytes: 131072,
+    description: "DEFCON readiness ESTIMATE from defconlevel.com — NOT an official status. The United States publishes no DEFCON level; the real one is classified and becomes public only after declassification or congressional testimony. This is a private OSINT organization's assessment (they state on their own page that they are not affiliated with the U.S. Government), and every record carries estimateType='osint-estimate' and officialStatus='classified-not-published' in-band so it cannot be mistaken for a reading. Returns one global level plus 14 per-command rows. IMPORTANT: only 11 of those are real U.S. unified combatant commands — BIOCOM, DISASTERCOM and FINCOM are the publisher's own thematic trackers and are flagged isCombatantCommand=false; do not present them as DoD structure. The most informative signal is usually DIVERGENCE: commands assessed more severe than the headline level (use diverging_only). LICENCE: the publisher permits redistribution of this estimate, including over MCP, for inference and analysis — but NOT as training data for a model. That term travels with the payload in usageRestrictions; honour it and do not strip it.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        combatant_commands_only: {
+          type: 'boolean',
+          description: "Drop the publisher's own thematic trackers (BIOCOM/DISASTERCOM/FINCOM) and keep only the 11 real U.S. unified combatant commands.",
+        },
+        diverging_only: {
+          type: 'boolean',
+          description: 'Keep only commands whose estimate is MORE SEVERE (numerically lower) than the global level — the detail a single headline number discards.',
+        },
+        command: {
+          type: 'string',
+          description: 'Filter to one command by abbreviation or name (case-insensitive substring), e.g. "CENTCOM" or "Central".',
+        },
+      },
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      defcon: {
+        type: ['object', 'null'],
+        properties: {
+          level: { type: 'number' },
+          estimateType: { type: 'string' },
+          officialStatus: { type: 'string' },
+          sourceName: { type: 'string' },
+          sourceUrl: { type: 'string' },
+          sourceOperator: { type: 'string' },
+          usageRestrictions: {
+            type: 'object',
+            properties: {
+              training: { type: 'string' },
+              redistribution: { type: 'string' },
+              note: { type: 'string' },
+            },
+          },
+          sourceUpdatedAt: { type: ['string', 'null'] },
+          fetchedAt: { type: 'string' },
+          commands: { type: 'array', items: { type: 'object', properties: {
+            id: { type: 'string' }, abbr: { type: 'string' }, name: { type: 'string' },
+            level: { type: 'number' }, isCombatantCommand: { type: 'boolean' },
+            sourceUrl: { type: 'string' },
+          } } },
+          combatantCommandCount: { type: 'number' },
+          syntheticCommandCount: { type: 'number' },
+        },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _postFilter: (data, params) => {
+      const defcon = data.defcon as Record<string, unknown> | null | undefined;
+      const globalLevel = argNum(defcon?.level);
+      if (argBool(params.combatant_commands_only)) {
+        narrowNested(data, 'defcon', 'commands', (c) => c.isCombatantCommand === true);
+      }
+      // Skipped rather than errored when the global level is unreadable — a
+      // narrowing filter must fail open, never drop every row.
+      if (argBool(params.diverging_only) && globalLevel !== null) {
+        narrowNested(data, 'defcon', 'commands', (c) => (argNum(c.level) ?? globalLevel) < globalLevel);
+      }
+      const command = argStr(params.command);
+      if (command) {
+        narrowNested(data, 'defcon', 'commands', (c) => ciIncludes(c.abbr, command) || ciIncludes(c.name, command));
+      }
+      return data;
+    },
+    _cacheKeys: ['intelligence:defcon-level:seed:v1'],
+    // No OpenAPI operation serves this key — it is cache-only, dashboard +
+    // MCP. Empty is the documented valid value for that case.
+    _apiPaths: [],
+    // Without this the backward label walk stops on 'seed' (it skips only
+    // v-tags/numbers/stale/sebuf), shipping a payload keyed "seed".
+    _cacheLabels: { 'intelligence:defcon-level:seed:v1': 'defcon' },
+    _seedMetaKey: 'seed-meta:intelligence:defcon-level',
+    _maxStaleMin: 135,
+  },
+  {
     name: 'get_research_signals',
     _outputBudgetBytes: 131072,
     description: 'Tech and research event signals: emerging technology events bootstrap data from curated research feeds.',
