@@ -3361,7 +3361,8 @@
       "animatedCounters": "主要経済指標のアニメーション カウンター",
       "tabbedComparison": "地域別紛争イベントのタブ付き比較"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "オフライン — {{freshness}}からのキャッシュデータを表示しています。",

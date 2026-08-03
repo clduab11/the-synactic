@@ -3361,7 +3361,8 @@
       "animatedCounters": "Animierte Zähler für Schlüsselindikatoren der Wirtschaft",
       "tabbedComparison": "Tabbasierte Vergleich von Konfliktereignissen nach Region"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Offline – gecacherte Daten von {{freshness}} werden angezeigt.",

@@ -67,7 +67,8 @@
       "animatedCounters": "Animated counters for key economic indicators",
       "tabbedComparison": "Tabbed comparison of conflict events by region"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "countryBrief": {
     "identifying": "Identifying country...",

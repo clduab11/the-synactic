@@ -3361,7 +3361,8 @@
       "animatedCounters": "Ζωντανοί μετρητές για βασικούς οικονομικούς δείκτες",
       "tabbedComparison": "Σύγκριση με καρτέλες των συμβάντων σύγκρουσης κατά περιοχή"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Χωρίς σύνδεση — εμφάνιση αποθηκευμένων δεδομένων από {{freshness}}.",

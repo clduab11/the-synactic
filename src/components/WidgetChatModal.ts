@@ -325,6 +325,12 @@ export function openWidgetChatModal(options: WidgetChatOptions): void {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = '';
+      // The stream is only meaningful if it delivers a terminal event. A proxy
+      // or network drop can close it cleanly mid-generation, and the read loop
+      // then exits normally — leaving the radar spinner turning forever with
+      // no message, indistinguishable from "still working". Track whether we
+      // ever saw one so the post-loop check below can say so honestly.
+      let sawTerminalEvent = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -353,6 +359,7 @@ export function openWidgetChatModal(options: WidgetChatOptions): void {
             renderPreviewHtml(previewEl, resultHtml, resultTitle, t('widgets.phaseComposing'), t('widgets.previewComposingCopy'), isPro);
             setFooterStatus(footerStatusEl, t('widgets.previewComposingCopy'));
           } else if (event.type === 'done') {
+            sawTerminalEvent = true;
             resultTitle = String(event.title ?? 'Custom Widget');
             radarEl.remove();
             track('widget-ai-success', { title: resultTitle });
@@ -383,6 +390,7 @@ export function openWidgetChatModal(options: WidgetChatOptions): void {
             requestInFlight = false;
             syncComposerState();
           } else if (event.type === 'error') {
+            sawTerminalEvent = true;
             const message = String(event.message ?? t('widgets.unknownError'));
             radarEl.remove();
             statusEl.textContent = `${t('common.error')}: ${message}`;
@@ -390,6 +398,21 @@ export function openWidgetChatModal(options: WidgetChatOptions): void {
             setFooterStatus(footerStatusEl, message, 'error');
           }
         }
+      }
+
+      // The stream ended without saying how it ended. Report that rather than
+      // leaving the spinner up: a silent stall is the one failure the user
+      // cannot distinguish from ordinary slowness, so it reads as a hang.
+      if (!sawTerminalEvent) {
+        const message = t('widgets.streamEndedEarly');
+        radarEl.remove();
+        statusEl.textContent = `${t('common.error')}: ${message}`;
+        // Partial HTML may already have arrived via html_complete. Keep the
+        // preview if so — it is real output — but never leave the composer in
+        // a state that implies the widget is finished and safe to save.
+        if (!resultHtml) renderPreviewState(previewEl, 'error', message);
+        setFooterStatus(footerStatusEl, message, 'error');
+        pendingSaveSpec = null;
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;

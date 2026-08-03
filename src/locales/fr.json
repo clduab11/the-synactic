@@ -3379,7 +3379,8 @@
       "animatedCounters": "Compteurs animés pour les principaux indicateurs économiques",
       "tabbedComparison": "Comparaison par onglets des événements de conflit par région"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Hors ligne — affichage des données en cache de {{freshness}}.",

@@ -3361,7 +3361,8 @@
       "animatedCounters": "Animerade räknare för viktiga ekonomiska indikatorer",
       "tabbedComparison": "Tabbad jämförelse av konflikthändelser efter region"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Offline — visar cachad data från {{freshness}}.",

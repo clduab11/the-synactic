@@ -20,8 +20,30 @@ const PURIFY_CONFIG = {
 
 const UNSAFE_STYLE_PATTERN = /url\s*\(|expression\s*\(|javascript\s*:|@import|behavior\s*:/i;
 
+/**
+ * Layout CSS that lets a widget leave its panel.
+ *
+ * Basic-tier widgets are sanitized and then rendered into the PARENT DOM (only
+ * the pro tier gets the opaque-origin sandbox iframe), so DOMPurify is the sole
+ * boundary for them. Script execution is already blocked by the app CSP, but
+ * nothing stopped a widget from painting over the whole application:
+ * `position:fixed; inset:0; z-index:2147483647` on a single div is enough to
+ * cover the real UI and present, say, a fake "session expired — contact
+ * support" banner. It cannot capture keystrokes (no form controls or event
+ * handlers survive the allowlist), which bounds it to denial-of-view and
+ * social engineering — still not something a generated widget should be able
+ * to do to its host page.
+ *
+ * Fixed/sticky positioning escapes the panel's containing block entirely.
+ * Viewport units size against the window rather than the panel. Both are
+ * rejected outright rather than clamped, because a widget has no legitimate
+ * need to reason about the window — its canvas is the panel it lives in.
+ */
+const ESCAPES_PANEL_PATTERN = /position\s*:\s*(fixed|sticky)|\b\d+\s*v(w|h|min|max)\b/i;
+
 DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
-  if (data.attrName === 'style' && UNSAFE_STYLE_PATTERN.test(data.attrValue)) {
+  if (data.attrName !== 'style') return;
+  if (UNSAFE_STYLE_PATTERN.test(data.attrValue) || ESCAPES_PANEL_PATTERN.test(data.attrValue)) {
     data.keepAttr = false;
   }
 });

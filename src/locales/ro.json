@@ -3379,7 +3379,8 @@
       "animatedCounters": "Contor animat pentru indicatorii economici cheie",
       "tabbedComparison": "Comparație cu file a evenimentelor de conflict după regiune"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Offline — afișare date cache din {{freshness}}.",

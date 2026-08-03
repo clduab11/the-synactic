@@ -3361,7 +3361,8 @@
       "animatedCounters": "主要经济指标的动画计数器",
       "tabbedComparison": "按地区分类的冲突事件选项卡式对比"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "离线——显示来自 {{freshness}} 的缓存数据。",

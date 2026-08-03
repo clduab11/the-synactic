@@ -3361,7 +3361,8 @@
       "animatedCounters": "Geanimeerde tellers voor belangrijkste economische indicatoren",
       "tabbedComparison": "Tabblad-vergelijking van conflictgebeurtenissen per regio"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Offline — gegevens uit cache van {{freshness}} worden weergegeven.",

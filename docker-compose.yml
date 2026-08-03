@@ -362,7 +362,11 @@ services:
       #
       # These live HERE and not only on the app container for the same reason
       # FRED/EIA did: the seeders that consume them run in this container.
+      # ⚠ BOTH username spellings, deliberately: scripts/_acled-auth.mjs:96
+      # reads ACLED_USERNAME while scripts/seed-conflict-intel.mjs:210 reads
+      # ACLED_EMAIL. Passing only one silently disables half the ACLED paths.
       ACLED_MODE: "${ACLED_MODE:-fixture}"
+      ACLED_USERNAME: "${ACLED_USERNAME:-}"
       ACLED_EMAIL: "${ACLED_EMAIL:-}"
       ACLED_PASSWORD: "${ACLED_PASSWORD:-}"
       ACLED_ACCESS_TOKEN: "${ACLED_ACCESS_TOKEN:-}"

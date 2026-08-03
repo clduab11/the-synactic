@@ -3397,7 +3397,8 @@
       "animatedCounters": "Animované čítače pro klíčové ekonomické ukazatele",
       "tabbedComparison": "Tabelované porovnání konfliktních událostí podle regionu"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Offline — zobrazuji data z mezipaměti z {{freshness}}.",

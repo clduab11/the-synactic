@@ -490,6 +490,53 @@ describe('widget-sanitizer — allowlist verification', () => {
     );
   });
 
+  // Basic-tier widgets are sanitized and then rendered into the PARENT DOM —
+  // only the pro tier gets the sandbox iframe — so DOMPurify is their entire
+  // trust boundary. Script execution is blocked by the app CSP, but layout CSS
+  // was not: `position:fixed;inset:0;z-index:...` on one div covers the whole
+  // application, which is enough for denial-of-view and a fake-banner social
+  // engineering lure. These assert the BEHAVIOUR of the pattern, not merely
+  // that a constant exists, so a future relaxation fails loudly.
+  describe('panel-escape CSS is rejected', () => {
+    const patternMatch = san.match(/const ESCAPES_PANEL_PATTERN = (\/.+\/[a-z]*);/);
+
+    it('declares an ESCAPES_PANEL_PATTERN applied to the style attribute', () => {
+      assert.ok(patternMatch, 'widget-sanitizer must declare ESCAPES_PANEL_PATTERN');
+      assert.match(
+        san,
+        /ESCAPES_PANEL_PATTERN\.test\(data\.attrValue\)/,
+        'ESCAPES_PANEL_PATTERN must be applied in the uponSanitizeAttribute hook',
+      );
+    });
+
+    const build = () => {
+      const [, body, flags] = patternMatch[1].match(/^\/([\s\S]+)\/([a-z]*)$/);
+      return new RegExp(body, flags);
+    };
+
+    for (const css of [
+      'position:fixed;inset:0;z-index:2147483647',
+      'position: FIXED ;top:0',
+      'position:sticky;top:0',
+      'width:100vw;height:100vh',
+      'font-size:2vmin',
+    ]) {
+      it(`rejects ${css}`, () => assert.ok(build().test(css), `must reject: ${css}`));
+    }
+
+    // Equally important: the guard must not break ordinary widget styling.
+    // position:absolute is fine — it resolves against the panel, not the page.
+    for (const css of [
+      'color:#8df0b2;padding:8px;font-weight:600',
+      'position:relative;width:100%',
+      'position:absolute;top:4px',
+      'display:flex;gap:8px;border:1px solid #333',
+      'width:100%;max-width:420px',
+    ]) {
+      it(`allows ${css}`, () => assert.ok(!build().test(css), `must allow: ${css}`));
+    }
+  });
+
   it('post-pass strips expression() from style attributes', () => {
     assert.ok(
       san.includes('expression'),

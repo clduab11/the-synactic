@@ -67,7 +67,8 @@
       "animatedCounters": "Animált számlálók a legfontosabb gazdasági mutatókhoz",
       "tabbedComparison": "Tabulos összehasonlítás a konfliktusesemények régió szerinti csoportosításával"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "countryBrief": {
     "identifying": "Ország azonosítása...",

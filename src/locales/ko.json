@@ -3361,7 +3361,8 @@
       "animatedCounters": "주요 경제 지표를 위한 애니메이션 카운터",
       "tabbedComparison": "지역별 분쟁 이벤트 탭 비교"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "오프라인 — {{freshness}}의 캐시된 데이터를 표시 중입니다.",

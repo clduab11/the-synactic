@@ -3361,7 +3361,8 @@
       "animatedCounters": "Kilit ekonomik göstergeler için animasyonlu sayaçlar",
       "tabbedComparison": "Çatışma olaylarının bölgeye göre sekmeli karşılaştırması"
     },
-    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "Çevrimdışı — {{freshness}} tarihli önbelleğe alınan veriler gösteriliyor.",
