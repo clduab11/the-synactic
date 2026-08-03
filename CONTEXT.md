@@ -13,6 +13,12 @@ Kept as a separate file so upstream merges never conflict with fork knowledge.
 
 Also landed 2026-08-03 and reflected below: the brand rename to **the-synactic** for user-visible identity, **ReliefWeb removed** as a data source, and a **DEFCON OSINT indicator**.
 
+**v8 — 2026-08-03.** Owner amendment to boundary 3: **ACLED's AI/LLM restriction is scoped to
+TRAINING, not inference** — confirmed by Chris with ACLED's CIO office, which supersedes a
+session-09 read of the public documents. **ACLED is cleared for use here.** Two non-AI clauses
+(§10 competitive use, §13 confidentiality) are recorded as separate open questions, and the cheap
+answer to both is to serve the derived CII score rather than raw event rows. See boundary 3.
+
 **v7 — 2026-08-03.** Owner amendment to boundary 1: **Trader mode is approved** (dashboard +
 MCP only; execution stays downstream), and **the MCP consumer set is the owner himself** —
 which reframes every clause whose operative restriction is *third-party* redistribution.
@@ -151,6 +157,48 @@ Consequences that shape every decision here:
    >
    > This is also now largely moot for this repo under the boundary-1 resolution above: prediction-market *trading* lives in the downstream repos. The Kalshi collection path here supplies OSINT context, not an execution feed.
    **ACLED specifically: `ACLED_MODE` must stay defaulted to `fixture` pre-licence.**
+
+   > **v8 AMENDMENT 2026-08-03 (owner) — THE ACLED AI/LLM RESTRICTION IS SCOPED TO TRAINING, NOT
+   > INFERENCE. ACLED IS CLEARED FOR USE HERE.**
+   >
+   > Chris raised this directly with **ACLED (CIO's office)** and was told the AI/ML/LLM
+   > restriction concerns **training**, not inference. That is the publisher's own construction of
+   > their own instrument, and it outranks a document read — the same rule that settled the Kalshi
+   > clause under this boundary. **Serving ACLED-derived data into an LLM's context for reasoning
+   > is not the prohibited activity.** Treat ACLED as an authorized source: `ACLED_MODE=live` is
+   > legitimate once credentials exist, and the fixture default is now an operational safety, not
+   > a licensing gate.
+   >
+   > **Do not re-raise the inference question.** A session-09 audit of the public documents read
+   > §7.2 ("any LLM … that incorporates or **references** ACLED Content") as reaching inference and
+   > concluded the Kalshi precedent did not transfer. The owner's channel supersedes that reading.
+   > The lesson is the one this repo already learned once: **a broad-reading clause is a question
+   > to ask the provider, not a verdict to hand the owner.**
+   >
+   > **Two NON-AI clauses remain open, and they are separate questions the above does not answer.**
+   > Recorded, not blocking — flagged once so they are not discovered late:
+   > - **§10 Competitive Use** bars developing datasets/APIs/tools "similar in content, structure,
+   >   or function" to ACLED's own products (they ship a Conflict Index and an API). It has no
+   >   external-distribution qualifier, so unlike the Pyth §2.1(b) case the v7 consumer-set
+   >   clarification does **not** dissolve it.
+   > - **§13** makes Licensed Content "Confidential Information", internal-use-only. Relevant to
+   >   whether **raw ACLED event records** may transit a third-party LLM API; a **derived score**
+   >   (the CII) is transformative under §3.1 and does not raise it.
+   >
+   > **Design consequence, and it is cheap:** prefer serving the **derived CII score** over raw
+   > ACLED event rows on the MCP surface. That is the shape §3.1 explicitly permits, it is what
+   > downstream consumers actually need, and it sidesteps both clauses above without costing
+   > capability. If raw-event exposure is ever wanted, ask the same channel
+   > (`licensing@acleddata.com`) — the questions are drafted in the audit doc.
+   >
+   > **Practical access note (unchanged by the above):** ACLED assigns tier by **email domain** —
+   > a generic address lands on Open, which has **no API**. Getting a working credential is an
+   > access question, not a licensing one. Full document quotes, alternatives, and the drafted
+   > questions: `docs/plans/acled-licence-audit-01.md` (gitignored).
+   >
+   > **GDELT stays wired regardless** — it is the most permissive licence in the audit
+   > ("unlimited and unrestricted use for any … commercial … use of any kind without fee", no AI
+   > clause) and codes protest/riot as CAMEO root 14. Its current 429 is an ENGINEERING problem.
 
 4. **Do not target the hosted `worldmonitor.app` entitlement system.** Never patch Pro-grant checks (`MCP_PRO_GRANT_HMAC_SECRET`, `MCP_INTERNAL_HMAC_SECRET`) or work around `wm_` quotas. In this fork those are our own secrets and configuring them is normal. If you encounter those code paths, note and move on.
 

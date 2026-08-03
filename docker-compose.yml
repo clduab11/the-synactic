@@ -326,7 +326,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop-slow
-    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies seed-economy seed-eia-petroleum; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
+    command: ["sh", "-c", "while true; do for s in seed-sanctions-pressure seed-climate-zone-normals seed-climate-anomalies seed-economy seed-eia-petroleum seed-unrest-events; do echo \"[seed-loop-slow] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop-slow] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-slow] cycle done; sleeping 3h'; sleep 10800; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro
@@ -347,6 +347,25 @@ services:
       # well inside both providers' published limits.
       FRED_API_KEY: "${FRED_API_KEY:-}"
       EIA_API_KEY: "${EIA_API_KEY:-}"
+      # ACLED — CLEARED for use 2026-08-03 (CONTEXT.md boundary 3, v8): the
+      # publisher's AI/LLM restriction is scoped to TRAINING, not inference,
+      # confirmed by the owner with ACLED's CIO office. The fixture default is
+      # now an OPERATIONAL safety (no credentials yet, and live mode would fail
+      # closed), not a licensing gate.
+      #
+      # To go live, set all four in .env — nothing else needs to change:
+      #   ACLED_MODE=live  plus  ACLED_EMAIL + ACLED_PASSWORD  (or
+      #   ACLED_ACCESS_TOKEN). scripts/_acled-source.mjs:31 defaults to fixture.
+      # ⚠ ACLED assigns API tier by EMAIL DOMAIN — a generic address lands on
+      # the Open tier, which has NO API at all, so the credential must come
+      # from a tier that actually carries API rights.
+      #
+      # These live HERE and not only on the app container for the same reason
+      # FRED/EIA did: the seeders that consume them run in this container.
+      ACLED_MODE: "${ACLED_MODE:-fixture}"
+      ACLED_EMAIL: "${ACLED_EMAIL:-}"
+      ACLED_PASSWORD: "${ACLED_PASSWORD:-}"
+      ACLED_ACCESS_TOKEN: "${ACLED_ACCESS_TOKEN:-}"
     depends_on:
       redis-rest:
         condition: service_started
