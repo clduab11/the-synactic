@@ -77,6 +77,21 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/worldmonitor.conf
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
+# Make the runtime node_modules resolvable to bind-mounted seeder scripts.
+#
+# The seed-loop services mount ./scripts at /repo/scripts and run
+# `node /repo/scripts/<name>.mjs`. Node resolves a bare specifier by walking up
+# from the FILE's directory — /repo/scripts/node_modules, /repo/node_modules,
+# /node_modules — none of which existed, so any seeder importing an npm package
+# died with ERR_MODULE_NOT_FOUND while the dependency sat in /app/node_modules.
+# That silently limited both loops to dependency-free seeders (seed-sanctions-
+# pressure needs sax, seed-conflict-intel needs papaparse; both were failing).
+#
+# The symlink is created here, as root at build time, because the container
+# runs as appuser and /repo is not writable at runtime. /repo/scripts and the
+# other bind mounts are siblings, so they do not shadow it.
+RUN mkdir -p /repo && ln -s /app/node_modules /repo/node_modules
+
 # Ensure writable dirs for non-root
 RUN chown -R appuser:appgroup /app /tmp/nginx-client-body /tmp/nginx-proxy \
     /tmp/nginx-fastcgi /tmp/nginx-uwsgi /tmp/nginx-scgi /var/log/supervisor \
