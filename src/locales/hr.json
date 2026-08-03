@@ -72,7 +72,8 @@
       "sortableTable": "Sortabilna tablica cijena kriptovaluta s filterom pretrage",
       "animatedCounters": "Animirani brojači za ključne ekonomske pokazatelje",
       "tabbedComparison": "Usporedba konfliktnih događaja po regijama u karticama"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "countryBrief": {
     "identifying": "Identificiram zemlju...",

@@ -3360,7 +3360,8 @@
       "sortableTable": "Sortbar kryptopristabll med sökfilter",
       "animatedCounters": "Animerade räknare för viktiga ekonomiska indikatorer",
       "tabbedComparison": "Tabbad jämförelse av konflikthändelser efter region"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Offline — visar cachad data från {{freshness}}.",

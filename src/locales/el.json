@@ -3360,7 +3360,8 @@
       "sortableTable": "Πίνακας τιμών κρυπτογραφήματος με δυνατότητα ταξινόμησης και φίλτρο αναζήτησης",
       "animatedCounters": "Ζωντανοί μετρητές για βασικούς οικονομικούς δείκτες",
       "tabbedComparison": "Σύγκριση με καρτέλες των συμβάντων σύγκρουσης κατά περιοχή"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Χωρίς σύνδεση — εμφάνιση αποθηκευμένων δεδομένων από {{freshness}}.",

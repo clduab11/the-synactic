@@ -3360,7 +3360,8 @@
       "sortableTable": "Bảng giá tiền điện tử có thể sắp xếp với bộ lọc tìm kiếm",
       "animatedCounters": "Bộ đếm động cho các chỉ số kinh tế chính",
       "tabbedComparison": "So sánh theo tab các sự kiện xung đột theo khu vực"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Ngoại tuyến — hiển thị dữ liệu đã lưu từ {{freshness}}.",

@@ -3396,7 +3396,8 @@
       "sortableTable": "Tabela cen kryptowalut z sortowaniem i filtrem wyszukiwania",
       "animatedCounters": "Liczniki animowane dla kluczowych wskaźników gospodarczych",
       "tabbedComparison": "Porównanie wydarzeń konfliktowych w kartach według regionów"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Offline — wyświetlanie danych z pamięci podręcznej z {{freshness}}.",

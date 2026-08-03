@@ -3360,7 +3360,8 @@
       "sortableTable": "ตารางราคา crypto ที่จัดเรียงได้พร้อมตัวกรองค้นหา",
       "animatedCounters": "ตัวนับแบบเคลื่อนไหวสำหรับตัวชี้วัดเศรษฐกิจหลัก",
       "tabbedComparison": "การเปรียบเทียบแบบแท็บของเหตุการณ์ความขัดแย้งตามภูมิภาค"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "ออฟไลน์ — แสดงข้อมูลที่บันทึกไว้จาก {{freshness}}",

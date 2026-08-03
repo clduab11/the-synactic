@@ -3360,7 +3360,8 @@
       "sortableTable": "Sortierbare Krypto-Preistabelle mit Suchfilter",
       "animatedCounters": "Animierte Zähler für Schlüsselindikatoren der Wirtschaft",
       "tabbedComparison": "Tabbasierte Vergleich von Konfliktereignissen nach Region"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Offline – gecacherte Daten von {{freshness}} werden angezeigt.",

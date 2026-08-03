@@ -128,8 +128,34 @@ export async function saveWidget(spec: CustomWidgetSpec): Promise<void> {
     };
     const existing = loadWidgets().filter(w => w.id !== trimmed.id);
     const updated = [...existing, trimmed].slice(-MAX_WIDGETS);
-    saveToStorage(STORAGE_KEY, updated);
+    // Write DIRECTLY rather than through saveToStorage, which swallows quota
+    // errors (it calls markStorageQuotaExceeded and returns void — right for
+    // best-effort caches, wrong here). A basic widget that fails to persist
+    // still mounts and works for the session, then vanishes on reload with no
+    // feedback: the user believes they saved something they did not. The pro
+    // branch above already throws, and panel-layout already catches and toasts
+    // it, so this only makes the two tiers behave alike.
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      throw new Error('Storage quota exceeded saving widget');
+    }
   }
+}
+
+/**
+ * How many stored widgets a save would silently drop.
+ *
+ * Both save paths end in `.slice(-MAX_WIDGETS)`, so adding an 11th widget
+ * evicts the oldest with no warning: it stays on screen for the rest of the
+ * session and is simply gone after a reload, which reads as random data loss.
+ * Callers use this BEFORE saving to warn about the specific widget at risk.
+ * Returns 0 when nothing would be evicted.
+ */
+export function widgetsEvictedBySaving(spec: CustomWidgetSpec): CustomWidgetSpec[] {
+  const existing = loadWidgets().filter(w => w.id !== spec.id);
+  const overflow = existing.length + 1 - MAX_WIDGETS;
+  return overflow > 0 ? existing.slice(0, overflow) : [];
 }
 
 export function deleteWidget(id: string): void {

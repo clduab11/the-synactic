@@ -3360,7 +3360,8 @@
       "sortableTable": "Sorteerbare cryptoprijstabel met zoekfilter",
       "animatedCounters": "Geanimeerde tellers voor belangrijkste economische indicatoren",
       "tabbedComparison": "Tabblad-vergelijking van conflictgebeurtenissen per regio"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Offline — gegevens uit cache van {{freshness}} worden weergegeven.",

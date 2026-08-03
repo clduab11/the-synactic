@@ -3432,7 +3432,8 @@
       "sortableTable": "جدول أسعار العملات المشفرة القابل للفرز مع مرشح البحث",
       "animatedCounters": "عدادات متحركة للمؤشرات الاقتصادية الرئيسية",
       "tabbedComparison": "مقارنة بتبويبات لأحداث النزاع حسب المنطقة"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "بلا اتصال — يتم عرض البيانات المخزنة مؤقتاً من {{freshness}}.",

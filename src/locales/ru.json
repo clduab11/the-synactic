@@ -3396,7 +3396,8 @@
       "sortableTable": "Сортируемая таблица цен крипто с фильтром поиска",
       "animatedCounters": "Анимированные счетчики ключевых экономических показателей",
       "tabbedComparison": "Табличное сравнение событий конфликтов по регионам"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Офлайн — отображаются кэшированные данные от {{freshness}}.",

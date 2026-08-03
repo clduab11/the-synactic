@@ -3360,7 +3360,8 @@
       "sortableTable": "具有搜索筛选功能的可排序加密货币价格表",
       "animatedCounters": "主要经济指标的动画计数器",
       "tabbedComparison": "按地区分类的冲突事件选项卡式对比"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "离线——显示来自 {{freshness}} 的缓存数据。",

@@ -3396,7 +3396,8 @@
       "sortableTable": "Seřaditelná tabulka cen kryptoměn s filtrem vyhledávání",
       "animatedCounters": "Animované čítače pro klíčové ekonomické ukazatele",
       "tabbedComparison": "Tabelované porovnání konfliktních událostí podle regionu"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Offline — zobrazuji data z mezipaměti z {{freshness}}.",

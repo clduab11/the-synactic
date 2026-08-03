@@ -3378,7 +3378,8 @@
       "sortableTable": "Tabella prezzi criptovalute ordinabile con filtro di ricerca",
       "animatedCounters": "Contatori animati per i principali indicatori economici",
       "tabbedComparison": "Confronto a schede degli eventi di conflitto per regione"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "connectivity": {
     "offlineCached": "Offline — visualizzazione dati in cache da {{freshness}}.",

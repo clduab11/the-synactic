@@ -40,7 +40,7 @@ import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
 import { trackCriticalBannerAction, trackCheckoutSuccess, trackCheckoutFailed, trackGateHit, replayPendingCheckoutSuccess, replayPendingProFunnelEvents, replayPendingConversionEvents } from '@/services/analytics';
 import { getStoredMapModePreference } from '@/services/map-mode-preference';
-import { loadWidgets, saveWidget, isProUser } from '@/services/widget-store';
+import { loadWidgets, saveWidget, isProUser, widgetsEvictedBySaving } from '@/services/widget-store';
 import type { CustomWidgetSpec } from '@/services/widget-store';
 import { initEntitlementSubscription, destroyEntitlementSubscription, isEntitlementActive, hasTier, getEntitlementState, onEntitlementChange } from '@/services/entitlements';
 import { createEntitlementReloadController } from '@/services/entitlement-reload-controller';
@@ -2855,7 +2855,18 @@ export class PanelLayoutManager implements AppModule {
   }
 
   async addCustomWidget(spec: CustomWidgetSpec): Promise<void> {
+    // Storage keeps only the newest MAX_WIDGETS, so this save may evict the
+    // oldest — silently, until a reload made it look like random data loss.
+    // Name the casualty instead. Computed BEFORE the write, because afterwards
+    // the evicted entry is already gone.
+    const evicted = widgetsEvictedBySaving(spec);
     await saveWidget(spec);
+    if (evicted.length > 0) {
+      showToast(t('widgets.evictedOldest', { title: evicted.map((w) => w.title).join(', ') }));
+      // Drop the stale panelSettings entries too — otherwise a widget that no
+      // longer exists keeps a row in the panel manager forever.
+      for (const w of evicted) delete this.ctx.panelSettings[w.id];
+    }
     this.ctx.panelSettings[spec.id] = { name: spec.title, enabled: true, priority: 3 };
     saveToStorage(STORAGE_KEYS.panels, this.ctx.panelSettings);
     void this.importPanel(
@@ -2865,6 +2876,12 @@ export class PanelLayoutManager implements AppModule {
       (CustomWidgetPanel) => new CustomWidgetPanel(spec),
     ).then((panel) => {
       if (panel) this.addDynamicPanel(spec.id, panel);
+    }).catch((error) => {
+      // importPanel's own handler covers a failed dynamic import, not a throw
+      // from the constructor — without this that becomes an unhandled
+      // rejection and the widget is saved but never mounts, with no signal.
+      console.error('[widget-builder] failed to mount widget panel', error);
+      showToast(t('widgets.saveFailed'));
     });
   }
 

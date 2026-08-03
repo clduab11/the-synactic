@@ -22,6 +22,7 @@
     "unknownError": "Unknown error",
     "generatedWidget": "Generated widget: {{title}}",
     "saveFailed": "Widget could not be saved. Please try again.",
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
     "checkingConnection": "Checking widget access…",
     "preflightConnected": "Connected to the widget agent",
     "preflightInvalidKey": "Widget key rejected. Update wm-widget-key and reload.",
