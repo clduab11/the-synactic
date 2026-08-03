@@ -74,7 +74,7 @@ API. Machines collect and compute — a human signs every conclusion.
 flowchart LR
   W((World)) --> C[Collection fleet<br/>163 autonomous seeders]
   C --> D[(Self-hosted<br/>data plane)]
-  D --> I[The instrument<br/>68 MCP tools · risk scoring · briefs]
+  D --> I[The instrument<br/>69 MCP tools · risk scoring · briefs]
   I --> O[Orchestration ring<br/>contracts · tool policy · model router]
   O --> A[Analyst]
   A --> R[[Human-authored<br/>client reports]]

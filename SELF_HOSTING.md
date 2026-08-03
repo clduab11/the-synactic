@@ -199,7 +199,7 @@ served by the same container, at `/api/mcp`.
 | Transport | JSON-RPC over HTTP POST (`tools/list`, `tools/call`) |
 | Auth header | `X-WorldMonitor-Key` |
 | Credential | any entry in `WORLDMONITOR_VALID_KEYS` (comma-separated, in `.env`) |
-| Tools | 68 (35 cache + 29 rpc + 4 nlp) |
+| Tools | 69 (36 cache + 29 rpc + 4 nlp) |
 
 Keys in `WORLDMONITOR_VALID_KEYS` resolve to the **operator** credential class,
 which is intentionally ungated and unmetered on a self-host — no Convex, no
