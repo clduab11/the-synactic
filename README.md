@@ -27,9 +27,9 @@ being able to say where a number came from.
 
 ## The live numbers
 
-150+ autonomous collectors sweeping conflict events, sanctions programs,
+163 autonomous collectors sweeping conflict events, sanctions programs,
 maritime chokepoints, energy flows, airspace, cyber threat feeds,
-macroeconomics, and climate anomalies. 60+ typed MCP tools any agent can
+macroeconomics, and climate anomalies. 68 typed MCP tools any agent can
 call — composite country-risk scoring, conflict-event retrieval,
 LLM-grounded country briefs, chokepoint status — with server-side projection
 keeping context windows lean. 190+ routed model endpoints behind one
@@ -61,6 +61,9 @@ in a client report.
 
 **Read-only by charter.** The instrument observes markets and events. It
 will never place an order, execute a trade, or move money. Permanently.
+Where venue market data is carried at all it is read-only and licensed —
+each venue is authorized individually, and that authorization is recorded in
+CONTEXT.md before a line of code reads it.
 
 **Human-authored, always.** No external users, no client logins, no exposed
 API. Machines collect and compute — a human signs every conclusion.
@@ -69,9 +72,9 @@ API. Machines collect and compute — a human signs every conclusion.
 
 ```mermaid
 flowchart LR
-  W((World)) --> C[Collection fleet<br/>150+ autonomous seeders]
+  W((World)) --> C[Collection fleet<br/>163 autonomous seeders]
   C --> D[(Self-hosted<br/>data plane)]
-  D --> I[The instrument<br/>50+ MCP tools · risk scoring · briefs]
+  D --> I[The instrument<br/>68 MCP tools · risk scoring · briefs]
   I --> O[Orchestration ring<br/>contracts · tool policy · model router]
   O --> A[Analyst]
   A --> R[[Human-authored<br/>client reports]]
