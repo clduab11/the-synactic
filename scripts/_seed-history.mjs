@@ -6,13 +6,26 @@
  * intel-history store via the authenticated `/relay/intel-history`
  * HTTP action.
  *
+ * SELF-HOST BACKEND: when INTEL_HISTORY_BACKEND=chroma the append goes to a
+ * local Chroma service instead — records are embedded through a local
+ * OpenAI-compatible endpoint (INTEL_EMBED_BASE_URL/INTEL_EMBED_MODEL/
+ * INTEL_EMBED_DIMS, e.g. LM Studio) and upserted into the
+ * `intel-history-v1` collection that server/_shared/intel-history-local.ts
+ * reads. The dedupeKey doubles as the Chroma id, so re-running a seeder
+ * upserts rather than duplicates. The embedded text and its normalization
+ * (buildHistoryEmbeddingText → normalizeForEmbedding) are IDENTICAL across
+ * backends — the query side ranks in the same vector space only if the write
+ * side embedded the same bytes.
+ *
  * FAIL-OPEN BY DESIGN. History is a secondary artefact of a seed run —
  * a history failure must never fail the run. Two layers enforce that:
  *
  *   1. Missing configuration is NOT an error. Any of CONVEX_SITE_URL
  *      (or CONVEX_URL), RELAY_SHARED_SECRET, OPENROUTER_API_KEY absent
  *      → one warn, `{ skipped: 'unconfigured' }`, zero network calls.
- *      Local runs and un-provisioned Railway services stay silent-ish.
+ *      (Chroma backend: the quartet is CHROMA_URL + the INTEL_EMBED_*
+ *      trio instead.) Local runs and un-provisioned Railway services
+ *      stay silent-ish.
  *   2. Hard runtime failures (embedder outage, relay 5xx after retries)
  *      throw a SeedHistoryError. Callers MUST wrap the call in
  *      try/catch — this module deliberately does not swallow real
@@ -230,8 +243,39 @@ async function readErrorSnippet(response) {
 /**
  * Resolve the relay config from an env bag. Returns `null` plus the
  * list of missing names so the caller can emit exactly one warn.
+ *
+ * INTEL_HISTORY_BACKEND=chroma swaps the Convex trio for the local quartet
+ * (CHROMA_URL + INTEL_EMBED_BASE_URL/MODEL/DIMS) as what "configured" means —
+ * the silent-no-op posture is identical, only the variable names differ, so
+ * a self-host that opts in half-way stays a visible NOT_CONFIGURED in the
+ * ingest-health record instead of a hard failure.
  */
 function resolveRelayConfig(env) {
+  if (env.INTEL_HISTORY_BACKEND === 'chroma') {
+    const chromaUrl = (env.CHROMA_URL ?? '').replace(/\/+$/, '');
+    const embedBaseUrl = (env.INTEL_EMBED_BASE_URL ?? '').replace(/\/+$/, '');
+    const embedModel = env.INTEL_EMBED_MODEL ?? '';
+    const embedDims = Number(env.INTEL_EMBED_DIMS ?? '');
+
+    const missing = [];
+    if (!chromaUrl) missing.push('CHROMA_URL');
+    if (!embedBaseUrl) missing.push('INTEL_EMBED_BASE_URL');
+    if (!embedModel) missing.push('INTEL_EMBED_MODEL');
+    if (!Number.isInteger(embedDims) || embedDims <= 0) missing.push('INTEL_EMBED_DIMS');
+    if (missing.length > 0) return { missing };
+
+    return {
+      backend: 'chroma',
+      chromaUrl,
+      embedBaseUrl,
+      embedModel,
+      embedDims,
+      tenant: env.INTEL_CHROMA_TENANT || 'default_tenant',
+      database: env.INTEL_CHROMA_DATABASE || 'default_database',
+      missing,
+    };
+  }
+
   const siteUrl = resolveConvexSiteUrl(env);
   const secret = env.RELAY_SHARED_SECRET ?? '';
   const openrouterKey = env.OPENROUTER_API_KEY ?? '';
@@ -242,7 +286,7 @@ function resolveRelayConfig(env) {
   if (!openrouterKey) missing.push('OPENROUTER_API_KEY');
   if (missing.length > 0) return { missing };
 
-  return { siteUrl, secret, openrouterKey, missing };
+  return { backend: 'convex', siteUrl, secret, openrouterKey, missing };
 }
 
 /**
@@ -319,6 +363,202 @@ async function postHistoryChunk({
     }
   }
   throw lastError;
+}
+
+// ── Local Chroma backend (INTEL_HISTORY_BACKEND=chroma) ─────────────────────
+//
+// Self-host write path, paired with the read path in
+// server/_shared/intel-history-local.ts. Kept in this file (not a new module)
+// so the scripts/ Railway-nixpacks import boundary stays trivially satisfied
+// and the fail-open / budget semantics stay in one place.
+
+// Must match server/_shared/intel-history-local.ts:CHROMA_COLLECTION_NAME —
+// the reader creates the same collection on demand, so a name drift would
+// split reads and writes across two silently-empty stores.
+const CHROMA_COLLECTION_NAME = 'intel-history-v1';
+
+// Politeness toward the local embedding box (LM Studio also serves generation
+// work): small sequential batches, never parallel. 150 records / 32 = at most
+// 5 calls per run.
+const LOCAL_EMBED_BATCH_SIZE = 32;
+const LOCAL_EMBED_TIMEOUT_MS = 15_000;
+const CHROMA_TIMEOUT_MS = 10_000;
+
+function chromaCollectionsPath(config) {
+  return `${config.chromaUrl}/api/v2/tenants/${encodeURIComponent(config.tenant)}/databases/${encodeURIComponent(config.database)}/collections`;
+}
+
+async function postJson(fetchImpl, url, payload, timeoutMs, what) {
+  const response = await fetchImpl(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(Math.max(1, timeoutMs)),
+  });
+  if (!response.ok) {
+    const snippet = await readErrorSnippet(response);
+    throw new SeedHistoryError(`${what} returned HTTP ${response.status}: ${snippet}`, {
+      status: response.status,
+    });
+  }
+  return response.json();
+}
+
+/**
+ * Embed the records' composed texts through the local OpenAI-compatible
+ * endpoint. All-or-nothing like embedBatch: a partial vector set would
+ * misalign records and embeddings, so any bad batch throws. No Redis cache on
+ * this path — the paid-call pressure that justified the OpenRouter cache does
+ * not exist against local hardware, and reusing brief-embedding's cache would
+ * poison its model-namespaced cells with foreign-dimension vectors.
+ *
+ * `dimensions` is deliberately NOT sent: local servers commonly ignore or
+ * reject it, so the returned width is validated against INTEL_EMBED_DIMS
+ * instead — stored and query vectors must share model+dims or ranking is
+ * silently meaningless.
+ */
+async function embedLocalBatches(texts, { fetchImpl, config, deadline, now }) {
+  const vectors = [];
+  for (let start = 0; start < texts.length; start += LOCAL_EMBED_BATCH_SIZE) {
+    const remainingMs = deadline - now();
+    if (remainingMs <= 0) return { vectors: null, embedded: start };
+    const batch = texts.slice(start, start + LOCAL_EMBED_BATCH_SIZE);
+    const body = await postJson(
+      fetchImpl,
+      `${config.embedBaseUrl}/embeddings`,
+      { model: config.embedModel, input: batch },
+      Math.min(LOCAL_EMBED_TIMEOUT_MS, remainingMs),
+      'local embeddings endpoint',
+    );
+    const data = Array.isArray(body?.data) ? body.data : null;
+    if (!data || data.length !== batch.length) {
+      throw new SeedHistoryError(
+        `local embeddings endpoint returned ${data?.length ?? 'no'} vectors for ${batch.length} inputs`,
+      );
+    }
+    for (let i = 0; i < data.length; i++) {
+      const entry = data[i];
+      const idx = typeof entry?.index === 'number' ? entry.index : i;
+      const vector = entry?.embedding;
+      if (!Array.isArray(vector) || vector.length !== config.embedDims) {
+        throw new SeedHistoryError(
+          `local embeddings endpoint returned ${vector?.length ?? 'no'} dims, expected ${config.embedDims} (INTEL_EMBED_DIMS)`,
+        );
+      }
+      vectors[start + idx] = vector;
+    }
+  }
+  return { vectors, embedded: texts.length };
+}
+
+/**
+ * Chroma metadata for one sanitized record. Scope fields are stored in the
+ * SAME normal form the read path compares against (domain lower, country
+ * UPPER — server/_shared/intel-history-client.ts normalizeCountry/Domain), so
+ * `$eq` filters behave like the Convex store's `eq` did. Optional fields are
+ * omitted rather than written empty: Chroma rejects nulls, and the reader
+ * already maps absent metadata to ''/0.
+ */
+function chromaMetadataFor(record, { domain, resource, runId, ingestedAt }) {
+  const metadata = {
+    domain: domain.trim().toLowerCase(),
+    resource: resource.trim(),
+    title: record.title,
+    occurredAt: record.occurredAt,
+    ingestedAt,
+  };
+  if (record.country) metadata.country = record.country.toUpperCase();
+  if (record.category) metadata.category = record.category;
+  if (record.summary) metadata.summary = record.summary;
+  if (record.sourceUrl) metadata.sourceUrl = record.sourceUrl;
+  if (runId) metadata.runId = runId;
+  return metadata;
+}
+
+/**
+ * Embed and upsert one run's records into the local Chroma store. Mirrors the
+ * Convex path's outcome contract exactly — same result shape, same budget
+ * semantics (resolve-with-abandoned on deadline, throw only when nothing was
+ * delivered) — so describeHistoryAppendOutcome and the ingest-health record
+ * work unchanged against this backend.
+ *
+ * `inserted` counts records upserted; Chroma's upsert does not report
+ * created-vs-updated, so the dedupe count (`skipped`) is always 0 here — the
+ * dedupeKey-as-id still guarantees no duplicate rows, we just cannot report
+ * how many were re-writes.
+ */
+async function appendSeedHistoryChroma({ domain, resource, runId, sanitized, config, fetchImpl, now, deadline }) {
+  const texts = sanitized.map(buildHistoryEmbeddingText);
+  const { vectors } = await embedLocalBatches(texts, { fetchImpl, config, deadline, now });
+  if (!vectors) {
+    console.warn(
+      `[seed-history] budget exhausted during local embedding; abandoning ${sanitized.length} record(s)`,
+    );
+    return { inserted: 0, skipped: 0, retracted: 0, chunks: 0, abandoned: sanitized.length, failedChunks: 0 };
+  }
+
+  // get_or_create with cosine space declared both ways Chroma has accepted it
+  // (v2 configuration + legacy hnsw:space metadata) — the reader's 1−distance
+  // score contract is only true in cosine space. Model+dims ride along as the
+  // durable record of which vector space this collection holds.
+  const collection = await postJson(
+    fetchImpl,
+    chromaCollectionsPath(config),
+    {
+      name: CHROMA_COLLECTION_NAME,
+      get_or_create: true,
+      configuration: { hnsw: { space: 'cosine' } },
+      metadata: { 'hnsw:space': 'cosine', embedModel: config.embedModel, embedDims: config.embedDims },
+    },
+    CHROMA_TIMEOUT_MS,
+    'chroma collection resolve',
+  );
+  if (typeof collection?.id !== 'string' || !collection.id) {
+    throw new SeedHistoryError('chroma collection resolve returned no id');
+  }
+  const upsertUrl = `${chromaCollectionsPath(config)}/${collection.id}/upsert`;
+
+  const ingestedAt = now();
+  let inserted = 0;
+  let chunks = 0;
+  let abandoned = 0;
+  let failedChunks = 0;
+  let lastError = null;
+
+  for (let start = 0; start < sanitized.length; start += HISTORY_CHUNK_SIZE) {
+    const remainingMs = deadline - now();
+    if (remainingMs <= 0) {
+      abandoned = sanitized.length - start;
+      console.warn(
+        `[seed-history] budget exhausted after ${chunks} chunk(s); abandoning ${abandoned} record(s)`,
+      );
+      break;
+    }
+    const slice = sanitized.slice(start, start + HISTORY_CHUNK_SIZE);
+    try {
+      await postJson(
+        fetchImpl,
+        upsertUrl,
+        {
+          ids: slice.map((record) => record.dedupeKey),
+          embeddings: slice.map((_, i) => vectors[start + i]),
+          documents: texts.slice(start, start + slice.length),
+          metadatas: slice.map((record) => chromaMetadataFor(record, { domain, resource, runId, ingestedAt })),
+        },
+        Math.min(CHROMA_TIMEOUT_MS, remainingMs),
+        'chroma upsert',
+      );
+      inserted += slice.length;
+      chunks += 1;
+    } catch (err) {
+      failedChunks += 1;
+      lastError = err;
+      console.warn(`[seed-history] chroma chunk ${chunks + failedChunks} failed: ${err?.message || err}`);
+    }
+  }
+
+  if (chunks === 0 && failedChunks > 0) throw lastError;
+  return { inserted, skipped: 0, retracted: 0, chunks, abandoned, failedChunks };
 }
 
 /**
@@ -793,6 +1033,20 @@ export async function appendSeedHistory({ domain, resource, runId, records }, de
   // Wrap rather than capture: a bare `fetch` default would bind the
   // global at module load and miss later instrumentation shims.
   const fetchImpl = deps.fetchImpl ?? ((...args) => globalThis.fetch(...args));
+
+  if (config.backend === 'chroma') {
+    return appendSeedHistoryChroma({
+      domain,
+      resource,
+      runId,
+      sanitized,
+      config,
+      fetchImpl,
+      now,
+      deadline,
+    });
+  }
+
   const embed =
     deps.embed ??
     ((texts, options) =>

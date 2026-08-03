@@ -18,6 +18,7 @@
 
 // @ts-expect-error — JS module, no declaration file
 import { captureSilentError } from '../../api/_sentry-edge.js';
+import { localIntelHistorySearch, localIntelHistoryTimeline } from './intel-history-local';
 
 const CONVEX_INTERNAL_SEARCH_PATH = '/api/internal-intel-search';
 const CONVEX_INTERNAL_TIMELINE_PATH = '/api/internal-intel-timeline';
@@ -234,10 +235,24 @@ async function readIntelHistory(
   }
 }
 
+/**
+ * Backend selector, read at call time (never at module load) so tests and a
+ * compose env flip both take effect without a rebuild of this module's state.
+ * `chroma` routes the read to the local transport (./intel-history-local.ts,
+ * docker-compose `chroma` service); anything else keeps the Convex path
+ * byte-identical to before the selector existed. Both transports share the
+ * `{records, partial} | null` contract, so the handlers cannot tell them
+ * apart — which is the point: the three shipped MCP tools work unchanged.
+ */
+function useLocalBackend(): boolean {
+  return process.env.INTEL_HISTORY_BACKEND === 'chroma';
+}
+
 /** Semantic read: rank stored history against a query vector. */
 export function intelHistorySearch(
   params: IntelHistoryScope & { embedding: number[]; minScore?: number },
 ): Promise<{ records: IntelHistoryRecordView[]; partial: boolean } | null> {
+  if (useLocalBackend()) return localIntelHistorySearch(params);
   const { embedding, minScore, ...scope } = params;
   return readIntelHistory(CONVEX_INTERNAL_SEARCH_PATH, {
     embedding,
@@ -254,5 +269,6 @@ export function intelHistorySearch(
 export function intelHistoryTimeline(
   scope: IntelHistoryScope,
 ): Promise<{ records: IntelHistoryRecordView[]; partial: boolean } | null> {
+  if (useLocalBackend()) return localIntelHistoryTimeline(scope);
   return readIntelHistory(CONVEX_INTERNAL_TIMELINE_PATH, scopeBody(scope));
 }

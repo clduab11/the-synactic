@@ -91,6 +91,26 @@ services:
       CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
       AVIATIONSTACK_API: "${AVIATIONSTACK_API:-}"
       TRAVELPAYOUTS_API_TOKEN: "${TRAVELPAYOUTS_API_TOKEN:-}"
+      # Session-09 [2b]: local intel-history backend. Routes the three history
+      # RPCs (search-intel-history / get-intel-timeline / get-similar-events)
+      # to the `chroma` service below instead of Convex — this self-host
+      # deliberately leaves CONVEX_SITE_URL unset, which otherwise pins those
+      # tools at upstreamUnavailable forever. Query embedding goes to the
+      # operator's local OpenAI-compatible endpoint (LM Studio on the host);
+      # INTEL_EMBED_MODEL/DIMS MUST match what scripts/_seed-history.mjs wrote
+      # into the collection, or ranking is silently meaningless. Both origins
+      # are private-network, so the sidecar's docker-mode SSRF allowlist reads
+      # these SAME env names (src-tauri/sidecar/local-api-server.mjs).
+      INTEL_HISTORY_BACKEND: "${INTEL_HISTORY_BACKEND:-chroma}"
+      CHROMA_URL: "${CHROMA_URL:-http://chroma:8000}"
+      INTEL_EMBED_BASE_URL: "${INTEL_EMBED_BASE_URL:-http://host.docker.internal:1234/v1}"
+      INTEL_EMBED_MODEL: "${INTEL_EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}"
+      INTEL_EMBED_DIMS: "${INTEL_EMBED_DIMS:-768}"
+    # Docker Desktop resolves host.docker.internal natively; the explicit
+    # host-gateway mapping keeps the LM Studio embed path working under plain
+    # Linux dockerd too.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # Docker secrets (recommended for API keys — keeps them out of docker inspect).
     # Create secrets/ dir with one file per key, then uncomment below.
     # See SELF_HOSTING.md or docker-compose.override.yml for details.
@@ -105,6 +125,11 @@ services:
       redis-rest:
         condition: service_started
       ais-relay:
+        condition: service_started
+      # Startup ordering only. A stopped/failed chroma must DEGRADE the three
+      # history tools to upstreamUnavailable:true, never block the app —
+      # service_started does not gate on health.
+      chroma:
         condition: service_started
     restart: unless-stopped
 
@@ -240,6 +265,21 @@ services:
       # worst case; that worst case is why the per-seeder timeout above is 1800s
       # and not 900s. Well inside the MAP_KEY ceiling of 5000 per 10 min.
       NASA_FIRMS_API_KEY: "${NASA_FIRMS_API_KEY:-}"
+      # Session-09 [2b]: intel-history write path. The three history-writing
+      # seeders (seed-conflict-intel, seed-cross-strait-activity,
+      # seed-energy-intelligence) are run in THIS container (`docker compose
+      # exec -T seed-loop node /repo/scripts/<name>.mjs`) so their
+      # afterPublish hooks embed via LM Studio on the host and upsert into the
+      # chroma service. Same values as the app container — reads and writes
+      # must share one store and one vector space. No SSRF guard here: plain
+      # node, no sidecar.
+      INTEL_HISTORY_BACKEND: "${INTEL_HISTORY_BACKEND:-chroma}"
+      CHROMA_URL: "${CHROMA_URL:-http://chroma:8000}"
+      INTEL_EMBED_BASE_URL: "${INTEL_EMBED_BASE_URL:-http://host.docker.internal:1234/v1}"
+      INTEL_EMBED_MODEL: "${INTEL_EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}"
+      INTEL_EMBED_DIMS: "${INTEL_EMBED_DIMS:-768}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis-rest:
         condition: service_started
@@ -248,6 +288,36 @@ services:
     # inherited HEALTHCHECK can never pass.
     healthcheck:
       disable: true
+
+  # Session-09 [2b]: local vector store for the intel-history surface.
+  # Replaces Convex as the durable store behind search_intel_history /
+  # get_intel_timeline / get_similar_events on this self-host (CONVEX_SITE_URL
+  # is deliberately unset here). One collection, `intel-history-v1`, cosine
+  # space, 768-dim nomic vectors; written by the three history seeders via
+  # scripts/_seed-history.mjs, read by server/_shared/intel-history-local.ts.
+  # Pinned tag (latest stable at pin time), never :latest — a silent major bump
+  # could change the v2 REST surface under the baked handlers.
+  # Host bind is loopback-only on 8000 (verified free on this box; 8080 is
+  # FORBIDDEN — SearXNG rule) purely for operator curl access; containers reach
+  # it as http://chroma:8000. The image persists to /data (its /config.yaml)
+  # on the chroma-data named volume — the `name: the-synactic` project pin at
+  # the top of this file is what protects named volumes from the rename-
+  # orphaning accident, so keep that pin if you ever touch project naming.
+  # Healthcheck uses bash /dev/tcp because the image ships no curl/wget.
+  chroma:
+    image: docker.io/chromadb/chroma:1.5.9
+    container_name: the-synactic-chroma
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - chroma-data:/data
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /api/v2/healthcheck HTTP/1.0\\r\\n\\r\\n' >&3 && head -c 200 <&3 | grep -q '200'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
 
   ais-relay:
     build:
@@ -352,3 +422,4 @@ services:
 
 volumes:
   redis-data:
+  chroma-data:

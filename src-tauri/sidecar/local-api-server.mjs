@@ -1934,8 +1934,16 @@ export async function createLocalApiServer(options = {}) {
       // Caveat worth knowing: the allowlist is keyed by ORIGIN in the shared
       // fetch layer, so trusting it lets any handler in this process reach that
       // origin — the relay's /widget-agent still 403s without X-Widget-Key.
+      // CHROMA_URL and INTEL_EMBED_BASE_URL join for the same reason again
+      // (session-09 [2b]): the intel-history local backend reads a compose-
+      // internal Chroma service (http://chroma:8000) and embeds queries via
+      // the operator's LM Studio on the host (http://host.docker.internal:1234
+      // /v1) — both private origins the operator explicitly configured, both
+      // read once at boot, neither reachable by caller-supplied URLs. Without
+      // them every history read is SSRF-blocked and the three tools report a
+      // permanent upstreamUnavailable that looks exactly like an empty store.
       if (context.mode === 'docker') {
-        for (const envName of ['LLM_API_URL', 'OLLAMA_API_URL', 'WIDGET_RELAY_BASE']) {
+        for (const envName of ['LLM_API_URL', 'OLLAMA_API_URL', 'WIDGET_RELAY_BASE', 'CHROMA_URL', 'INTEL_EMBED_BASE_URL']) {
           const value = process.env[envName];
           if (!value) continue;
           try {
