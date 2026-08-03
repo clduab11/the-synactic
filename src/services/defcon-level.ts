@@ -84,10 +84,38 @@ export function parseDefconEstimate(raw: unknown): DefconLevelEstimate | null {
 }
 
 /**
- * Returns null when no estimate is available. Callers hide the indicator.
+ * Last successfully parsed estimate.
+ *
+ * REQUIRED, not an optimisation. `getHydratedData` is a ONE-SHOT consume — it
+ * deletes the key from the hydration cache on read (bootstrap.ts:68-72). This
+ * loader runs more than once (the initial task list in data-loader.ts and the
+ * periodic refresh registered in App.ts), so every call after the first sees
+ * `undefined`. Without this the indicator renders on first paint and then
+ * erases itself moments later.
+ *
+ * PizzINT does not hit this because it falls through to an RPC client; this
+ * key has no RPC endpoint by design (dashboard-only, see the seeder header).
+ *
+ * Retaining the last good value is honest here: it is still real collected
+ * data, and the pop-out already renders `fetchedAt` as a relative age, so a
+ * value that stops refreshing visibly ages in the UI rather than silently
+ * passing itself off as current.
+ */
+let lastGood: DefconLevelEstimate | null = null;
+
+/**
+ * Returns null only when no estimate has EVER been available this session.
+ * Callers hide the indicator in that case.
  */
 export async function fetchDefconEstimate(): Promise<DefconLevelEstimate | null> {
-  return parseDefconEstimate(getHydratedData('defconLevel'));
+  const fresh = parseDefconEstimate(getHydratedData('defconLevel'));
+  if (fresh) lastGood = fresh;
+  return lastGood;
+}
+
+/** Test seam — lets a test drive the one-shot-hydration path deterministically. */
+export function __resetDefconCache(): void {
+  lastGood = null;
 }
 
 /**
