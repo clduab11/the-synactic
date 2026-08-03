@@ -170,6 +170,9 @@ export const backtestStock: MarketServiceHandler['backtestStock'] = async (
 ): Promise<BacktestStockResponse> => {
   const symbol = sanitizeSymbol(req.symbol || '');
   if (!symbol) {
+    // The five performance metrics are deliberately ABSENT (proto3 optional):
+    // an unavailable backtest has measured nothing, and emitting 0 here reads
+    // as "0% win rate" to any consumer that skips the `available` check.
     return {
       available: false,
       symbol: '',
@@ -179,12 +182,7 @@ export const backtestStock: MarketServiceHandler['backtestStock'] = async (
       evalWindowDays: req.evalWindowDays || DEFAULT_WINDOW_DAYS,
       evaluationsRun: 0,
       actionableEvaluations: 0,
-      winRate: 0,
-      directionAccuracy: 0,
-      avgSimulatedReturnPct: 0,
-      cumulativeSimulatedReturnPct: 0,
       latestSignal: '',
-      latestSignalScore: 0,
       summary: 'No symbol provided.',
       generatedAt: new Date().toISOString(),
       evaluations: [],
@@ -263,6 +261,7 @@ export const backtestStock: MarketServiceHandler['backtestStock'] = async (
     console.warn(`[backtestStock] ${symbol} failed:`, (err as Error).message);
   }
 
+  // Metrics deliberately absent — see the !symbol branch above.
   return {
     available: false,
     symbol,
@@ -272,12 +271,7 @@ export const backtestStock: MarketServiceHandler['backtestStock'] = async (
     evalWindowDays,
     evaluationsRun: 0,
     actionableEvaluations: 0,
-    winRate: 0,
-    directionAccuracy: 0,
-    avgSimulatedReturnPct: 0,
-    cumulativeSimulatedReturnPct: 0,
     latestSignal: '',
-    latestSignalScore: 0,
     summary: 'Backtest unavailable for this symbol.',
     generatedAt: new Date().toISOString(),
     evaluations: [],

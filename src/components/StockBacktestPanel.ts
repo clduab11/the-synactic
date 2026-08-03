@@ -6,24 +6,32 @@ import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
 import { createWatchlistButton } from './watchlist-modal';
 import { WatchlistTableView } from './WatchlistTableView';
 
-function tone(value: number): string {
+// The five performance metrics are absent (not 0) on `available: false`
+// responses — the server stopped fabricating zero measurements. Every
+// helper renders absence as an em dash / dim tone rather than treating
+// undefined as a number.
+function tone(value: number | undefined): string {
+  if (value === undefined) return 'var(--text-dim)';
   if (value > 0) return '#8df0b2';
   if (value < 0) return '#ff8c8c';
   return 'var(--text-dim)';
 }
 
-function fmtPct(value: number): string {
+function fmtPct(value: number | undefined): string {
+  if (value === undefined) return '—';
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(1)}%`;
 }
 
-function backtestSignalClass(winRate: number): string {
+function backtestSignalClass(winRate: number | undefined): string {
+  if (winRate === undefined) return 'badge-neutral';
   if (winRate >= 55) return 'badge-bullish';
   if (winRate >= 45) return 'badge-neutral';
   return 'badge-bearish';
 }
 
-function backtestSignalLabel(winRate: number): string {
+function backtestSignalLabel(winRate: number | undefined): string {
+  if (winRate === undefined) return 'No data';
   if (winRate >= 55) return 'Profitable';
   if (winRate >= 45) return 'Mixed';
   return 'Losing';
@@ -96,14 +104,16 @@ export class StockBacktestPanel extends Panel {
           // The Win Rate ≥ 55% / ≥ 45% / < 45% bands mirror the
           // Profitable / Mixed / Losing badge classifier in
           // backtestSignalLabel so the pill semantics match the row badge.
-          { key: 'profitable', label: 'Profitable', match: (i) => i.winRate >= 55 },
-          { key: 'mixed', label: 'Mixed', match: (i) => i.winRate >= 45 && i.winRate < 55 },
-          { key: 'losing', label: 'Losing', match: (i) => i.winRate < 45 },
+          // Rows with absent metrics (available:false) match none of the
+          // three bands and surface only under All.
+          { key: 'profitable', label: 'Profitable', match: (i) => i.winRate !== undefined && i.winRate >= 55 },
+          { key: 'mixed', label: 'Mixed', match: (i) => i.winRate !== undefined && i.winRate >= 45 && i.winRate < 55 },
+          { key: 'losing', label: 'Losing', match: (i) => i.winRate !== undefined && i.winRate < 45 },
         ],
         sortOptions: [
-          { key: 'winrate-desc', label: 'Win Rate ↓', cmp: (a, b) => b.winRate - a.winRate },
-          { key: 'direction-desc', label: 'Direction ↓', cmp: (a, b) => b.directionAccuracy - a.directionAccuracy },
-          { key: 'avgreturn-desc', label: 'Avg Return ↓', cmp: (a, b) => b.avgSimulatedReturnPct - a.avgSimulatedReturnPct },
+          { key: 'winrate-desc', label: 'Win Rate ↓', cmp: (a, b) => (b.winRate ?? -Infinity) - (a.winRate ?? -Infinity) },
+          { key: 'direction-desc', label: 'Direction ↓', cmp: (a, b) => (b.directionAccuracy ?? -Infinity) - (a.directionAccuracy ?? -Infinity) },
+          { key: 'avgreturn-desc', label: 'Avg Return ↓', cmp: (a, b) => (b.avgSimulatedReturnPct ?? -Infinity) - (a.avgSimulatedReturnPct ?? -Infinity) },
           { key: 'signals-desc', label: 'Signals ↓', cmp: (a, b) => b.actionableEvaluations - a.actionableEvaluations },
           { key: 'symbol-asc', label: 'Symbol A-Z', cmp: (a, b) => (a.display || a.symbol).localeCompare(b.display || b.symbol) },
         ],

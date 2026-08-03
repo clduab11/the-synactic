@@ -24,12 +24,19 @@ import type { StockBacktestResult } from '@/services/stock-backtest';
 import { t } from '@/services/i18n';
 import { joinSafeHtml, safeHtml, type SafeHtml } from '@/utils/sanitize';
 
-function pct(value: number): string {
+// The aggregate metrics are optional on the wire (absent when available:false
+// — the server no longer fabricates zeros). The available-guard in
+// renderSymbol means they are present in practice here, but the type system
+// cannot know that, so absence renders as an em dash rather than a non-null
+// assertion that could turn a future server change into a crash.
+function pct(value: number | undefined): string {
+  if (value === undefined) return '—';
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function toneClass(value: number): string {
+function toneClass(value: number | undefined): string {
+  if (value === undefined) return '';
   if (value > 0) return 'sbx-up';
   if (value < 0) return 'sbx-down';
   return '';
@@ -95,7 +102,7 @@ function renderSymbol(item: StockBacktestResult): SafeHtml {
     </h3>
 
     <div class="sbx-stats">
-      <span class="sbx-stat"><b>${item.winRate.toFixed(2)}%</b>${t('components.stockBacktestFocus.winRate')}</span>
+      <span class="sbx-stat"><b>${item.winRate !== undefined ? `${item.winRate.toFixed(2)}%` : '—'}</b>${t('components.stockBacktestFocus.winRate')}</span>
       <span class="sbx-stat"><b class="${toneClass(item.avgSimulatedReturnPct)}">${pct(item.avgSimulatedReturnPct)}</b>${t('components.stockBacktestFocus.avgReturn')}</span>
       <span class="sbx-stat"><b class="${toneClass(item.cumulativeSimulatedReturnPct)}">${pct(item.cumulativeSimulatedReturnPct)}</b>${t('components.stockBacktestFocus.sumReturn')}</span>
       <span class="sbx-stat"><b>${item.actionableEvaluations}/${item.evaluationsRun}</b>${t('components.stockBacktestFocus.actionable')}</span>

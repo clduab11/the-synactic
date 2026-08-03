@@ -330,12 +330,12 @@ export interface BacktestStockResponse {
   evalWindowDays: number;
   evaluationsRun: number;
   actionableEvaluations: number;
-  winRate: number;
-  directionAccuracy: number;
-  avgSimulatedReturnPct: number;
-  cumulativeSimulatedReturnPct: number;
+  winRate?: number;
+  directionAccuracy?: number;
+  avgSimulatedReturnPct?: number;
+  cumulativeSimulatedReturnPct?: number;
   latestSignal: string;
-  latestSignalScore: number;
+  latestSignalScore?: number;
   summary: string;
   generatedAt: string;
   evaluations: BacktestStockEvaluation[];

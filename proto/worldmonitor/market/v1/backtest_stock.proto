@@ -51,12 +51,17 @@ message BacktestStockResponse {
   int32 eval_window_days = 6;
   int32 evaluations_run = 7;
   int32 actionable_evaluations = 8;
-  double win_rate = 9;
-  double direction_accuracy = 10;
-  double avg_simulated_return_pct = 11;
-  double cumulative_simulated_return_pct = 12;
+  // The five simulated-performance metrics are OPTIONAL and are omitted
+  // whenever `available` is false. They are measurements, not counters: a
+  // hard 0 on an unavailable response reads as "0% win rate" to any consumer
+  // that skips the `available` check, which is a fabricated measurement.
+  // Absent means "not measured"; present means "measured, possibly 0".
+  optional double win_rate = 9;
+  optional double direction_accuracy = 10;
+  optional double avg_simulated_return_pct = 11;
+  optional double cumulative_simulated_return_pct = 12;
   string latest_signal = 13;
-  double latest_signal_score = 14;
+  optional double latest_signal_score = 14;
   string summary = 15;
   string generated_at = 16;
   repeated BacktestStockEvaluation evaluations = 17;
