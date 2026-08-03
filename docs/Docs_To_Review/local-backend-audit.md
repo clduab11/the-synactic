@@ -1,3 +1,19 @@
+> **[SUPERSEDED 2026-08-03 — pre-sebuf routing, retained as a historical record]**
+>
+> This matrix predates the sebuf migration. It maps consumers to `api/*.js`
+> handlers and `src/services/*.ts` files that **no longer exist** — verified
+> missing: `api/risk-scores.js`, `api/acled-conflict.js`, `api/coingecko.js`,
+> `src/services/markets.ts`, `src/services/polymarket.ts`, among others.
+>
+> Superseded for desktop route coverage by
+> [`docs/desktop-parity-matrix.md`](../desktop-parity-matrix.md).
+> **Do not implement against this document.** The body below is left unchanged
+> on purpose: it is the only surviving write-up of the pre-sebuf route mapping,
+> and rewriting it would falsify the record.
+>
+> Not to be confused with [`docs/local-backend-audit.md`](../local-backend-audit.md)
+> at the docs root, which is a DIFFERENT and still-current file.
+
 # Local backend parity matrix (desktop sidecar)
 
 This matrix tracks desktop parity by mapping `src/services/*.ts` consumers to `api/*.js` handlers and classifying each feature as:

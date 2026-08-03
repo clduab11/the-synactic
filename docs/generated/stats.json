@@ -10,8 +10,8 @@
     "energy": 18
   },
   "variantCount": 6,
-  "componentTopLevelTsFiles": 182,
-  "serviceTopLevelEntries": 219,
+  "componentTopLevelTsFiles": 183,
+  "serviceTopLevelEntries": 220,
   "apiEndpointEntries": 89,
   "panelClasses": 107,
   "protoFiles": 290,
@@ -76,7 +76,7 @@
     "typecheck.yml"
   ],
   "workflowCount": 26,
-  "freshnessSources": 35,
+  "freshnessSources": 36,
   "freshnessRequiredForRisk": 2,
   "feedDefinitions": 568,
   "airportCount": 115,

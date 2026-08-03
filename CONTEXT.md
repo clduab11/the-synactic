@@ -7,6 +7,12 @@ Kept as a separate file so upstream merges never conflict with fork knowledge.
 
 **v3 — 2026-07-30.** Charter change by the owner: the-synactic is now an MCP-accessible **read-only intelligence provider** for downstream authorized actors, not report-only. AGPL §13 escalation language removed (owner decision, legal cleared). The instrument stays read-only in its own code; execution lives downstream. README lineage credit and the LICENSE file are unchanged (attribution, not charter).
 
+**v4 — 2026-08-03.** Owner amendment to boundary 1: **Kraken is authorized** (Kraken only), with a binding do-not-abuse-the-quota condition. See boundary 1.
+
+**v5 — 2026-08-03.** Owner amendment to boundary 4: **local self-host / desktop entitlement is authorized**, gated on the build-time `VITE_SELFHOST_PRO` flag and strictly client-side. Hosted server-side auth is untouched and still governs anything calling `api.worldmonitor.app`. See boundary 4.
+
+Also landed 2026-08-03 and reflected below: the brand rename to **the-synactic** for user-visible identity, **ReliefWeb removed** as a data source, and a **DEFCON OSINT indicator** (dashboard-only, deliberately absent from the MCP surface pending a licensing answer).
+
 ---
 
 ## What this instrument is
@@ -82,6 +88,43 @@ Consequences that shape every decision here:
    **ACLED specifically: `ACLED_MODE` must stay defaulted to `fixture` pre-licence.**
 
 4. **Do not target the hosted `worldmonitor.app` entitlement system.** Never patch Pro-grant checks (`MCP_PRO_GRANT_HMAC_SECRET`, `MCP_INTERNAL_HMAC_SECRET`) or work around `wm_` quotas. In this fork those are our own secrets and configuring them is normal. If you encounter those code paths, note and move on.
+
+   **v5 AMENDMENT 2026-08-03 (owner) — LOCAL ENTITLEMENT IS AUTHORIZED. Local only.**
+   The owner holds a paid Pro membership on worldmonitor.app and runs this fork himself under
+   its open-source licence. ADV-34 had unlocked premium UI through `hasPremiumAccess()`, but a
+   **second, independent predicate** — `isEntitled()` — gated the account-shaped surfaces
+   (Notifications, data export, MCP Clients). It reads a Convex snapshot that only ever arrives
+   for a signed-in Clerk user against the **hosted** service, so a self-host had those
+   permanently padlocked on a deployment that owns its own data and its own wired API keys.
+   On a desktop build that is a **defect, not a licensing control**, and fixing it was the
+   stated point of the fork.
+
+   **What is authorized:** `src/services/entitlements.ts` synthesizes a local
+   `EntitlementState` behind `effectiveState()`, gated on the **existing** build-time
+   `isSelfHostPremiumUnlock()` (`VITE_SELFHOST_PRO`). A hosted build resolves that to false and
+   is entirely unaffected. A real Convex snapshot always wins when one exists.
+
+   **The line that stays — and it is the whole reason this is not circumvention.** This unlocks
+   **client-side UI only**. Anything that actually calls hosted `api.worldmonitor.app` still
+   meets that service's own **server-side** auth and is still refused. A client-side patch
+   cannot and must not be used to obtain hosted server resources without paying. If you find
+   yourself editing a *server* check, or forging a credential, or making a hosted endpoint
+   answer for an unpaid caller, you have left the authorized scope.
+
+   **Consequences already applied, do not "fix" them back:**
+   - `isEntitlementActive()` is deliberately **pure**. It encodes the real paid-user rule and
+     its tests must keep measuring that rule, so the self-host branch lives in the callers.
+   - `UnifiedSettings` uses `hasLocalPro`, deliberately **separate** from `isSignedIn`, because
+     the latter also gates "Plan & billing" — a billing tab on a self-host would error on every
+     action.
+   - The **API Keys** tab is NOT unlocked by this. It manages keys *issued by* the hosted
+     service; unlocking it would show buttons that all fail. It renders a self-host panel
+     (endpoints, `X-WorldMonitor-Key`, effective entitlement) instead. **No secret is rendered
+     there** — `WORLDMONITOR_VALID_KEYS` is server-side only and
+     `tests/browser-bundle-secret-guard.test.mts` enforces that. Keep it that way.
+   - `seedSecretsFromEnvironment()` applies the unlock **above** the `isDesktopRuntime()`
+     early-return. It sat below it until 2026-08-03, which meant `VITE_SELFHOST_PRO` silently
+     did nothing in the desktop app.
 
 ---
 

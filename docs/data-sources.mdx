@@ -288,7 +288,7 @@ Delay severity is classified across five levels — normal, minor, moderate, maj
 
 ### Cyber Threat Intelligence Layer
 
-Six threat intelligence feeds provide indicators of compromise (IOCs) for active command-and-control servers, malware distribution hosts, phishing campaigns, malicious URLs, and ransomware operations:
+Five threat intelligence feeds provide indicators of compromise (IOCs) for active command-and-control servers, malware distribution hosts, phishing campaigns, and malicious URLs:
 
 | Feed                         | IOC Type      | Coverage                        |
 | ---------------------------- | ------------- | ------------------------------- |
@@ -297,11 +297,53 @@ Six threat intelligence feeds provide indicators of compromise (IOCs) for active
 | **C2IntelFeeds**             | C2 servers    | Community-sourced C2 indicators |
 | **AlienVault OTX**           | Mixed         | Open threat exchange pulse IOCs |
 | **AbuseIPDB**                | Malicious IPs | Crowd-sourced abuse reports     |
-| **Ransomware.live**          | Ransomware    | Active ransomware group feeds   |
+
+`Ransomware.live` is **not** an IOC feed and is not geo-enriched or plotted as an
+indicator. It is an RSS/news source in the cyber news category
+(`src/config/feeds.ts`), and it was previously listed in the table above — which
+implied the globe plots ransomware-group indicators the seeder never fetches.
 
 Each IP-based IOC is geo-enriched using ipinfo.io with freeipapi.com as fallback. Geolocation results are Redis-cached for 24 hours. Enrichment runs concurrently — 16 parallel lookups with a 12-second timeout, processing up to 250 IPs per collection run.
 
 IOCs are classified into four types (`c2_server`, `malware_host`, `phishing`, `malicious_url`) with four severity levels, rendered as color-coded scatter dots on the globe. The layer uses a 10-minute cache, a 14-day rolling window, and caps display at 500 IOCs to maintain rendering performance.
+
+### DEFCON Readiness Estimate (OSINT — not an official status)
+
+**The United States does not publish the current DEFCON level.** The real level
+is classified and becomes public only after declassification or congressional
+testimony. Anything presenting a "current DEFCON" is an estimate.
+
+`seed-defcon-level` collects the estimate published by
+[defconlevel.com](https://www.defconlevel.com/) — a private OSINT organization
+that states on its own page that it is "not affiliated with the U.S. Government"
+and that its figure is "an OSINT-based estimate, not an official government
+disclosure." Every stored record carries that framing in-band
+(`estimateType: 'osint-estimate'`, `officialStatus: 'classified-not-published'`)
+so no consumer, human or model, can mistake it for a reading.
+
+| | |
+|---|---|
+| Redis key | `intelligence:defcon-level:seed:v1` (TTL 3h) |
+| Records | 1 global level + 14 command rows |
+| Surface | Header indicator + pop-out. **Dashboard only — deliberately not an MCP tool.** |
+
+Two details the source's own headline discards, which the pop-out surfaces:
+
+- **Per-command divergence.** Eleven real unified combatant commands are tracked
+  individually, and several routinely sit below the global level. The indicator
+  escalates on that spread rather than on the headline number.
+- **Three of the fourteen rows are not combatant commands.** `BIOCOM`,
+  `DISASTERCOM` and `FINCOM` are the publisher's own thematic trackers, flagged
+  `isCombatantCommand: false` and rendered in a separate, labelled group so they
+  cannot be read as DoD structure.
+
+Collection posture: the seeder reads the publisher's homepage only — their
+`robots.txt` disallows `/api/` — with an honest User-Agent, once per 45-minute
+cycle against a stated `Crawl-delay: 1`. It is **not** exposed over MCP pending a
+licensing answer; re-serving a third party's assessment to downstream consumers
+is a separate right from displaying their public page. The exclusion and its
+reason are recorded in `tests/mcp-bootstrap-parity.test.mjs`, which fails hard if
+a tool is added for that key.
 
 ### Natural Disaster Monitoring
 

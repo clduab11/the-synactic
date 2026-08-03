@@ -1,6 +1,6 @@
-# 🌍 Self-Hosting World Monitor
+# 🌍 Self-Hosting the-synactic
 
-Run the full World Monitor stack locally with Docker/Podman.
+Run the full the-synactic stack locally with Docker/Podman.
 
 ## 📋 Prerequisites
 
@@ -186,6 +186,63 @@ node scripts/warm-cii-stale.mjs
 > The read-back **deliberately ignores** `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, so sourcing a hybrid `.env` that also carries hosted Vercel/Upstash credentials cannot point verification at production Redis (same rule the seeder section above applies — the local `REDIS_TOKEN` wins). If your self-host genuinely uses hosted Upstash as its cache, set `CII_WARM_REDIS_URL`/`CII_WARM_REDIS_TOKEN` explicitly.
 
 Never point the warmer at the hosted `api.worldmonitor.app` — the hosted stack has its own relay warmer, and the script refuses that origin.
+
+## 🔌 The MCP server
+
+**This guide previously never mentioned MCP at all**, which was misleading: the
+MCP server ships complete in a self-host and needs no extra service. It is
+served by the same container, at `/api/mcp`.
+
+| | |
+|---|---|
+| Endpoint | `http://127.0.0.1:3000/api/mcp` |
+| Transport | JSON-RPC over HTTP POST (`tools/list`, `tools/call`) |
+| Auth header | `X-WorldMonitor-Key` |
+| Credential | any entry in `WORLDMONITOR_VALID_KEYS` (comma-separated, in `.env`) |
+| Tools | 68 (35 cache + 29 rpc + 4 nlp) |
+
+Keys in `WORLDMONITOR_VALID_KEYS` resolve to the **operator** credential class,
+which is intentionally ungated and unmetered on a self-host — no Convex, no
+entitlement check, no daily quota. A 60-request/minute limiter applies and fails
+open. Keep this value **distinct** from `WORLDMONITOR_RELAY_KEY`.
+
+```bash
+# List every tool this deployment exposes
+curl -s http://127.0.0.1:3000/api/mcp \
+  -H 'content-type: application/json' \
+  -H "X-WorldMonitor-Key: $YOUR_KEY" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+Two things worth knowing before you build a client against it:
+
+- **Generate clients from observed payloads, not from declared `outputSchema`.**
+  The declared schemas are a hint surface for LLM consumers, not an exhaustive
+  contract, and several are known to disagree with the real payload. Probe with
+  `"jmespath": "keys(@)"` first — it is the cheapest shape check available.
+- Every tool accepts an optional `jmespath` string for server-side projection,
+  which typically cuts response size by 80–95%.
+
+## 🔓 Premium features on a self-host
+
+Premium surfaces are unlocked by **two independent gates**. Both must be set —
+one alone does nothing:
+
+| Gate | Variable | When | What it does |
+|---|---|---|---|
+| Client | `VITE_SELFHOST_PRO=1` | **build time** | Unlocks the premium UI. A boolean only — the browser bundle carries no credential. |
+| Server | `SELFHOST_PREMIUM_KEY` | runtime | nginx stamps it as `X-WorldMonitor-Key` onto every `/api/` request (`docker/entrypoint.sh`), so the real credential never reaches a client that could leak it. |
+
+`VITE_SELFHOST_PRO` is read at build time, so **changing it requires a rebuild**
+(`docker compose build the-synactic`), not just a restart. It applies to the
+desktop build too.
+
+With both set you get the premium panels, data export, the MCP Clients tab, and
+notification configuration. **What it does not do:** features that call the
+hosted `worldmonitor.app` service still meet that service's own server-side auth
+and still require a hosted account — the API Keys tab is the clearest example,
+and on a self-host it shows your local key configuration instead of a hosted
+key manager.
 
 ## 🏗️ Architecture
 
