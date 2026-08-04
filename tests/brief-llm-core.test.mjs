@@ -27,6 +27,7 @@ import {
   hasTerminalPunctuation,
   hashBriefStory,
   parseWhyMatters,
+  validateNoHallucinatedProperNouns,
 } from '../shared/brief-llm-core.js';
 
 // Mirror impl (sync `node:crypto`) — kept inline so a drift between
@@ -587,5 +588,122 @@ describe('validateNoHallucinatedProperNouns — May 19 regression + class', () =
     const headline = "Trump signs bill";
     const summary = "Trump ".repeat(2000) + "approved the legislation.";
     assert.doesNotThrow(() => validateNoHallucinatedProperNouns(summary, headline));
+  });
+});
+
+
+/**
+ * Grounding relaxation (2026-08-04).
+ *
+ * seed-insights rejected 4 of 5 live runs with INSIGHTS_SYNTHESIS_GATE. Root
+ * cause was NOT model quality but two false-positive classes in
+ * validateNoHallucinatedProperNouns:
+ *
+ *   1. PROPER_NOUN_JOINER bridges 'and', so "Iran and the US" became ONE
+ *      sequence that had to appear CONTIGUOUSLY in a headline. It never does —
+ *      while synthesisSystemPrompt explicitly invites the construction
+ *      ("the lead may JUXTAPOSE stories").
+ *   2. Tokenization keeps '-' inside a token but splits on '/', so a headline
+ *      reading "US-Iran talks" grounded NEITHER 'US' nor 'Iran', while
+ *      "Russia/Ukraine" grounded both.
+ *
+ * Measured after the fix: 5 of 6 live runs pass, and the one rejection is a
+ * true positive (the model invented "Washington").
+ *
+ * The safety property these tests exist to protect: relaxation may only turn a
+ * REJECT into an ACCEPT when EVERY coordinated part grounds independently.
+ */
+describe('grounding relaxation', () => {
+  const verdict = (summary, headline) => validateNoHallucinatedProperNouns(summary, headline);
+  const ok = (summary, headline) => verdict(summary, headline).ok;
+
+  // Fixtures deliberately open with "The". A sentence-initial capitalized
+  // OPEN-CLASS word ("Talks", "Diplomatic") is itself registered as a proper
+  // noun and must ground on its own — a real third mechanism, but not the one
+  // under test here. Opening with a SENTENCE_START_AMBIGUOUS function word
+  // isolates coordination and hyphenation. Two earlier drafts of these tests
+  // passed for the wrong reason because they opened with "Talks": the verdict
+  // was right, the cause was not.
+  const H_IRAN_US = 'Iran live updates: talks ongoing — Qatar says progress made toward US-Iran talks';
+
+  describe('coordinate bridging', () => {
+    it('accepts two independently-grounded entities joined by "and"', () => {
+      assert.equal(ok('The talks between Iran and the US continue.', H_IRAN_US), true);
+    });
+
+    it('rejects when a coordinated part is invented, naming the whole sequence', () => {
+      const v = verdict('The talks between Iran and Atlantis resumed.', H_IRAN_US);
+      assert.equal(v.ok, false);
+      // Asserting the payload is what proves it rejected on the INVENTION and
+      // not on some incidental token elsewhere in the sentence.
+      assert.deepEqual(v.hallucinated, ['iran', 'and', 'atlantis']);
+    });
+
+    it('rejects an invented part regardless of coordination order', () => {
+      const v = verdict('The talks between Atlantis and Iran resumed.', H_IRAN_US);
+      assert.equal(v.ok, false);
+      assert.deepEqual(v.hallucinated, ['atlantis', 'and', 'iran']);
+    });
+
+    it('keeps a real multiword name intact — it grounds whole, never relaxed', () => {
+      assert.equal(ok('The delegation from Trinidad and Tobago arrived.', 'Trinidad and Tobago signs the accord'), true);
+      assert.equal(ok('The vote in Bosnia and Herzegovina closed.', 'Bosnia and Herzegovina votes'), true);
+    });
+
+    it('rejects a multiword name whose second half is genuinely absent', () => {
+      const v = verdict('The delegation from Trinidad and Tobago arrived.', 'Trinidad hosts the summit');
+      assert.equal(v.ok, false);
+      assert.deepEqual(v.hallucinated, ['trinidad', 'and', 'tobago']);
+    });
+
+    it('never splits name-internal joiners', () => {
+      assert.equal(ok('The Republic of Korea delegation left.', 'Republic of Korea delegation arrives'), true);
+      assert.equal(ok('The Republic of Korea delegation left.', 'Republic of Congo delegation arrives'), false);
+    });
+  });
+
+  describe('hyphenated dyads (headline-side expansion)', () => {
+    for (const [part, headline] of [
+      ['US', 'Qatar says progress made toward US-Iran talks'],
+      ['Iran', 'Qatar says progress made toward US-Iran talks'],
+      ['Israel', 'Israel-Hamas ceasefire holds'],
+      ['Hamas', 'Israel-Hamas ceasefire holds'],
+      ['China', 'China-Taiwan tensions rise'],
+      ['Taiwan', 'China-Taiwan tensions rise'],
+    ]) {
+      it(`grounds "${part}" against "${headline}"`, () => {
+        assert.equal(ok(part, headline), true);
+      });
+    }
+
+    it('keeps the unsplit token too, so a hyphenated NAME still matches exactly', () => {
+      assert.equal(ok('Mar-a-Lago', 'Mar-a-Lago raid documents released'), true);
+      assert.equal(ok('US-Iran', 'Qatar says progress made toward US-Iran talks'), true);
+    });
+
+    it('does not ground an unrelated noun just because a hyphen was expanded', () => {
+      assert.equal(ok('Ruritania', 'Israel-Hamas ceasefire holds'), false);
+    });
+
+    it('expands the HEADLINE side only — a summary hyphen cannot partially match', () => {
+      assert.equal(ok('Israel-Hamas', 'Israel and Egypt hold talks'), false);
+    });
+
+    it('does not invent an expansion where no hyphen exists', () => {
+      assert.equal(ok('Hamas', 'Israel and Egypt hold talks'), false);
+    });
+  });
+
+  describe('invention is still caught', () => {
+    it('rejects a proper noun absent from every cited headline', () => {
+      assert.equal(ok('Washington', 'Qatar says progress made toward US-Iran talks'), false);
+      assert.equal(ok('Atlantis', 'Iran live updates: talks ongoing'), false);
+    });
+
+    it('rejects the exact invention that survived the 2026-08-04 fix (true positive)', () => {
+      // The one rejection in the post-fix 6-run measurement. Keeping it as a
+      // test pins the fix's boundary: this must NEVER start grounding.
+      assert.equal(ok('The effort was led from Washington.', H_IRAN_US), false);
+    });
   });
 });

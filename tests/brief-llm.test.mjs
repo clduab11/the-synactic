@@ -13,6 +13,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  parseSkipProviders,
+  BRIEF_LLM_DEFAULT_SKIP_PROVIDERS,
   buildWhyMattersPrompt,
   parseWhyMatters,
   generateWhyMatters,
@@ -1990,5 +1992,35 @@ describe('generateWhyMatters — v10 endpoint-cache cross-read (#4914)', () => {
     await generateWhyMatters(s, { ...cache, callLLM: llm.callLLM });
     const v10Keys = [...cache.store.keys()].filter((k) => k.startsWith('brief:llm:whymatters:v10:'));
     assert.equal(v10Keys.length, 0, 'legacy fallback output must stay in the v6 namespace');
+  });
+});
+
+describe('BRIEF_LLM_SKIP_PROVIDERS (self-host override)', () => {
+  it('UNSET keeps the original Railway pin byte-for-byte', () => {
+    assert.deepEqual(parseSkipProviders(undefined), ['ollama', 'groq']);
+  });
+
+  it('EMPTY means skip nothing — the whole point of the override', () => {
+    // A `||` default would collapse this into the UNSET case and make the
+    // self-host opt-in silently unreachable. That is the bug this asserts against.
+    assert.deepEqual(parseSkipProviders(''), []);
+  });
+
+  it('parses a comma list, trimming and lower-casing', () => {
+    assert.deepEqual(parseSkipProviders(' Groq , OLLAMA '), ['groq', 'ollama']);
+  });
+
+  it('drops empty entries from a sloppy list', () => {
+    assert.deepEqual(parseSkipProviders('groq,,'), ['groq']);
+  });
+
+  it('the exported default is frozen so a caller cannot mutate the pin', () => {
+    assert.throws(() => BRIEF_LLM_DEFAULT_SKIP_PROVIDERS.push('openrouter'));
+  });
+
+  it('returns a COPY, so mutating the result cannot poison the default', () => {
+    const first = parseSkipProviders(undefined);
+    first.push('openrouter');
+    assert.deepEqual(parseSkipProviders(undefined), ['ollama', 'groq']);
   });
 });

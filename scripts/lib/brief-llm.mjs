@@ -106,7 +106,33 @@ const WHY_MATTERS_CONCURRENCY = 5;
 // cutover, which is gated on the U3 shadow evaluation). Ollama isn't deployed
 // in Railway, and pinning keeps the brief's editorial voice on one model
 // across environments instead of drifting to the groq fallback.
-const BRIEF_LLM_SKIP_PROVIDERS = ['ollama', 'groq'];
+//
+// SELF-HOST OVERRIDE. The Railway premise above is false on a deployment that
+// runs its own local inference endpoint (the-synactic self-hosts LM Studio via
+// OLLAMA_API_URL), where this pin means the delivered brief silently refuses
+// the only provider actually present. The pin is therefore env-tunable rather
+// than removed: BRIEF_LLM_SKIP_PROVIDERS is a comma-separated provider list,
+// and an EMPTY value means "skip nothing".
+//
+// UNSET and EMPTY are deliberately different. `undefined` (every Railway
+// environment, and every consumer that never heard of this variable) keeps the
+// original two-provider pin byte-for-byte. An explicitly empty string opts in
+// to the full chain. A `||` default would collapse those two cases and make
+// the empty opt-in silently un-settable.
+export const BRIEF_LLM_DEFAULT_SKIP_PROVIDERS = Object.freeze(['ollama', 'groq']);
+
+/**
+ * Resolve the provider skip-list from its raw env value.
+ *
+ * @param {string|undefined} raw `process.env.BRIEF_LLM_SKIP_PROVIDERS`
+ * @returns {string[]} providers callLLM must skip; `[]` means skip nothing
+ */
+export function parseSkipProviders(raw) {
+  if (raw === undefined) return [...BRIEF_LLM_DEFAULT_SKIP_PROVIDERS];
+  return raw.split(',').map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+}
+
+const BRIEF_LLM_SKIP_PROVIDERS = parseSkipProviders(process.env.BRIEF_LLM_SKIP_PROVIDERS);
 
 // ── whyMatters (per story) ─────────────────────────────────────────────────
 // The pure helpers (`WHY_MATTERS_SYSTEM`, `buildWhyMattersUserPrompt` (aliased

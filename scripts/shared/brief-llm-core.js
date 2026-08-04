@@ -670,7 +670,14 @@ export function validateNoHallucinatedProperNouns(summary, headline) {
   let summarySequences, headlineSequences;
   try {
     summarySequences = extractProperNounSequences(summary).map(normalizeSequence);
-    headlineSequences = extractProperNounSequences(headline).map(normalizeSequence);
+    // Hyphen expansion is HEADLINE-SIDE ONLY, and deliberately so: it widens
+    // what counts as evidence without letting the summary invent. Expanding the
+    // summary too would let a brief say "Mar" and ground it against
+    // "Mar-a-Lago". Expansion runs BEFORE normalizeSequence so each part
+    // reaches the acronym table on its own ("US-Iran" → 'us' + 'iran', where
+    // 'us' then normalizes with "United States").
+    headlineSequences = expandHyphenatedSequences(extractProperNounSequences(headline))
+      .map(normalizeSequence);
   } catch {
     return { ok: true };
   }
@@ -680,26 +687,121 @@ export function validateNoHallucinatedProperNouns(summary, headline) {
   // For each summary sequence, check whether at least one contiguous
   // subsequence of it appears in some headline sequence.
   for (const summarySeq of summarySequences) {
-    let found = false;
-    for (const headlineSeq of headlineSequences) {
-      if (containsSubsequence(headlineSeq, summarySeq)) {
-        found = true;
-        break;
-      }
-      // Also check the reverse: a single-token summary sequence
-      // (e.g., ['us']) matches if it appears anywhere in a longer
-      // headline sequence.
-      if (summarySeq.length === 1 && headlineSeq.includes(summarySeq[0])) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      return { ok: false, hallucinated: summarySeq };
-    }
+    if (groundsInAnySequence(summarySeq, headlineSequences)) continue;
+    if (isGroundedAfterRelaxation(summarySeq, headlineSequences)) continue;
+    return { ok: false, hallucinated: summarySeq };
   }
 
   return { ok: true };
+}
+
+// Joiners that COORDINATE two independent entities rather than forming one
+// name. Deliberately just 'and': 'of' / 'de' / 'du' / 'der' / 'van' / 'el' /
+// 'al' / 'for' / 'the' are name-internal, and splitting on them would shatter
+// "Republic of Korea" into two ungrounded halves.
+const PROPER_NOUN_COORDINATOR = new Set(['and']);
+
+/** Does `seq` match any headline sequence under the strict rules? */
+function groundsInAnySequence(seq, headlineSequences) {
+  for (const headlineSeq of headlineSequences) {
+    if (containsSubsequence(headlineSeq, seq)) return true;
+    // A single-token summary sequence (e.g. ['us']) matches if it appears
+    // anywhere inside a longer headline sequence.
+    if (seq.length === 1 && headlineSeq.includes(seq[0])) return true;
+  }
+  return false;
+}
+
+/** Drop joiners stranded at a part edge: ['the','us'] → ['us']. */
+function trimEdgeJoiners(seq) {
+  let start = 0;
+  let end = seq.length;
+  while (start < end && PROPER_NOUN_JOINER.has(seq[start])) start += 1;
+  while (end > start && PROPER_NOUN_JOINER.has(seq[end - 1])) end -= 1;
+  return seq.slice(start, end);
+}
+
+/**
+ * Add a hyphen-split variant of any sequence containing a hyphenated token,
+ * KEEPING the original. Retaining the original is what lets a summary saying
+ * "Mar-a-Lago" still match a headline saying "Mar-a-Lago" exactly.
+ */
+function expandHyphenatedSequences(sequences) {
+  const out = [];
+  for (const seq of sequences) {
+    out.push(seq);
+    if (!seq.some((token) => /\p{L}-\p{L}/u.test(token))) continue;
+    const expanded = [];
+    for (const token of seq) {
+      if (/\p{L}-\p{L}/u.test(token)) expanded.push(...token.split('-').filter(Boolean));
+      else expanded.push(token);
+    }
+    out.push(expanded);
+  }
+  return out;
+}
+
+/**
+ * Second-chance grounding for a summary sequence that failed the strict
+ * contiguous-subsequence check.
+ *
+ * WHY THIS EXISTS — two measured false-positive classes, both from real
+ * seed-insights runs on 2026-08-04 (4 of 5 runs rejected):
+ *
+ *   1. COORDINATE BRIDGING. `PROPER_NOUN_JOINER` deliberately bridges 'and'
+ *      so real names survive tokenization ("Trinidad and Tobago",
+ *      "Bosnia and Herzegovina"). The side effect: the lead sentence
+ *      "Diplomatic efforts between Iran and the US continue [1][8]" yields ONE
+ *      sequence ['iran','and','the','us'], which must appear CONTIGUOUSLY in a
+ *      headline. No headline ever writes it that way, so the whole brief is
+ *      rejected — while `synthesisSystemPrompt` explicitly invites the
+ *      construction ("the lead may JUXTAPOSE stories").
+ *
+ *   2. HYPHENATED DYADS. Tokenization keeps '-' inside a token (to preserve
+ *      "Mar-a-Lago", "O'Brien") but splits on '/'. So a headline reading
+ *      "Qatar says progress made toward US-Iran talks" grounds NEITHER 'us'
+ *      NOR 'iran', while "Russia/Ukraine grain corridor" grounds both.
+ *      Measured: 'Israel-Hamas' grounds neither Israel nor Hamas;
+ *      'China-Taiwan' grounds neither China nor Taiwan.
+ *
+ * SAFETY PROPERTY THIS MUST PRESERVE. This function may only ever turn a
+ * REJECT into an ACCEPT when every component is independently grounded in the
+ * cited stories. A genuinely invented proper noun must still be caught —
+ * measured controls: "Washington" and "Atlantis" must stay REJECTED against a
+ * corpus that grounds "Iran".
+ *
+ * @param {string[]} summarySeq       normalized token sequence from the summary
+ * @param {string[][]} headlineSequences normalized sequences from the cited stories
+ * @returns {boolean} true → treat as grounded; false → keep the rejection
+ */
+function isGroundedAfterRelaxation(summarySeq, headlineSequences) {
+  // Split ONLY on the coordinator, then require EVERY part to ground on its
+  // own. "Iran and the US" → ['iran'] + ['us']: both real, both cited, accept.
+  // "Iran and Atlantis" → ['atlantis'] grounds nowhere, so the whole sequence
+  // stays rejected. Requiring only SOME part to ground would let one real
+  // entity launder an invented one — that is the property this must not lose.
+  const parts = [];
+  let current = [];
+  for (const token of summarySeq) {
+    if (PROPER_NOUN_COORDINATOR.has(token)) {
+      if (current.length > 0) parts.push(current);
+      current = [];
+    } else {
+      current.push(token);
+    }
+  }
+  if (current.length > 0) parts.push(current);
+
+  // Nothing coordinated. The strict check already failed on this exact
+  // sequence, so re-testing it unchanged would only fail again — and a real
+  // hyphenated name like "Trinidad and Tobago" reaches this path ONLY when it
+  // never grounded whole, in which case splitting is the correct verdict.
+  if (parts.length < 2) return false;
+
+  const trimmed = parts.map(trimEdgeJoiners).filter((part) => part.length > 0);
+  if (trimmed.length < 2) return false;
+
+  return trimmed.every((part) => groundsInAnySequence(part, headlineSequences));
 }
 
 /**
