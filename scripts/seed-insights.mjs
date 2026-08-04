@@ -363,14 +363,31 @@ const LLM_PROVIDERS = [
       if (apiKey) h.Authorization = `Bearer ${apiKey}`;
       return h;
     },
-    // `think: false` is Ollama-native and kept for a real Ollama server. On an
-    // OpenAI-compatible server (LM Studio) it does nothing: probed 2026-08-03
-    // against google/gemma-4-12b-qat, think:false still spent 55 reasoning
-    // tokens and reasoning:{enabled:false} 34, while reasoning_effort:'none'
-    // reached 0. With the 300-token default budget below, a reasoning model
-    // would spend a fifth of it thinking before writing any JSON. Both keys are
-    // sent because a server that does not recognise one ignores it.
-    extraBody: { think: false, reasoning_effort: 'none' },
+    // NO-REASONING CONTRACT. Three dialects are sent together because each
+    // backend recognises a different one and ignores the rest; a model that
+    // reasons here does not fail loudly, it returns an EMPTY STRING, which is
+    // the single worst outcome this pipeline can produce.
+    //   think:false                            → Ollama-native
+    //   reasoning_effort:'none'                → OpenAI-compatible (LM Studio)
+    //   chat_template_kwargs.enable_thinking   → vLLM/SGLang/Qwen template
+    //
+    // Measured 2026-08-03 on google/gemma-4-12b-qat: think:false alone left 55
+    // reasoning tokens, reasoning:{enabled:false} 34, enable_thinking:false 49
+    // — only reasoning_effort:'none' reached 0.
+    //
+    // Re-measured 2026-08-04 on qwen3.5-4b via LM Studio, and this is why the
+    // set matters. At BOTH a 120- and a 300-token budget:
+    //   no flags      → 479/1443 reasoning chars, output EMPTY
+    //   think:false   → 516/1372 reasoning chars, output EMPTY
+    //   +reasoning_effort:'none' → 0 reasoning, real output
+    //   +enable_thinking:false   → 0 reasoning, real output (no regression)
+    // The third key buys nothing on THIS backend and is kept so swapping to a
+    // vLLM/SGLang host does not silently reintroduce the empty-string failure.
+    extraBody: {
+      think: false,
+      reasoning_effort: 'none',
+      chat_template_kwargs: { enable_thinking: false },
+    },
     // 25s was tuned for the llama3.1:8b default. A larger local model is much
     // slower: measured 2026-08-03 on an RTX 4060 Ti serving
     // google/gemma-4-12b-qat, a 300-token completion took 9.6s but the 900-token

@@ -3553,8 +3553,21 @@ const CLASSIFY_LLM_PROVIDERS = [
     // `titles.length * 40`: a short batch gets ~120 tokens, reasoning would eat
     // all of it, and the call would return an empty string rather than fail —
     // a silent wrong answer, which is the failure mode this repo least wants.
-    // Both keys are sent because a server that does not know one ignores it.
-    extraBody: { think: false, reasoning_effort: 'none' },
+    // All three keys are sent because a server that does not know one ignores
+    // it: think:false (Ollama), reasoning_effort:'none' (OpenAI-compatible),
+    // chat_template_kwargs.enable_thinking:false (vLLM/SGLang/Qwen template).
+    //
+    // Re-measured 2026-08-04 on qwen3.5-4b via LM Studio at this exact 120-token
+    // budget: with no flags the call spent 479 reasoning chars and returned an
+    // EMPTY STRING; think:false alone, 516 chars and still EMPTY; adding
+    // reasoning_effort:'none' reached 0 reasoning with real output. The
+    // enable_thinking key changed nothing on this backend and is kept so a
+    // future vLLM/SGLang host cannot silently reintroduce the empty string.
+    extraBody: {
+      think: false,
+      reasoning_effort: 'none',
+      chat_template_kwargs: { enable_thinking: false },
+    },
     // Same reasoning as seed-insights: 30s suits llama3.1:8b, not a larger
     // local model. This path's budget is titles.length * 40 tokens, so it is
     // usually far shorter than the synthesis call, but it is still the
