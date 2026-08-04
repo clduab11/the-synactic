@@ -34,7 +34,7 @@ This layer closes that gap without replacing the project's broader feed architec
 
 The current provider chain is:
 
-1. `Tavily`
+1. `Exa`
 2. `Brave`
 3. `SerpAPI`
 4. Google News RSS fallback
@@ -92,7 +92,7 @@ The search layer uses runtime-managed secret keys so it fits the same desktop/we
 
 Configured keys:
 
-- `TAVILY_API_KEYS`
+- `EXA_API_KEYS`
 - `BRAVE_API_KEYS`
 - `SERPAPI_API_KEYS`
 
@@ -124,7 +124,7 @@ The cache is intentionally short-lived because search-backed finance news gets s
 
 ## Fallback Behavior
 
-If `Tavily` fails, the system tries `Brave`.
+If `Exa` fails, the system tries `Brave`.
 
 If `Brave` fails, the system tries `SerpAPI`.
 

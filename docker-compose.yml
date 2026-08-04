@@ -95,6 +95,12 @@ services:
       # Data source API keys (optional — features degrade gracefully)
       AISSTREAM_API_KEY: "${AISSTREAM_API_KEY:-}"
       FINNHUB_API_KEY: "${FINNHUB_API_KEY:-}"
+      # Exa — tier 1 of the stock-news provider ladder
+      # (server/worldmonitor/market/v1/stock-news-search.ts:329), ahead of Brave
+      # and SerpApi. NOTE THE PLURAL: that file and runtime-config.ts:7 read
+      # EXA_API_KEYS; the singular EXA_API_KEY is honoured only by standalone
+      # .mjs seeders, so the singular alone never reaches the app. Session 11.
+      EXA_API_KEYS: "${EXA_API_KEYS:-}"
       EIA_API_KEY: "${EIA_API_KEY:-}"
       FRED_API_KEY: "${FRED_API_KEY:-}"
       ACLED_EMAIL: "${ACLED_EMAIL:-}"
@@ -291,6 +297,13 @@ services:
       INTEL_EMBED_BASE_URL: "${INTEL_EMBED_BASE_URL:-http://host.docker.internal:1234/v1}"
       INTEL_EMBED_MODEL: "${INTEL_EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}"
       INTEL_EMBED_DIMS: "${INTEL_EMBED_DIMS:-768}"
+      # seed-security-advisories fetches EVERY RSS feed through a relay and
+      # falls back to the HOSTED proxy.worldmonitor.app when this is unset
+      # (scripts/seed-security-advisories.mjs:41). This stack runs its own relay
+      # which already serves /rss, and intelligence:advisories:v1 gates
+      # get_country_risk — so leaving it unset quietly put a hosted dependency
+      # on a critical local path. Session 11.
+      RELAY_URL: "${RELAY_URL:-http://ais-relay:3004}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -365,6 +378,12 @@ services:
       # well inside both providers' published limits.
       FRED_API_KEY: "${FRED_API_KEY:-}"
       EIA_API_KEY: "${EIA_API_KEY:-}"
+      # seed-economy's Finnhub leg (scripts/seed-economy.mjs:466) runs on THIS
+      # tier. The key was already in .env and already reached the app and relay
+      # containers, so it looked provisioned — but the container that actually
+      # runs the seeder never received it, and the leg degraded to nothing in
+      # silence. Session 11.
+      FINNHUB_API_KEY: "${FINNHUB_API_KEY:-}"
       # ACLED — CLEARED for use 2026-08-03 (CONTEXT.md boundary 3, v8): the
       # publisher's AI/LLM restriction is scoped to TRAINING, not inference,
       # confirmed by the owner with ACLED's CIO office. The fixture default is
@@ -539,6 +558,19 @@ services:
       # seed-china-decision-signals fans in through the app's own gateway
       # rather than fetching upstream.
       API_BASE_URL: "http://the-synactic:8080"
+      # seed-cross-strait-activity carries an afterPublish hook that embeds its
+      # records into Chroma (scripts/seed-cross-strait-activity.mjs:10,265).
+      # Without these the hook returns skipped:'unconfigured'
+      # (scripts/_seed-history.mjs) — writes land in Redis but never reach the
+      # semantic layer, leaving the cross-strait domain of search_intel_history
+      # permanently empty. Same five vars seed-loop-slow already carries for
+      # seed-conflict-intel; all have compose defaults, so no .env change is
+      # needed. Session 11.
+      INTEL_HISTORY_BACKEND: "${INTEL_HISTORY_BACKEND:-chroma}"
+      CHROMA_URL: "${CHROMA_URL:-http://chroma:8000}"
+      INTEL_EMBED_BASE_URL: "${INTEL_EMBED_BASE_URL:-http://host.docker.internal:1234/v1}"
+      INTEL_EMBED_MODEL: "${INTEL_EMBED_MODEL:-text-embedding-nomic-embed-text-v1.5}"
+      INTEL_EMBED_DIMS: "${INTEL_EMBED_DIMS:-768}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -583,6 +615,13 @@ services:
       API_BASE_URL: "http://the-synactic:8080"
       WS_RELAY_URL: "http://ais-relay:3004"
       RELAY_SHARED_SECRET: "${RELAY_SHARED_SECRET:-}"
+      # seed-infra warm-pings three gateway routes (list-service-statuses,
+      # get-cable-health, list-temporal-anomalies) and presents this as the
+      # internal-caller credential (scripts/seed-infra.mjs:39). Unset, it fell
+      # back to Origin-only auth, which server/gateway.ts rejects — the seeder
+      # said so at :60 and nothing was listening. The key was already in .env
+      # and simply never reached THIS container. Session 11.
+      WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
     depends_on:
       redis-rest:
         condition: service_started
@@ -719,6 +758,10 @@ services:
       UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
       UPSTASH_ALLOW_INSECURE_HTTP: "true"
       UCDP_ACCESS_TOKEN: "${UCDP_ACCESS_TOKEN:-}"
+      # Exa — the widget agent's web-search branch (scripts/ais-relay.cjs
+      # performWidgetWebSearch) is an if-guard on this key and was dead code
+      # without it. Plural name, same reason as the app container. Session 11.
+      EXA_API_KEYS: "${EXA_API_KEYS:-}"
       # This relay runs CLASSIFY_LLM_PROVIDERS (ais-relay.cjs) — the
       # ollama -> openrouter -> groq chain used to classify news titles — and
       # until now carried NONE of that chain's credentials, so every provider
