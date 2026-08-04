@@ -92,6 +92,16 @@ services:
       # Local inference speed is a property of the operator's GPU, not of the
       # code. Default 150s; lower it once the model fits entirely in VRAM.
       OLLAMA_TIMEOUT_MS: "${OLLAMA_TIMEOUT_MS:-}"
+      # Iran-events domain (SUNSET, war ended 2026-07). Plumbed with a false
+      # default so a future restore is a one-line .env change, but DO NOT enable
+      # it on this checkout: tested 2026-08-04, scripts/seed-iran-events.mjs
+      # reads a static snapshot, scripts/data/iran-events-latest.json, which
+      # does not exist and was deliberately untracked upstream in 1262e79b3.
+      # There is no live source to fetch, so the frontend flag alone (or both
+      # flags) yields a VISIBLE BUT PERMANENTLY EMPTY layer. The backend half
+      # matters independently: list-iran-events.ts:20 returns {events: []}
+      # without it, so enabling only the VITE_ flag can never work.
+      IRAN_EVENTS_ENABLED: "${IRAN_EVENTS_ENABLED:-false}"
       # Data source API keys (optional — features degrade gracefully)
       AISSTREAM_API_KEY: "${AISSTREAM_API_KEY:-}"
       FINNHUB_API_KEY: "${FINNHUB_API_KEY:-}"
