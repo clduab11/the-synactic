@@ -79,6 +79,19 @@ services:
       LLM_MODEL: "${LLM_MODEL:-}"
       GROQ_API_KEY: "${GROQ_API_KEY:-}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      # Local GPU inference, FIRST in the ollama -> openrouter -> groq chain.
+      # Points at an OpenAI-compatible server on the host (LM Studio), so the
+      # summarisation seeders run on the operator's own GPU instead of spending
+      # the OpenRouter free tier — which is 20 req/min and 1000/day ACCOUNT-WIDE
+      # across every :free model, so falling down the chain buys availability,
+      # never fresh quota. Unset = unchanged behaviour, chain starts at
+      # openrouter. This service already carries extra_hosts, so the hostname
+      # resolves.
+      OLLAMA_API_URL: "${OLLAMA_API_URL:-}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-}"
+      # Local inference speed is a property of the operator's GPU, not of the
+      # code. Default 150s; lower it once the model fits entirely in VRAM.
+      OLLAMA_TIMEOUT_MS: "${OLLAMA_TIMEOUT_MS:-}"
       # Data source API keys (optional — features degrade gracefully)
       AISSTREAM_API_KEY: "${AISSTREAM_API_KEY:-}"
       FINNHUB_API_KEY: "${FINNHUB_API_KEY:-}"
@@ -398,6 +411,9 @@ services:
       GROQ_API_KEY: "${GROQ_API_KEY:-}"
       OLLAMA_API_URL: "${OLLAMA_API_URL:-}"
       OLLAMA_MODEL: "${OLLAMA_MODEL:-}"
+      # Local inference speed is a property of the operator's GPU, not of the
+      # code. Default 150s; lower it once the model fits entirely in VRAM.
+      OLLAMA_TIMEOUT_MS: "${OLLAMA_TIMEOUT_MS:-}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -641,7 +657,28 @@ services:
       UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
       UPSTASH_ALLOW_INSECURE_HTTP: "true"
       UCDP_ACCESS_TOKEN: "${UCDP_ACCESS_TOKEN:-}"
+      # This relay runs CLASSIFY_LLM_PROVIDERS (ais-relay.cjs) — the
+      # ollama -> openrouter -> groq chain used to classify news titles — and
+      # until now carried NONE of that chain's credentials, so every provider
+      # failed its envKey check and the classification path was silently dead.
+      # Only the local leg is wired here: it is free and unmetered, so enabling
+      # it cannot spend a quota. OpenRouter/Groq are deliberately NOT added —
+      # that would newly bill a path that has never run, which is a decision,
+      # not a fix.
+      # ⚠ max_tokens on this path is `titles.length * 40`, so a reasoning model
+      # can consume the entire budget and return an empty string. The provider's
+      # extraBody sends reasoning_effort:'none' for exactly that reason.
+      OLLAMA_API_URL: "${OLLAMA_API_URL:-}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-}"
+      # Local inference speed is a property of the operator's GPU, not of the
+      # code. Default 150s; lower it once the model fits entirely in VRAM.
+      OLLAMA_TIMEOUT_MS: "${OLLAMA_TIMEOUT_MS:-}"
       PORT: "3004"
+    # Required for OLLAMA_API_URL=http://host.docker.internal:... to resolve.
+    # Every other service that talks to a host-local service already had this;
+    # ais-relay did not, so the hostname would simply not resolve here.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis-rest:
         condition: service_started

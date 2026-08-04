@@ -363,8 +363,25 @@ const LLM_PROVIDERS = [
       if (apiKey) h.Authorization = `Bearer ${apiKey}`;
       return h;
     },
-    extraBody: { think: false },
-    timeout: 25_000,
+    // `think: false` is Ollama-native and kept for a real Ollama server. On an
+    // OpenAI-compatible server (LM Studio) it does nothing: probed 2026-08-03
+    // against google/gemma-4-12b-qat, think:false still spent 55 reasoning
+    // tokens and reasoning:{enabled:false} 34, while reasoning_effort:'none'
+    // reached 0. With the 300-token default budget below, a reasoning model
+    // would spend a fifth of it thinking before writing any JSON. Both keys are
+    // sent because a server that does not recognise one ignores it.
+    extraBody: { think: false, reasoning_effort: 'none' },
+    // 25s was tuned for the llama3.1:8b default. A larger local model is much
+    // slower: measured 2026-08-03 on an RTX 4060 Ti serving
+    // google/gemma-4-12b-qat, a 300-token completion took 9.6s but the 900-token
+    // synthesis took 104s, so the old budget aborted the local leg every time
+    // and the chain silently fell through to OpenRouter — the exact quota this
+    // is meant to stop spending.
+    // Local inference speed is a property of the operator's hardware, not of
+    // this code, so it is env-tunable. Lower it if your model is fast; the
+    // seeder runs on a 3h loop under a 1800s per-seeder timeout, so a long
+    // local wait is affordable while a wrong-but-fast answer is not.
+    timeout: Number(process.env.OLLAMA_TIMEOUT_MS) || 150_000,
   },
   {
     name: 'openrouter',

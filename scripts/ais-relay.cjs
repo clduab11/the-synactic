@@ -3544,8 +3544,23 @@ const CLASSIFY_LLM_PROVIDERS = [
       if (apiKey) h.Authorization = `Bearer ${apiKey}`;
       return h;
     },
-    extraBody: { think: false },
-    timeout: 30000,
+    // `think: false` is the Ollama-native switch and is kept for a real Ollama
+    // server. It does NOT work on an OpenAI-compatible server such as LM Studio:
+    // probed 2026-08-03 against google/gemma-4-12b-qat, `think:false` still
+    // burned 55 reasoning tokens, `chat_template_kwargs.enable_thinking:false`
+    // 49, and `reasoning:{enabled:false}` 34 — only `reasoning_effort:'none'`
+    // reached 0. That matters most HERE, because max_tokens below is
+    // `titles.length * 40`: a short batch gets ~120 tokens, reasoning would eat
+    // all of it, and the call would return an empty string rather than fail —
+    // a silent wrong answer, which is the failure mode this repo least wants.
+    // Both keys are sent because a server that does not know one ignores it.
+    extraBody: { think: false, reasoning_effort: 'none' },
+    // Same reasoning as seed-insights: 30s suits llama3.1:8b, not a larger
+    // local model. This path's budget is titles.length * 40 tokens, so it is
+    // usually far shorter than the synthesis call, but it is still the
+    // operator's hardware that sets the pace. Shares OLLAMA_TIMEOUT_MS so both
+    // call sites move together.
+    timeout: Number(process.env.OLLAMA_TIMEOUT_MS) || 150000,
   },
   {
     name: 'openrouter',
