@@ -16,6 +16,12 @@ const _desktop = isDesktopRuntime();
 // map-layer-definitions.ts and tests/browser-bundle-secret-guard (allowlist).
 const IRAN_ATTACKS_ENABLED = typeof window !== 'undefined' && import.meta.env.VITE_ENABLE_IRAN_ATTACKS === 'true';
 
+// Session-09 curated default layer sets (docs/plans/session-09-layer-curation.md)
+// are candidate sets pending owner approval, so they ship behind a build-time
+// flag: shipped defaults are unchanged until VITE_CURATED_DEFAULTS=1 is set at
+// build time. Guarded like IRAN_ATTACKS_ENABLED so node:test resolves it OFF.
+const CURATED_DEFAULTS_ENABLED = typeof window !== 'undefined' && import.meta.env.VITE_CURATED_DEFAULTS === '1';
+
 // ============================================
 // FULL VARIANT (Geopolitical)
 // ============================================
@@ -1468,6 +1474,48 @@ export function enforceFreePanelLimit(
 }
 
 // ============================================
+// CURATED DEFAULT LAYER SETS (session-09 curation, flag-gated)
+// ============================================
+// Every key below is present in its variant's VARIANT_LAYER_ORDER
+// (map-layer-definitions.ts), so sanitizeLayersForVariant passes them through.
+// The ≤12 cap is a convention enforced by these arrays, not machinery.
+// trader is deliberately absent: its shipped defaults ARE the curated set.
+// Mobile defaults are deliberately not curated — the curation doc scoped
+// desktop/web only.
+function curatedLayers(base: MapLayers, on: Array<keyof MapLayers>): MapLayers {
+  const out = { ...base };
+  for (const k of Object.keys(out) as Array<keyof MapLayers>) out[k] = false;
+  for (const k of on) out[k] = true;
+  return out;
+}
+
+const CURATED_MAP_LAYERS: Partial<Record<string, MapLayers>> = {
+  full: curatedLayers(FULL_MAP_LAYERS, [
+    'natural', 'fires', 'ucdpEvents', 'weather', 'outages', 'cyberThreats',
+    'conflicts', 'hotspots', 'bases', 'nuclear', 'waterways', 'sanctions',
+  ]),
+  tech: curatedLayers(TECH_MAP_LAYERS, [
+    'datacenters', 'techHQs', 'cloudRegions', 'startupHubs', 'cables',
+    'outages', 'cyberThreats', 'techEvents', 'natural',
+  ]),
+  finance: curatedLayers(FINANCE_MAP_LAYERS, [
+    'stockExchanges', 'financialCenters', 'centralBanks', 'economic', 'sanctions',
+    'tradeRoutes', 'waterways', 'cables', 'pipelines', 'outages', 'natural',
+  ]),
+  commodity: curatedLayers(COMMODITY_MAP_LAYERS, [
+    'miningSites', 'processingPlants', 'commodityPorts', 'commodityHubs', 'minerals',
+    'pipelines', 'waterways', 'tradeRoutes', 'ais', 'natural', 'fires', 'sanctions',
+  ]),
+  energy: curatedLayers(ENERGY_MAP_LAYERS, [
+    'pipelines', 'storageFacilities', 'fuelShortages', 'liveTankers', 'waterways',
+    'commodityPorts', 'commodityHubs', 'ais', 'tradeRoutes', 'sanctions', 'fires', 'natural',
+  ]),
+  happy: curatedLayers(HAPPY_MAP_LAYERS, [
+    'positiveEvents', 'happiness', 'kindness', 'speciesRecovery', 'renewableInstallations',
+  ]),
+};
+
+// ============================================
 // VARIANT-AWARE EXPORTS
 // ============================================
 export const DEFAULT_PANELS: Record<string, PanelConfig> = Object.fromEntries(
@@ -1476,7 +1524,7 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = Object.fromEntries(
   )
 );
 
-export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
+export const DEFAULT_MAP_LAYERS = (CURATED_DEFAULTS_ENABLED && CURATED_MAP_LAYERS[SITE_VARIANT]) || (SITE_VARIANT === 'happy'
   ? HAPPY_MAP_LAYERS
   : SITE_VARIANT === 'tech'
     ? TECH_MAP_LAYERS
@@ -1488,7 +1536,7 @@ export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
           ? ENERGY_MAP_LAYERS
           : SITE_VARIANT === 'trader'
             ? TRADER_MAP_LAYERS
-            : FULL_MAP_LAYERS;
+            : FULL_MAP_LAYERS);
 
 export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
   ? HAPPY_MOBILE_MAP_LAYERS

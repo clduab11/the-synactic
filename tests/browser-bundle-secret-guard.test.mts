@@ -93,6 +93,9 @@ const CLIENT_ENV_ALLOWLIST = new Set([
   'VITE_CLERK_PUBLISHABLE_KEY',
   'VITE_CLOUD_PREFS_ENABLED',
   'VITE_CONVEX_URL',
+  // Fork-local flag selecting the session-09 curated default map-layer sets
+  // (docs/plans/session-09-layer-curation.md). A boolean, not a credential.
+  'VITE_CURATED_DEFAULTS',
   'VITE_DESKTOP_RUNTIME',
   'VITE_DIGEST_CRON_ENABLED',
   'VITE_DODO_ENVIRONMENT',
