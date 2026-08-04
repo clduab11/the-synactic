@@ -64,8 +64,13 @@ describe('MCP preset auth registry parity', () => {
   it('parses a plausible number of presets and registry entries', () => {
     // Guards the parsers themselves: a regex that silently matches nothing
     // would make every assertion below vacuously true.
-    assert.ok(presets.length >= 20, `expected >=20 presets, parsed ${presets.length}`);
-    assert.ok(entries.length >= 20, `expected >=20 registry entries, parsed ${entries.length}`);
+    // The bound is deliberately loose because the preset list is CURATED and
+    // shrinks — PostgreSQL, Slack and Airtable were dropped in session 12. What
+    // must hold is that both sides parsed real data AND agree on size.
+    assert.ok(presets.length >= 10, `expected >=10 presets, parsed ${presets.length}`);
+    assert.ok(entries.length >= 10, `expected >=10 registry entries, parsed ${entries.length}`);
+    assert.equal(entries.length, presets.length,
+      'registry and preset list must hold exactly one entry each');
   });
 
   it('every preset host has a registry entry', () => {

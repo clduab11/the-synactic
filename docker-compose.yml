@@ -120,6 +120,15 @@ services:
       CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
       AVIATIONSTACK_API: "${AVIATIONSTACK_API:-}"
       TRAVELPAYOUTS_API_TOKEN: "${TRAVELPAYOUTS_API_TOKEN:-}"
+      # Connect-MCP quick-connect presets (session 12). api/_mcp-preset-auth.ts
+      # resolves these server-side so the panel shows the preset as configured
+      # and no key ever reaches the browser. A key in .env reaches NOTHING until
+      # it is listed HERE — that is the whole reason these lines exist.
+      TAVILY_API_KEY: "${TAVILY_API_KEY:-}"
+      PERIGON_API_KEY: "${PERIGON_API_KEY:-}"
+      LUNARCRUSH_API_KEY: "${LUNARCRUSH_API_KEY:-}"
+      # Fine-grained PAT. The registry also accepts GITHUB_TOKEN / GH_TOKEN.
+      GITHUB_PAT: "${GITHUB_PAT:-}"
       # Session-09 [2b]: local intel-history backend. Routes the three history
       # RPCs (search-intel-history / get-intel-timeline / get-similar-events)
       # to the `chroma` service below instead of Convex — this self-host

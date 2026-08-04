@@ -114,11 +114,6 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
     headers: [{ template: BEARER, envVars: ['GITHUB_TOKEN', 'GITHUB_PAT', 'GH_TOKEN'] }],
   },
   {
-    presetName: 'Slack',
-    host: 'mcp.slack.com',
-    headers: [{ template: BEARER, envVars: ['SLACK_BOT_TOKEN'] }],
-  },
-  {
     presetName: 'Linear',
     host: 'mcp.linear.app',
     headers: [{ template: BEARER, envVars: ['LINEAR_API_KEY'] }],
@@ -148,14 +143,6 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
     host: 'mcp.notion.com',
     headers: [{ template: BEARER, envVars: ['NOTION_API_KEY', 'NOTION_INTEGRATION_TOKEN'] }],
   },
-  {
-    presetName: 'Airtable',
-    host: 'mcp.airtable.com',
-    headers: [{ template: BEARER, envVars: ['AIRTABLE_PERSONAL_ACCESS_TOKEN', 'AIRTABLE_API_KEY'] }],
-  },
-
-  // ── Self-hosted template — no canonical host, so never auto-configured ────
-  { presetName: 'PostgreSQL', host: 'your-pg-mcp-server.example.com', headers: [] },
 ]);
 
 const BY_HOST = new Map(MCP_PRESET_AUTH.map((entry) => [entry.host.toLowerCase(), entry]));
