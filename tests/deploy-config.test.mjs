@@ -1417,6 +1417,61 @@ describe('embeddable map route guardrails', () => {
   });
 });
 
+describe('self-hosted docker nginx upstream Origin policy (session 11)', () => {
+  // The api handlers echo an ALLOWED request Origin into
+  // Access-Control-Allow-Origin (api/_cors.js). docker/nginx.conf used to
+  // rewrite EVERY /api/ Origin to the portless literal http://localhost, so
+  // cross-origin browser clients — the Tauri desktop webview above all — got
+  // an ACAO naming someone else's origin and had every stack response blocked
+  // client-side, while nginx logged the same requests as 200s. The fix is a
+  // map: loopback/tauri origins pass through untouched, everything else keeps
+  // the legacy rewrite so origin-allowlist api-key checks still pass.
+  it('never rewrites Origin unconditionally', () => {
+    assert.doesNotMatch(
+      dockerNginxSource,
+      /proxy_set_header\s+Origin\s+http:\/\/localhost;/,
+      'unconditional Origin rewrite breaks CORS for the desktop webview (blank DEFCON/PizzInt/CII/AI-Insights panels)',
+    );
+  });
+
+  it('routes Origin through the $wm_upstream_origin map in the /api/ proxy', () => {
+    assert.match(dockerNginxSource, /proxy_set_header\s+Origin\s+\$wm_upstream_origin;/);
+    assert.match(dockerNginxSource, /map\s+\$http_origin\s+\$wm_upstream_origin\s+\{/);
+  });
+
+  it('map passes desktop and loopback origins through, defaults to the legacy rewrite', () => {
+    const mapBlock = dockerNginxSource.match(/map\s+\$http_origin\s+\$wm_upstream_origin\s+\{([\s\S]*?)\n  \}/);
+    assert.ok(mapBlock, 'docker/nginx.conf must define the $wm_upstream_origin map');
+    const body = mapBlock[1];
+    assert.match(body, /default\s+"http:\/\/localhost";/, 'non-allowlisted origins keep the legacy rewrite');
+    for (const passthrough of [
+      'localhost(:[0-9]+)?',      // dev webview (devUrl http://localhost:3000) and local browsers
+      '127\\.0\\.0\\.1(:[0-9]+)?', // direct-IP browsers
+      'tauri\\.localhost',         // packaged desktop on Windows WebView2
+      'tauri://localhost',         // packaged desktop on other platforms
+    ]) {
+      assert.ok(body.includes(passthrough), `map must pass through origins matching ${passthrough}`);
+    }
+    // Every passthrough entry must forward the caller's own origin — an echo,
+    // not a constant — or the handlers cannot emit a matching ACAO.
+    const passthroughLines = body.split('\n').filter((l) => l.trim().startsWith('~'));
+    assert.ok(passthroughLines.length >= 4);
+    for (const line of passthroughLines) {
+      assert.match(line, /\$http_origin;$/, `map passthrough must echo the caller origin: ${line.trim()}`);
+    }
+  });
+
+  it('keeps the sidecar transport token header intact', () => {
+    // envsubst renders ${LOCAL_API_TOKEN} at container boot; an EMPTY value
+    // strips the header entirely (nginx empty-proxy_set_header semantics) and
+    // the local-api global auth gate then 401s every proxied request.
+    assert.match(
+      dockerNginxSource,
+      /proxy_set_header\s+X-WorldMonitor-Local-Token\s+"\$\{LOCAL_API_TOKEN\}";/,
+    );
+  });
+});
+
 describe('self-hosted docker nginx SPA entry', () => {
   it('both nginx confs serve dashboard.html as the SPA entry', () => {
     // dashboardHtmlOutputPlugin (vite.config.ts, !isDesktopBuild) renames the
