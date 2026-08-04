@@ -19,10 +19,12 @@ import {
   HAPI_HDX_PACKAGE_URL,
   HAPI_REFRESH_INTERVAL_MS,
   HAPI_REQUIRED_COUNTRIES,
+  HDX_HONEST_UA,
   aggregateHapiConflictEvents,
   buildHapiConflictEventsUrl,
   fetchAllHumanitarianSummaries,
   fetchHapiHdxSnapshotRows,
+  isHapiBotBlock,
   selectHapiHdxCsvResources,
 } from '../scripts/seed-conflict-intel.mjs';
 import {
@@ -677,6 +679,165 @@ test('HAPI backoff records the fallback rejection status when the national sweep
   assert.equal(preserved, 1);
   assert.equal(backoff.status, 429, 'must record the fallback rejection status, not fall back to 0');
   assert.equal(failureMeta.errorReason, 'HAPI_RATE_LIMIT');
+  assert.equal(backoff.retryAt, NOW + HAPI_FAILURE_BACKOFF_MS);
+});
+
+// ─── Bot-block predicate: HTTP 444 / "not available for scraping" ───
+//
+// The container observes HDX refusing the API with HTTP 444 (the edge's
+// connection-closed status, empty body) and with a "not available for
+// scraping" body. Before this fix the predicate only matched the
+// "Blocked due to bot activity." wording, so neither shape reached the
+// snapshot fallback and humanitarianSummary stayed SEED_ERROR.
+
+test('HAPI bot-block predicate covers 444 and the scraping-refusal body', () => {
+  assert.equal(isHapiBotBlock(444, ''), true, 'HTTP 444 carries the verdict on its own');
+  assert.equal(isHapiBotBlock(444), true, 'a 444 with no body at all is still a bot block');
+  assert.equal(isHapiBotBlock('444', ''), true, 'string statuses from JSON bodies still match');
+  assert.equal(
+    isHapiBotBlock(403, 'This dataset is not available for scraping.'),
+    true,
+  );
+  assert.equal(isHapiBotBlock(406, 'Blocked due to bot activity.'), true);
+  // Honest non-bot failures must NOT be laundered into a snapshot fallback.
+  assert.equal(isHapiBotBlock(429, 'Too Many Requests'), false);
+  assert.equal(isHapiBotBlock(503, 'unavailable'), false);
+  assert.equal(isHapiBotBlock(500, ''), false);
+});
+
+test('HAPI HTTP 444 with an empty body loads the official HDX snapshot', async () => {
+  let directCalls = 0;
+  const snapshotUrls = [];
+  const csv = hapiCsv(
+    'SDN,,,,,,,,,0,political_violence,12,3,2026-07-01,2026-07-31,dataset,resource,,',
+  );
+  const result = await fetchAllHumanitarianSummaries({
+    now: () => NOW,
+    countryCodes: ['SD'],
+    pace: async () => {},
+    loadPreviousMarker: async () => null,
+    loadFailureBackoff: async () => null,
+    writeFailureBackoff: async () => assert.fail('successful snapshot recovery must not back off'),
+    writeFailureMeta: async () => assert.fail('successful snapshot recovery must not publish SEED_ERROR'),
+    preserveLastGood: async () => assert.fail('successful snapshot recovery must not preserve stale rows'),
+    snapshotFetchFn: async (input) => {
+      const url = String(input);
+      snapshotUrls.push(url);
+      if (url.includes('/api/3/action/package_show')) {
+        return Response.json(hapiHdxMetadata());
+      }
+      return new Response(csv, { headers: { 'Content-Type': 'text/csv' } });
+    },
+    fetchFn: async () => {
+      directCalls += 1;
+      return new Response(null, { status: 444 });
+    },
+  });
+
+  assert.equal(directCalls, 1);
+  assert.equal(snapshotUrls.length, 2, 'metadata plus one annual CSV');
+  assert.match(snapshotUrls[0], /^https:\/\/data\.humdata\.org\/api\/3\/action\/package_show/);
+  assert.deepEqual(Object.keys(result), ['SD']);
+  assert.equal(result.SD.summary.conflictPoliticalViolenceEvents, 12);
+});
+
+test('HAPI "not available for scraping" body loads the official HDX snapshot', async () => {
+  let directCalls = 0;
+  let snapshotCalls = 0;
+  const csv = hapiCsv(
+    'SDN,,,,,,,,,0,political_violence,9,4,2026-07-01,2026-07-31,dataset,resource,,',
+  );
+  const result = await fetchAllHumanitarianSummaries({
+    now: () => NOW,
+    countryCodes: ['SD'],
+    pace: async () => {},
+    loadPreviousMarker: async () => null,
+    loadFailureBackoff: async () => null,
+    writeFailureBackoff: async () => assert.fail('successful snapshot recovery must not back off'),
+    writeFailureMeta: async () => assert.fail('successful snapshot recovery must not publish SEED_ERROR'),
+    preserveLastGood: async () => assert.fail('successful snapshot recovery must not preserve stale rows'),
+    snapshotFetchFn: async (input) => {
+      snapshotCalls += 1;
+      return String(input).includes('/api/3/action/package_show')
+        ? Response.json(hapiHdxMetadata())
+        : new Response(csv, { headers: { 'Content-Type': 'text/csv' } });
+    },
+    fetchFn: async () => {
+      directCalls += 1;
+      return new Response('This resource is not available for scraping.', { status: 403 });
+    },
+  });
+
+  assert.equal(directCalls, 1);
+  assert.equal(snapshotCalls, 2);
+  assert.deepEqual(Object.keys(result), ['SD']);
+  assert.equal(result.SD.summary.conflictFatalities, 4);
+});
+
+test('both HDX paths declare an honest bot UA, never a browser impersonation', async () => {
+  const userAgents = [];
+  const csv = hapiCsv(
+    'SDN,,,,,,,,,0,political_violence,12,3,2026-07-01,2026-07-31,dataset,resource,,',
+  );
+  await fetchAllHumanitarianSummaries({
+    now: () => NOW,
+    countryCodes: ['SD'],
+    pace: async () => {},
+    loadPreviousMarker: async () => null,
+    loadFailureBackoff: async () => null,
+    writeFailureBackoff: async () => {},
+    writeFailureMeta: async () => {},
+    preserveLastGood: async () => {},
+    snapshotFetchFn: async (input, options) => {
+      userAgents.push(options.headers['User-Agent']);
+      return String(input).includes('/api/3/action/package_show')
+        ? Response.json(hapiHdxMetadata())
+        : new Response(csv, { headers: { 'Content-Type': 'text/csv' } });
+    },
+    fetchFn: async (_input, options) => {
+      userAgents.push(options.headers['User-Agent']);
+      return new Response(null, { status: 444 });
+    },
+  });
+
+  assert.equal(userAgents.length, 3, 'one API request plus metadata plus one CSV');
+  for (const userAgent of userAgents) {
+    assert.equal(userAgent, HDX_HONEST_UA);
+    assert.doesNotMatch(userAgent, /Mozilla|AppleWebKit|Chrome|Safari/i);
+  }
+  assert.match(HDX_HONEST_UA, /^the-synactic\/\d+\.\d+ \(\+https:\/\/github\.com\//);
+});
+
+test('a 444 whose snapshot also fails still publishes an honest failure meta', async () => {
+  let failureMeta;
+  let backoff;
+  let preserved = 0;
+  const result = await fetchAllHumanitarianSummaries({
+    now: () => NOW,
+    countryCodes: ['SD'],
+    pace: async () => {},
+    loadPreviousMarker: async () => ({
+      updatedAt: NOW - 10 * HAPI_REFRESH_INTERVAL_MS,
+      requiredCountriesCovered: 7,
+    }),
+    loadFailureBackoff: async () => null,
+    writeFailureBackoff: async (value) => { backoff = value; },
+    writeFailureMeta: async (value) => { failureMeta = value; },
+    preserveLastGood: async () => { preserved += 1; },
+    snapshotFetchFn: async () => new Response('server error', { status: 500 }),
+    fetchFn: async () => new Response(null, { status: 444 }),
+  });
+
+  assert.equal(result, null);
+  assert.equal(preserved, 1, 'last-known-good rows must be preserved, not silently dropped');
+  assert.equal(failureMeta.status, 'error');
+  assert.equal(failureMeta.errorReason, 'HAPI_HDX_SNAPSHOT_FALLBACK_FAILED');
+  assert.equal(failureMeta.directFailureReason, 'HAPI_BOT_BLOCK', 'the 444 must be recorded as the bot block it is');
+  assert.equal(failureMeta.snapshotFailureReason, 'HDX_HTTP_500');
+  assert.equal(failureMeta.failedAt, NOW);
+  assert.equal(failureMeta.lastSuccessAt, NOW - 10 * HAPI_REFRESH_INTERVAL_MS);
+  assert.equal(failureMeta.recordCount, 7);
+  assert.equal(backoff.reasonCode, 'HAPI_HDX_SNAPSHOT_FALLBACK_FAILED');
   assert.equal(backoff.retryAt, NOW + HAPI_FAILURE_BACKOFF_MS);
 });
 

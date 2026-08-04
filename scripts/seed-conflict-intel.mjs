@@ -36,11 +36,13 @@ import {
   HAPI_HDX_PACKAGE_URL,
   HAPI_MAX_PAGES,
   HAPI_PAGE_LIMIT,
+  HDX_HONEST_UA,
   aggregateHapiConflictEvents,
   buildHapiConflictEventsUrl,
   fetchHapiHdxSnapshotRows,
   hapiCountryCodeForIso3,
   hapiHdxFailureReason,
+  isHapiBotBlock,
   parseHapiHdxConflictCsv,
   selectHapiHdxCsvResources,
 } from './_conflict-hapi.mjs';
@@ -50,9 +52,11 @@ import { resolveIso2 } from './_country-resolver.mjs';
 export {
   HAPI_HDX_MAX_RESPONSE_BYTES,
   HAPI_HDX_PACKAGE_URL,
+  HDX_HONEST_UA,
   aggregateHapiConflictEvents,
   buildHapiConflictEventsUrl,
   fetchHapiHdxSnapshotRows,
+  isHapiBotBlock,
   parseHapiHdxConflictCsv,
   selectHapiHdxCsvResources,
 };
@@ -198,6 +202,10 @@ export const ACLED_INTEL_LOCK_TTL_MS = 420_000;
 // retrying the identical API endpoint through another egress. This seeder is
 // the only source of HAPI traffic; the RPC handlers only read the Redis keys it
 // writes, and the freshness gate permits one attempt at most every two hours.
+// The block is recognised by isHapiBotBlock — the "Blocked due to bot activity."
+// body, HTTP 444, or a "not available for scraping" body. Both HDX paths send
+// HDX_HONEST_UA: HDX asks clients to identify themselves, so a declared UA is
+// both the required posture and the one that matches the app_identifier header.
 const HAPI_APP_IDENTIFIER_CONFIG = loadSharedConfig('hapi-app-identifier.json');
 const HAPI_APP_IDENTIFIER = Buffer.from(
   `${HAPI_APP_IDENTIFIER_CONFIG.application}:${HAPI_APP_IDENTIFIER_CONFIG.email}`,
@@ -675,7 +683,12 @@ async function defaultPreserveHapiLastGood() {
 }
 
 function hapiFailureReason(status, providerMessage = '') {
-  if (/blocked due to bot activity/i.test(providerMessage)) {
+  // isHapiBotBlock (scripts/_conflict-hapi.mjs) owns the full signature list:
+  // the "Blocked due to bot activity." body, HTTP 444, and "not available for
+  // scraping". This must stay ahead of the 429 branch — HDX has served the bot
+  // body under 429 as well, and that case belongs on the snapshot path, not on
+  // a rate-limit backoff.
+  if (isHapiBotBlock(status, providerMessage)) {
     return 'HAPI_BOT_BLOCK';
   }
   if (Number(status) === 429) return 'HAPI_RATE_LIMIT';
@@ -719,7 +732,7 @@ async function fetchHapiRows({
       {
         headers: {
           Accept: 'application/json',
-          'User-Agent': CHROME_UA,
+          'User-Agent': HDX_HONEST_UA,
           'X-HDX-HAPI-APP-IDENTIFIER': HAPI_APP_IDENTIFIER,
         },
         signal: AbortSignal.timeout(HAPI_REQUEST_TIMEOUT_MS),

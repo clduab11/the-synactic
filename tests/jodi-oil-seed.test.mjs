@@ -10,6 +10,8 @@ import {
   buildAllCountries,
   validateCoverage,
   mergeSourceRows,
+  jodiCsvCandidates,
+  assertParseableCsv,
   CANONICAL_KEY,
   COUNTRY_KEY_PREFIX,
   JODI_TTL,
@@ -361,6 +363,97 @@ describe('validateCoverage', () => {
 
   it('returns false for empty array', () => {
     assert.equal(validateCoverage([]), false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Current-year filename fallback
+//
+// JODI names the still-open year <dataset>/<dataset>year<YYYY>.csv and only
+// renames it to <dataset>/<YYYY>.csv once the year is archived. Building only
+// the archived shape silently missed every current-year publication.
+// [VERIFIED probe 2026-08-03] primary/primaryyear2026.csv -> HTTP 206 while
+// primary/2026.csv -> HTTP 404; exactly reversed for 2025.
+// ---------------------------------------------------------------------------
+
+describe('jodiCsvCandidates', () => {
+  it('puts the in-progress shape first for the current year', () => {
+    assert.deepEqual(
+      jodiCsvCandidates('primary', 2026, true),
+      ['primary/primaryyear2026.csv', 'primary/2026.csv'],
+    );
+  });
+
+  it('builds the secondary in-progress shape with the dataset name doubled', () => {
+    assert.deepEqual(
+      jodiCsvCandidates('secondary', 2026, true),
+      ['secondary/secondaryyear2026.csv', 'secondary/2026.csv'],
+    );
+  });
+
+  it('puts the archived shape first for a prior year', () => {
+    assert.deepEqual(
+      jodiCsvCandidates('primary', 2025, false),
+      ['primary/2025.csv', 'primary/primaryyear2025.csv'],
+    );
+  });
+
+  it('regression: current-year list contains the probe-verified working name', () => {
+    // The old code produced only `primary/2026.csv`, which is a hard 404.
+    assert.ok(
+      jodiCsvCandidates('primary', 2026, true).includes('primary/primaryyear2026.csv'),
+      'current-year candidates must include the <dataset>year<YYYY> shape',
+    );
+  });
+
+  it('offers both shapes for either year so the year-end rollover is covered', () => {
+    for (const isCurrent of [true, false]) {
+      const got = jodiCsvCandidates('secondary', 2027, isCurrent);
+      assert.equal(got.length, 2);
+      assert.deepEqual(
+        [...got].sort(),
+        ['secondary/2027.csv', 'secondary/secondaryyear2027.csv'],
+      );
+    }
+  });
+});
+
+describe('assertParseableCsv', () => {
+  const HEADER = 'REF_AREA,TIME_PERIOD,ENERGY_PRODUCT,FLOW_BREAKDOWN,UNIT_MEASURE,OBS_VALUE,ASSESSMENT_CODE';
+
+  it('accepts a CRLF-terminated upstream header', () => {
+    const csv = `${HEADER}\r\nAE,2026-01,CRUDEOIL,CLOSTLV,KBD,x,3\r\n`;
+    assert.equal(assertParseableCsv(csv, 'primary/primaryyear2026.csv'), csv);
+  });
+
+  it('accepts a BOM-prefixed header', () => {
+    const csv = `﻿`;
+    // `csv` above holds a raw U+FEFF taken straight from this source file.
+    // Assert it survived, so an editor or normalizer silently stripping it
+    // makes this test fail loudly instead of passing vacuously.
+    assert.equal(csv.charCodeAt(0), 0xFEFF, 'source-literal BOM was stripped');
+    // The payload actually under test builds its BOM by code point, so it is
+    // independent of however this file happens to be encoded on disk.
+    const csvWithBom = String.fromCharCode(0xFEFF) + HEADER + '\r\nAE,2026-01,CRUDEOIL,CLOSTLV,KBD,x,3\r\n';
+    assert.equal(assertParseableCsv(csvWithBom, 'primary/primaryyear2026.csv'), csvWithBom);
+  });
+
+  it('rejects an HTML error page served with HTTP 200', () => {
+    assert.throws(
+      () => assertParseableCsv('<!DOCTYPE html><html><body>Not Found</body></html>', 'primary/2026.csv'),
+      /not parseable/,
+    );
+  });
+
+  it('rejects an empty payload', () => {
+    assert.throws(() => assertParseableCsv('', 'primary/2026.csv'), /not parseable/);
+  });
+
+  it('names the failing candidate in the error so the reason is never swallowed', () => {
+    assert.throws(
+      () => assertParseableCsv('garbage', 'secondary/2026.csv'),
+      /secondary\/2026\.csv/,
+    );
   });
 });
 

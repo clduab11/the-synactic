@@ -1,9 +1,32 @@
 import Papa from 'papaparse';
 
 import {
-  CHROME_UA,
   loadSharedConfig,
 } from './_seed-utils.mjs';
+
+// HDX is a humanitarian data commons that wants to know who its clients are:
+// the identifying `X-HDX-HAPI-APP-IDENTIFIER` header is the sanctioned way to
+// be recognised, and an honest declared bot UA is the correct companion to it.
+// A browser-impersonation UA is forbidden here (CONTEXT.md boundary 2) and is
+// counterproductive besides — it hides the very identity HDX asks us to
+// declare. Both the HAPI API path and the HDX snapshot path send this.
+export const HDX_HONEST_UA = 'the-synactic/2.10 (+https://github.com/clduab11/the-synactic)';
+
+// HDX refuses a client it believes is a bot in more than one shape:
+//   - HTTP 406/429 carrying "Blocked due to bot activity." (JSON or plain text)
+//   - HTTP 444 — the edge's connection-closed status, usually with an empty or
+//     non-JSON body, so the status alone has to carry the verdict
+//   - a body stating the resource is "not available for scraping"
+// All three mean "refused as a bot", and the sanctioned remedy is HDX's own
+// CSV snapshot of the same table (re-sourcing), never a disguise.
+export const HAPI_BOT_BLOCK_STATUSES = Object.freeze([444]);
+
+export function isHapiBotBlock(status, providerMessage = '') {
+  if (HAPI_BOT_BLOCK_STATUSES.includes(Number(status))) return true;
+  const message = String(providerMessage ?? '');
+  return /blocked due to bot activity/i.test(message)
+    || /not available for scraping/i.test(message);
+}
 
 export const HAPI_PAGE_LIMIT = 10_000;
 export const HAPI_MAX_PAGES = 3;
@@ -227,7 +250,7 @@ export async function fetchHapiHdxSnapshotRows({
   const requestOptions = (accept, timeoutMs) => ({
     headers: {
       Accept: accept,
-      'User-Agent': CHROME_UA,
+      'User-Agent': HDX_HONEST_UA,
     },
     signal: createTimeoutSignal(timeoutMs),
   });

@@ -407,6 +407,69 @@ services:
     healthcheck:
       disable: true
 
+  # ── Daily seeder tier (session 10) ──────────────────────────────────────────
+  # 24-hour cycle. Every member here was EMPTY or STALE_SEED for one reason
+  # only: it was a Railway cron that never got migrated to a local loop when the
+  # stack moved to self-host. Nothing about them was broken — they were simply
+  # never being run. A re-sourcing sweep on 2026-08-03 confirmed each upstream
+  # answers this host.
+  #
+  # WHY A DAILY TIER AND NOT MORE ENTRIES IN seed-loop-slow: seven of these eight
+  # carry NO internal freshness gate (confirmed positively — only
+  # seed-bundle-energy-sources gates, via runBundle). On the 3h tier they would
+  # each hit their upstream 8x/day for data that updates daily at best and
+  # monthly at worst — JODI publishes monthly, Ember monthly, UN Comtrade
+  # monthly, the Japan MoD press index daily. Under CONTEXT.md boundary 2 that
+  # is pointless load on a metered upstream, so the cadence follows the
+  # publication rhythm rather than our convenience. Same principle the slow tier
+  # documents; different budget.
+  #
+  # ORDER IS LOAD-BEARING: seed-china-decision-signals is a fan-in that reads
+  # what the corporate-disclosures and policy-events seeders just wrote, so it
+  # runs after both — the same reason seed-cross-source-signals runs last in the
+  # fast tier.
+  #
+  # DELIBERATELY NOT HERE — these three exist and are wired, but their keys are
+  # not provisioned, and scheduling a seeder that can only fail turns a silent
+  # gap into a noisy one without adding a single record:
+  #   - seed-health-air-quality  needs OPENAQ_API_KEY  (free: explore.openaq.org/register)
+  #   - seed-webcams             needs WINDY_API_KEY   (free: api.windy.com/keys)
+  #   - seed-defense-patents     needs USPTO_API_KEY   (free: data.uspto.gov)
+  # Add each to the roster in the SAME commit as its key, and remember the key
+  # must reach THIS service's environment block, not just .env.
+  seed-loop-daily:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: the-synactic:latest
+    container_name: the-synactic-seed-loop-daily
+    command: ["sh", "-c", "while true; do for s in seed-bundle-energy-sources seed-ember-electricity seed-electricity-prices seed-trade-flows seed-cross-strait-activity seed-china-corporate-disclosures seed-china-policy-events seed-china-decision-signals; do echo \"[seed-loop-daily] running $$s\"; timeout 2700 node /repo/scripts/$$s.mjs || echo \"[seed-loop-daily] $$s FAILED (exit $$?)\"; done; echo '[seed-loop-daily] cycle done; sleeping 24h'; sleep 86400; done"]
+    volumes:
+      - ./scripts:/repo/scripts:ro
+      - ./shared:/repo/shared:ro
+      - ./src/config:/repo/src/config:ro
+    environment:
+      UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
+      UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
+      # seed-electricity-prices has two halves. The US half reads EIA and works
+      # today (the key is provisioned). The EU half reads ENTSO-E and stays
+      # empty until a token exists — passed through now so provisioning is a
+      # one-line .env change rather than a compose edit, and because a key in
+      # .env does nothing until it is in THIS service's environment block.
+      EIA_API_KEY: "${EIA_API_KEY:-}"
+      ENTSO_E_TOKEN: "${ENTSO_E_TOKEN:-}"
+      # seed-china-decision-signals fans in through the app's own gateway
+      # rather than fetching upstream.
+      API_BASE_URL: "http://the-synactic:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis-rest:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
   # ── Fast seeder tier (session 09) ───────────────────────────────────────────
   # 10-minute cycle, for layers whose health budget is 30-45 min. The 45-minute
   # seed-loop CANNOT satisfy a maxStaleMin of 30 no matter what is in it — the

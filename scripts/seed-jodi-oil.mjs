@@ -4,7 +4,6 @@ import { createRequire } from 'node:module';
 
 import {
   loadEnvFile,
-  CHROME_UA,
   getRedisCredentials,
   acquireLockSafely,
   releaseLock,
@@ -32,6 +31,16 @@ const MIN_VALID_COUNTRIES = 40;
 const ANOMALY_DEMAND_KBD = 10_000;
 
 const JODI_BASE = 'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/';
+
+// Honest declared bot UA (CONTEXT.md boundary 2 v9). [VERIFIED probe
+// 2026-08-03] JODI answers this UA with HTTP 206 on ranged GETs of every
+// annual-csv file below, so the browser-impersonation UA this seeder used to
+// send was buying nothing and is gone.
+const JODI_UA = 'the-synactic/2.10 (+https://github.com/clduab11/the-synactic)';
+
+// Every annual CSV starts with this column list; used to reject an HTML error
+// page served with a 200 before it is mistaken for a valid (empty) payload.
+const CSV_HEADER_PREFIX = 'REF_AREA,TIME_PERIOD,';
 
 const SECONDARY_PRODUCTS = {
   GASOLINE: 'gasoline',
@@ -200,13 +209,107 @@ export function assessChinaOilCoverage(countries, now = new Date()) {
   return assessChinaJodiCoverage(countries, now, hasOilMeasurements);
 }
 
+/**
+ * JODI publishes each annual CSV under two different filenames depending on
+ * whether the year is still open:
+ *   - year still being published : <dataset>/<dataset>year<YYYY>.csv
+ *   - year closed / archived     : <dataset>/<YYYY>.csv
+ *
+ * [VERIFIED probe 2026-08-03, ranged GET, honest UA]
+ *   primary/primaryyear2026.csv     -> HTTP 206, 3,963,616 B, TIME_PERIOD 2026-01
+ *   primary/2026.csv                -> HTTP 404
+ *   secondary/secondaryyear2026.csv -> HTTP 206, 9,001,018 B, TIME_PERIOD 2026-01
+ *   primary/2025.csv                -> HTTP 206, 11,598,300 B
+ *   primary/primaryyear2025.csv     -> HTTP 404
+ * Both shapes carry the identical 7-column header, so the parser is unchanged.
+ *
+ * The two shapes are mutually exclusive per year, and the flip happens at some
+ * point after year-end that we do not control — so each year gets BOTH
+ * candidates, ordered most-likely-first. Building only the archived shape (the
+ * old behaviour) missed the entire current year of publications, which is what
+ * pushed the downstream 6-month data-age gate into blocking publishes.
+ *
+ * @param {'primary'|'secondary'} dataset
+ * @param {number} year
+ * @param {boolean} isCurrentYear
+ * @returns {string[]} base-relative paths, most-likely-first
+ */
+export function jodiCsvCandidates(dataset, year, isCurrentYear) {
+  const inProgress = `${dataset}/${dataset}year${year}.csv`;
+  const archived = `${dataset}/${year}.csv`;
+  return isCurrentYear ? [inProgress, archived] : [archived, inProgress];
+}
+
+/**
+ * Reject a payload that is not a JODI annual CSV (e.g. an HTML error page
+ * returned with HTTP 200). CRLF-safe: only the header prefix is compared.
+ */
+export function assertParseableCsv(text, label) {
+  let head = String(text ?? '');
+  // Strip a leading BOM by code point — a literal U+FEFF in source is fragile.
+  if (head.charCodeAt(0) === 0xFEFF) head = head.slice(1);
+  head = head.trimStart().slice(0, 200);
+  if (!head.startsWith(CSV_HEADER_PREFIX)) {
+    const err = new Error(`JODI CSV payload not parseable (no "${CSV_HEADER_PREFIX}..." header) for ${label}`);
+    // A 200 that is not CSV means this candidate is the wrong shape (a landing
+    // page, an error document), so the sweep may advance to the next name —
+    // unlike an upstream refusal, which must abort. See fetchCsvWithFallback.
+    err.unparseable = true;
+    throw err;
+  }
+  return text;
+}
+
 async function fetchCsv(url) {
   const resp = await fetch(url, {
-    headers: { 'User-Agent': CHROME_UA, Accept: 'text/csv,text/plain,*/*' },
+    headers: { 'User-Agent': JODI_UA, Accept: 'text/csv,text/plain,*/*' },
     signal: AbortSignal.timeout(30_000),
   });
-  if (!resp.ok) throw new Error(`JODI CSV fetch failed: HTTP ${resp.status} for ${url}`);
+  if (!resp.ok) {
+    const err = new Error(`JODI CSV fetch failed: HTTP ${resp.status} for ${url}`);
+    // Only a 404 means "this filename shape is not the live one for that year",
+    // and only a 404 may advance to the next candidate. Every other 4xx is the
+    // upstream refusing or throttling US: advancing on those would fire an
+    // immediate zero-delay second GET at the same host, which is the
+    // retry-through-a-429 posture boundary 2 v9 forbids. Mark 404 alone as
+    // candidate-advancing; the rest abort the sweep.
+    if (resp.status === 404) err.notFound = true;
+    else if (resp.status >= 400 && resp.status < 500) err.nonRetryable = true;
+    throw err;
+  }
   return resp.text();
+}
+
+/**
+ * Fetch one (dataset, year) annual CSV, trying each published filename shape
+ * in order until one returns a parseable payload. Returns '' when every
+ * candidate fails — matching the previous per-file soft-fail contract, so
+ * mergeSourceRows still decides whether the run has enough to proceed. Every
+ * candidate's failure reason is logged, never swallowed.
+ */
+async function fetchCsvWithFallback(dataset, year, isCurrentYear) {
+  const candidates = jodiCsvCandidates(dataset, year, isCurrentYear);
+  const failures = [];
+  for (const rel of candidates) {
+    try {
+      const text = await withRetry(() => fetchCsv(`${JODI_BASE}${rel}`), 2, 2000);
+      assertParseableCsv(text, rel);
+      console.log(`  ${rel}: ${(text.length / 1024 / 1024).toFixed(1)} MB`);
+      return text;
+    } catch (e) {
+      failures.push(`${rel}: ${e.message}`);
+      // Advance only when this filename shape genuinely does not exist, or the
+      // body was not parseable CSV. A 403/429/5xx means the host is refusing or
+      // throttling — back off by aborting the sweep rather than immediately
+      // asking the same host for the next name.
+      if (!e.notFound && !e.unparseable) {
+        console.warn(`  ${dataset} ${year} sweep aborted at ${rel} — upstream refused (${e.message}); not advancing to remaining candidates`);
+        throw e;
+      }
+    }
+  }
+  console.warn(`  ${dataset} ${year} unavailable — all ${candidates.length} filename candidates failed: ${failures.join(' | ')}`);
+  return '';
 }
 
 export function mergeSourceRows(primaryCurrent, primaryPrior, secondaryCurrent, secondaryPrior) {
@@ -228,14 +331,10 @@ async function fetchAllRows() {
   const priorYear = currentYear - 1;
 
   const [primaryCurrent, primaryPrior, secondaryCurrent, secondaryPrior] = await Promise.all([
-    withRetry(() => fetchCsv(`${JODI_BASE}primary/${currentYear}.csv`), 2, 2000)
-      .catch(e => { console.warn(`  primary/${currentYear}.csv failed: ${e.message}`); return ''; }),
-    withRetry(() => fetchCsv(`${JODI_BASE}primary/${priorYear}.csv`), 2, 2000)
-      .catch(e => { console.warn(`  primary/${priorYear}.csv failed: ${e.message}`); return ''; }),
-    withRetry(() => fetchCsv(`${JODI_BASE}secondary/${currentYear}.csv`), 2, 2000)
-      .catch(e => { console.warn(`  secondary/${currentYear}.csv failed: ${e.message}`); return ''; }),
-    withRetry(() => fetchCsv(`${JODI_BASE}secondary/${priorYear}.csv`), 2, 2000)
-      .catch(e => { console.warn(`  secondary/${priorYear}.csv failed: ${e.message}`); return ''; }),
+    fetchCsvWithFallback('primary', currentYear, true),
+    fetchCsvWithFallback('primary', priorYear, false),
+    fetchCsvWithFallback('secondary', currentYear, true),
+    fetchCsvWithFallback('secondary', priorYear, false),
   ]);
 
   return mergeSourceRows(primaryCurrent, primaryPrior, secondaryCurrent, secondaryPrior);

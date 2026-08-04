@@ -1,12 +1,18 @@
-// Pin the FATF entry-page parser + listing extractor + publication-date
-// inference. Plan 2026-04-25-004 §Component 3.
+// Pin the HM Treasury / GOV.UK Content API sourcing of the FATF grey + black
+// lists: child-notice resolution, heading-scoped list extraction, the
+// UK-sanctions over-collection trap, publication-date inference, the sanity
+// bands, validate(), and the boundary-2 (v9) fetch posture.
 //
-// Tests use realistic HTML fragments (NOT recorded-from-network fixtures
-// because FATF rebuilds their site periodically). The fragment shapes
-// mirror the patterns observed at
-// `https://www.fatf-gafi.org/en/countries/black-and-grey-lists.html`
-// as of 2026-02-13. If FATF restructures the page, these tests fail
-// loudly and the seeder's `find*Link` regex needs an update.
+// The two REAL fixtures under tests/fixtures/ are verbatim GOV.UK Content API
+// responses captured 2026-08-03 (June 2026 plenary notice). They are the
+// regression surface for any future parser change — the previous suite used
+// synthetic-only FATF HTML and let a 100-unmatched-candidate failure ship.
+//
+// Historical note: this seeder used to fetch fatf-gafi.org through a spoofed
+// Chrome UA + a Decodo residential proxy + Wayback, purely to get past a
+// Cloudflare managed challenge. That chain violated CONTEXT.md boundary 2 and
+// never landed a payload. The tests that pinned it are gone with it; the
+// `no forbidden fetch measures` block below is what stops it coming back.
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -15,184 +21,261 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import {
-  findPublicationLink,
-  extractListedCountries,
-  extractPublicationDate,
-  validate,
-  fetchViaWayback,
   buildNameLookup,
+  extractHeadingSection,
+  extractFirstListItems,
+  extractListedCountries,
+  resolveCountryNames,
+  resolveLatestNotice,
+  resolvePublicationDate,
+  fetchGovUkJson,
+  fetchFatfListings,
+  validate,
+  SYNACTIC_UA,
+  ATTRIBUTION,
+  GREY_HEADING_FRAGMENT,
+  BLACK_HEADING_FRAGMENT,
+  HMT_NOTICE_BASE_PATH,
 } from '../scripts/seed-fatf-listing.mjs';
 
 const __testDir = dirname(fileURLToPath(import.meta.url));
-const fixtureHtml = (name) => readFileSync(resolve(__testDir, 'fixtures', name), 'utf8');
+const fixtureJson = (name) => JSON.parse(readFileSync(resolve(__testDir, 'fixtures', name), 'utf8'));
 
-describe('findPublicationLink — entry-page anchor scan', () => {
-  const ENTRY_PAGE_2026 = `
-    <html><body>
-      <h2>Black & grey lists</h2>
-      <p>Latest FATF actions:</p>
-      <ul>
-        <li><a href="/en/publications/Fatfrecommendations/high-risk-jurisdictions-2026.html">High-risk jurisdictions subject to a call for action — February 2026</a></li>
-        <li><a href="/en/publications/Fatfrecommendations/increased-monitoring-feb-2026.html">Jurisdictions under increased monitoring — February 2026</a></li>
-      </ul>
-    </body></html>
-  `;
+const SERIES_FIXTURE = fixtureJson('hmt-fatf-notice-series-2026-06.json');
+const NOTICE_FIXTURE = fixtureJson('hmt-fatf-notice-2026-06.json');
+const BODY = NOTICE_FIXTURE.details.body;
 
-  it('finds the "high-risk" (black list) publication URL', () => {
-    const url = findPublicationLink(ENTRY_PAGE_2026, 'high-risk');
-    assert.match(url, /high-risk-jurisdictions/);
-    assert.match(url, /^https:\/\/www\.fatf-gafi\.org\//, 'must resolve relative href against FATF origin');
+// June 2026 plenary, as republished by HM Treasury.
+const EXPECTED_GREY = [
+  'AO', // Angola
+  'BA', // Bosnia and Herzegovina
+  'BG', // Bulgaria
+  'BO', // Bolivia
+  'CD', // Democratic Republic of the Congo
+  'CI', // Cote d'Ivoire
+  'CM', // Cameroon
+  'HT', // Haiti
+  'IQ', // Iraq
+  'KE', // Kenya
+  'KW', // Kuwait
+  'LA', // Lao PDR
+  'LB', // Lebanon
+  'MC', // Monaco
+  'NP', // Nepal
+  'PG', // Papua New Guinea
+  'SS', // South Sudan
+  'SY', // Syria
+  'VE', // Venezuela
+  'VG', // British Virgin Islands
+  'VN', // Vietnam
+  'YE', // Yemen
+];
+const EXPECTED_BLACK = ['IR', 'KP', 'MM'];
+
+// A fetchJsonFn seam that serves the two real fixtures by base_path.
+function fixtureFetcher({ onCall } = {}) {
+  return async (basePath) => {
+    onCall?.(basePath);
+    if (basePath === HMT_NOTICE_BASE_PATH) return SERIES_FIXTURE;
+    if (basePath === NOTICE_FIXTURE.base_path) return NOTICE_FIXTURE;
+    throw new Error(`unexpected base_path in test: ${basePath}`);
+  };
+}
+
+describe('resolveLatestNotice — GOV.UK series -> current notice', () => {
+  it('REAL FIXTURE: resolves the child notice base_path, title and timestamp', () => {
+    const notice = resolveLatestNotice(SERIES_FIXTURE);
+    assert.equal(notice.basePath, SERIES_FIXTURE.links.children[0].base_path);
+    assert.match(notice.title, /Money Laundering Advisory Notice/);
+    assert.match(notice.updatedAt, /^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it('finds the "increased monitoring" (grey list) publication URL', () => {
-    const url = findPublicationLink(ENTRY_PAGE_2026, 'increased monitoring');
-    assert.match(url, /increased-monitoring/);
+  it('picks the NEWEST child, not document order (a stale-first array must not win)', () => {
+    // The CDX `limit` lesson in miniature: never assume an upstream array is
+    // ordered newest-first. Here document order is deliberately oldest-first.
+    const doc = {
+      links: {
+        children: [
+          { base_path: '/old', title: 'February 2026', public_updated_at: '2026-02-24T09:00:00Z' },
+          { base_path: '/new', title: 'June 2026', public_updated_at: '2026-06-22T09:00:07Z' },
+        ],
+      },
+    };
+    assert.equal(resolveLatestNotice(doc).basePath, '/new');
   });
 
-  it('returns null when label is absent (loud failure for parser regression)', () => {
-    const sterile = '<html><body><p>Nothing here</p></body></html>';
-    assert.equal(findPublicationLink(sterile, 'high-risk'), null);
+  it('falls back to first_published_at when public_updated_at is absent', () => {
+    const doc = {
+      links: {
+        children: [
+          { base_path: '/a', first_published_at: '2026-02-24T09:00:00Z' },
+          { base_path: '/b', first_published_at: '2026-06-22T09:00:00Z' },
+        ],
+      },
+    };
+    assert.equal(resolveLatestNotice(doc).basePath, '/b');
   });
 
-  it('case-insensitive label match', () => {
-    const url = findPublicationLink(ENTRY_PAGE_2026, 'HIGH-RISK');
-    assert.ok(url);
+  it('keeps document order as the tiebreak when timestamps are equal or missing', () => {
+    const doc = { links: { children: [{ base_path: '/first' }, { base_path: '/second' }] } };
+    assert.equal(resolveLatestNotice(doc).basePath, '/first');
+  });
+
+  it('throws loudly when links.children is missing (structural change, not an empty list)', () => {
+    assert.throws(() => resolveLatestNotice({ links: {} }), /no links\.children/);
+    assert.throws(() => resolveLatestNotice({}), /no links\.children/);
+  });
+
+  it('throws when children exist but none carry a base_path', () => {
+    assert.throws(
+      () => resolveLatestNotice({ links: { children: [{ title: 'no path' }] } }),
+      /none carry a base_path/,
+    );
   });
 });
 
-describe('extractListedCountries — country-name lookup from publication HTML', () => {
-  // Real FATF Wayback fixtures captured 2026-04-25 (Feb 2026 plenary).
-  // The previous synthetic-only test suite let a 100-unmatched-candidate
-  // failure ship to production because the parser was never exercised
-  // against actual FATF DOM (`<a class="cmp-list__item-link">` member
-  // nav, /content/fatf-gafi/ AEM URL prefix variants, FATF's specific
-  // anchor-text renderings like "Lao PDR" / "Virgin Islands (UK)" /
-  // "Côte d'Ivoire"). Keep these fixtures in tree as the regression
-  // surface for any future parser change.
+describe('extractHeadingSection — heading-scoped, prose-immune', () => {
+  it('REAL FIXTURE: scopes to the heading, stopping at the next heading of any level', () => {
+    const grey = extractHeadingSection(BODY, GREY_HEADING_FRAGMENT);
+    assert.ok(grey, 'grey-list heading section must be found');
+    // Grey section runs h4 -> next h4. It must contain Angola and must NOT
+    // contain the black-list entries that live in the following section.
+    assert.match(grey, /Angola/);
+    assert.doesNotMatch(grey, /Myanmar/, 'grey section must stop at the black-list h4');
+  });
 
-  it('REAL FIXTURE: black list (Feb 2026) — extracts exactly DPRK, Iran, Myanmar with zero unmatched', () => {
-    const html = fixtureHtml('fatf-blacklist-2026-02.html');
-    const { listed, unmatchedCandidates } = extractListedCountries(html, buildNameLookup());
-    assert.deepEqual([...listed].sort(), ['IR', 'KP', 'MM'],
-      `real Feb 2026 black list = DPRK + Iran + Myanmar; got ${[...listed].sort().join(',')}`);
+  it('REAL FIXTURE: ignores the same phrases when they appear in blockquote / prose', () => {
+    // The notice quotes both list names inside a <blockquote> and again in a
+    // narrative <p>, well before the h4 headings. A body-wide text scan would
+    // anchor on those and slice the wrong region.
+    const black = extractHeadingSection(BODY, BLACK_HEADING_FRAGMENT);
+    assert.ok(black, 'black-list heading section must be found');
+    assert.match(black, /Myanmar/, 'must land on the h4 section, not the earlier blockquote');
+    assert.doesNotMatch(black, /Angola/, 'must not reach back into the grey-list section');
+  });
+
+  it('returns null when no heading matches (caller turns this into a loud failure)', () => {
+    assert.equal(extractHeadingSection('<p>call for action</p>', BLACK_HEADING_FRAGMENT), null,
+      'a paragraph containing the phrase is not a heading match');
+    assert.equal(extractHeadingSection('<h4>Something else</h4><ul><li>X</li></ul>', 'call for action'), null);
+    assert.equal(extractHeadingSection('', 'call for action'), null);
+  });
+
+  it('runs to end-of-document when the matched heading is last', () => {
+    const section = extractHeadingSection('<h2>Intro</h2><p>x</p><h4>Call for Action</h4><ul><li>Iran</li></ul>', 'call for action');
+    assert.match(section, /<li>Iran<\/li>/);
+  });
+});
+
+describe('extractFirstListItems — the UK-sanctions over-collection trap', () => {
+  it('REAL FIXTURE: black-list section yields exactly the 3 FATF jurisdictions, NOT the trailing sanctions list', () => {
+    // THE TRAP: a second <ul> follows the black-list h4 — "Of these
+    // jurisdictions, the following are also subject to financial sanctions
+    // measures..." — listing 9 countries that overlap the grey list. Taking
+    // every <li> in the section would promote DRC, Haiti, South Sudan, Syria,
+    // Venezuela and Yemen from grey to black.
+    const section = extractHeadingSection(BODY, BLACK_HEADING_FRAGMENT);
+    const items = extractFirstListItems(section);
+    assert.equal(items.length, 3, `expected 3 items; got ${items.length}: ${items.join(' | ')}`);
+    assert.match(items[0], /Democratic People/);
+    assert.deepEqual(items.slice(1), ['Iran', 'Myanmar']);
+    // Positive confirmation that the trap really is present in the fixture —
+    // otherwise this test would pass vacuously against a fixture that lost it.
+    assert.equal((section.match(/<ul\b/gi) || []).length, 2,
+      'fixture must still contain the trailing UK-sanctions <ul>; if it does not, this test proves nothing');
+    assert.match(section, /also subject to financial sanctions measures/,
+      'fixture must still contain the sanctions-list preamble');
+  });
+
+  it('REAL FIXTURE: grey-list section yields all 22 jurisdictions', () => {
+    const items = extractFirstListItems(extractHeadingSection(BODY, GREY_HEADING_FRAGMENT));
+    assert.equal(items.length, 22, `expected 22 items; got ${items.length}`);
+    assert.equal(items[0], 'Angola');
+    assert.equal(items.at(-1), 'Yemen');
+  });
+
+  it('returns null when the section has no <ul>', () => {
+    assert.equal(extractFirstListItems('<p>no list here</p>'), null);
+    assert.equal(extractFirstListItems(''), null);
+    assert.equal(extractFirstListItems(null), null);
+  });
+
+  it('strips tags before decoding entities (a publisher-escaped &lt;note&gt; stays literal)', () => {
+    const items = extractFirstListItems('<ul><li>XSS via &amp;lt;script&amp;gt; in template</li></ul>');
+    assert.deepEqual(items, ['XSS via &lt;script&gt; in template']);
+  });
+
+  it('drops empty <li> rather than emitting blank candidates', () => {
+    assert.deepEqual(extractFirstListItems('<ul><li>Iran</li><li>  </li><li>Myanmar</li></ul>'), ['Iran', 'Myanmar']);
+  });
+});
+
+describe('extractListedCountries — end-to-end name resolution against the real notice', () => {
+  it('REAL FIXTURE: grey list resolves to all 22 ISO2 codes with ZERO unmatched candidates', () => {
+    const { listed, unmatchedCandidates } = extractListedCountries(BODY, buildNameLookup(), GREY_HEADING_FRAGMENT);
+    assert.deepEqual([...listed].sort(), EXPECTED_GREY,
+      `got ${[...listed].sort().join(',')}`);
     assert.equal(unmatchedCandidates.size, 0,
       `zero unmatched expected; got: ${[...unmatchedCandidates].join(', ')}`);
   });
 
-  it('REAL FIXTURE: grey list (Feb 2026) — extracts all 22 listed jurisdictions with zero unmatched', () => {
-    const html = fixtureHtml('fatf-greylist-2026-02.html');
-    const { listed, unmatchedCandidates } = extractListedCountries(html, buildNameLookup());
-    // Feb 2026 plenary grey list (per FATF official statement).
-    const expected = [
-      'AO',  // Angola
-      'BG',  // Bulgaria
-      'BO',  // Bolivia
-      'CD',  // Democratic Republic of the Congo
-      'CI',  // Côte d'Ivoire
-      'CM',  // Cameroon
-      'DZ',  // Algeria
-      'HT',  // Haiti
-      'KE',  // Kenya
-      'KW',  // Kuwait
-      'LA',  // Lao PDR
-      'LB',  // Lebanon
-      'MC',  // Monaco
-      'NA',  // Namibia
-      'NP',  // Nepal
-      'PG',  // Papua New Guinea
-      'SS',  // South Sudan
-      'SY',  // Syria
-      'VE',  // Venezuela
-      'VG',  // Virgin Islands (UK)
-      'VN',  // Vietnam
-      'YE',  // Yemen
-    ];
-    assert.deepEqual([...listed].sort(), expected,
-      `real Feb 2026 grey list = 22 jurisdictions; got ${[...listed].sort().join(',')}`);
-    assert.equal(unmatchedCandidates.size, 0,
-      `zero unmatched expected; got: ${[...unmatchedCandidates].join(', ')}`);
+  it('REAL FIXTURE: black list resolves to exactly DPRK, Iran, Myanmar with ZERO unmatched', () => {
+    const { listed, unmatchedCandidates } = extractListedCountries(BODY, buildNameLookup(), BLACK_HEADING_FRAGMENT);
+    assert.deepEqual([...listed].sort(), EXPECTED_BLACK, `got ${[...listed].sort().join(',')}`);
+    assert.equal(unmatchedCandidates.size, 0, `got: ${[...unmatchedCandidates].join(', ')}`);
   });
 
-  it('REAL FIXTURE: skips FATF Member Countries nav (cmp-list__item-link) — does NOT match the ~38 member jurisdictions', () => {
-    // Member Countries nav (Argentina, Australia, ..., United States) uses
-    // class="cmp-list__item-link". Real list entries use plain <a href=...>.
-    // Pre-fix parser pulled in all 38 member countries as false positives.
-    const html = fixtureHtml('fatf-blacklist-2026-02.html');
-    const { listed } = extractListedCountries(html, buildNameLookup());
-    // Sample member-country ISOs that would appear if the discriminator failed.
-    for (const iso of ['AR', 'AU', 'AT', 'BE', 'BR', 'CA', 'CN', 'DE', 'FR', 'GB', 'US', 'JP', 'CH']) {
-      assert.ok(!listed.has(iso),
-        `member-country ${iso} must NOT appear in black list (would mean cmp-list__item-link discriminator failed)`);
+  it('REAL FIXTURE: none of the grey-list-only sanctions entries leak into the black list', () => {
+    // The overlap set between the trailing UK-sanctions <ul> and the grey
+    // list. If the trap ever reopens, these show up as black.
+    const { listed } = extractListedCountries(BODY, buildNameLookup(), BLACK_HEADING_FRAGMENT);
+    for (const iso of ['CD', 'HT', 'SS', 'SY', 'VE', 'YE']) {
+      assert.ok(!listed.has(iso), `${iso} is grey-listed + UK-sanctioned; it must NOT appear as black`);
     }
   });
 
-  it('skip-discriminator: cmp-list__item-link anchor is ignored even if href matches /en/countries/detail/ pattern', () => {
-    // Synthetic edge case isolating the discriminator. Both anchors point
-    // at the same FATF detail URL pattern; only the plain one should be
-    // counted.
-    const html = `
-      <ul class="cmp-list">
-        <li class="cmp-list__item">
-          <a class="cmp-list__item-link" href="/en/countries/detail/Argentina.html">
-            <span class="cmp-list__item-title">Argentina</span>
-          </a>
-        </li>
-      </ul>
-      <div class="cmp-text">
-        <p><a href="/en/countries/detail/Iran.html">Iran</a></p>
-      </div>
-    `;
-    const { listed } = extractListedCountries(html, buildNameLookup());
-    assert.deepEqual([...listed], ['IR'],
-      'plain anchor matches; cmp-list__item-link anchor (Argentina) is skipped');
+  it('throws when the heading is missing (structural change fails loudly, not silently empty)', () => {
+    assert.throws(
+      () => extractListedCountries('<h2>Unrelated</h2><ul><li>Iran</li></ul>', buildNameLookup(), BLACK_HEADING_FRAGMENT),
+      /no heading containing "call for action"/,
+    );
   });
 
-  it('handles /content/fatf-gafi/ AEM URL prefix variants (some anchors render with the absolute AEM path)', () => {
-    // FATF embeds both /en/countries/detail/X.html and the longer
-    // /content/fatf-gafi/en/countries/detail/X.html in different sections.
-    // Both are valid list entries.
-    const html = `
-      <p><a href="/en/countries/detail/Iran.html">Iran</a></p>
-      <p><a href="/content/fatf-gafi/en/countries/detail/Myanmar.html">Myanmar</a></p>
-    `;
-    const { listed } = extractListedCountries(html, buildNameLookup());
-    assert.deepEqual([...listed].sort(), ['IR', 'MM']);
+  it('throws when the heading exists but its section has no list', () => {
+    assert.throws(
+      () => extractListedCountries('<h4>Call for Action</h4><p>coming soon</p>', buildNameLookup(), BLACK_HEADING_FRAGMENT),
+      /contains no <ul> list items/,
+    );
+  });
+});
+
+describe('resolveCountryNames — typographic apostrophes and unmatched surfacing', () => {
+  const lookup = buildNameLookup();
+
+  it("resolves GOV.UK's U+2019 apostrophe forms", () => {
+    // GOV.UK govspeak emits the typographic right single quote, not ASCII '.
+    const { listed, unmatchedCandidates } = resolveCountryNames(
+      ['Côte d’Ivoire', 'Democratic People’s Republic of Korea'],
+      lookup,
+    );
+    assert.deepEqual([...listed].sort(), ['CI', 'KP']);
+    assert.equal(unmatchedCandidates.size, 0);
   });
 
-  it('surfaces unmatched candidates ONLY for /en/countries/detail/ links whose anchor text and slug both miss the lookup', () => {
-    // Simulates FATF introducing a brand-new country with a spelling
-    // not in country-names.json. The unmatched candidate must surface
-    // (so ops can add the alias) — but ONLY for links inside the
-    // publication body, not for member-nav links.
-    const tinyLookup = new Map([['iran', 'IR']]);
-    const html = `
-      <p><a href="/en/countries/detail/Iran.html">Iran</a></p>
-      <p><a href="/en/countries/detail/Atlantis.html">Atlantis</a></p>
-      <li class="cmp-list__item"><a class="cmp-list__item-link" href="/en/countries/detail/Argentina.html"><span>Argentina</span></a></li>
-    `;
-    const { listed, unmatchedCandidates } = extractListedCountries(html, tinyLookup);
+  it('surfaces genuinely unknown names instead of dropping them', () => {
+    const { listed, unmatchedCandidates } = resolveCountryNames(['Iran', 'Atlantis'], lookup);
     assert.deepEqual([...listed], ['IR']);
-    assert.deepEqual([...unmatchedCandidates], ['Atlantis'],
-      'Atlantis is unmatched (publication body, no lookup hit); Argentina is skipped (member nav, not surfaced)');
+    assert.deepEqual([...unmatchedCandidates], ['Atlantis']);
   });
 
-  it('decodes &#39; for apostrophe in anchor text (matches FATF\'s actual rendering of "Côte d\'Ivoire")', () => {
-    // FATF emits literal ô (U+00F4) for accented characters and uses
-    // &#39; for the apostrophe. After decoding + normalization, this
-    // resolves through the "cote divoire" alias added alongside this PR.
-    const html = `<p><a href="/en/countries/detail/C-te-d-Ivoire.html">Côte d&#39;Ivoire</a></p>`;
-    const { listed } = extractListedCountries(html, buildNameLookup());
-    assert.ok(listed.has('CI'), `expected CI; got ${[...listed].join(',')}`);
+  it('handles an empty/absent name list without throwing', () => {
+    assert.equal(resolveCountryNames(undefined, lookup).listed.size, 0);
+    assert.equal(resolveCountryNames([], lookup).unmatchedCandidates.size, 0);
   });
 });
 
 describe('buildNameLookup — country-names.json shape parity', () => {
   it('reads the flat {name: ISO2} JSON shape and produces a populated lookup', () => {
-    // Pre-fix the function treated the JSON as { ISO2: { name, aliases } }
-    // and silently produced an empty Map — never noticed because
-    // production never reached the parser (Cloudflare blocked everything
-    // upstream). After PR #3413 + #3415 unblocked the fetch path, the
-    // empty lookup made 100% of FATF list entries fail to resolve.
     const lookup = buildNameLookup();
     assert.ok(lookup.size > 200, `expected ~250+ entries; got ${lookup.size}`);
     assert.equal(lookup.get('iran'), 'IR');
@@ -200,53 +283,205 @@ describe('buildNameLookup — country-names.json shape parity', () => {
     assert.equal(lookup.get('algeria'), 'DZ');
   });
 
-  it('includes the FATF-specific aliases needed for Feb 2026 plenary entries', () => {
-    // FATF renders some countries in non-canonical forms. These aliases
-    // were added to country-names.json alongside this parser fix.
+  it('includes the aliases the HM Treasury renderings need', () => {
     const lookup = buildNameLookup();
-    assert.equal(lookup.get('cote divoire'), 'CI', 'Côte d\'Ivoire (apostrophe-stripped form) must resolve');
-    assert.equal(lookup.get('virgin islands uk'), 'VG', 'Virgin Islands (UK) must resolve');
-    assert.equal(lookup.get('democratic republic of korea'), 'KP', "FATF's missing-People's DPRK rendering must resolve");
+    assert.equal(lookup.get('cote divoire'), 'CI');
+    assert.equal(lookup.get('british virgin islands'), 'VG');
+    assert.equal(lookup.get('lao pdr'), 'LA');
+    assert.equal(lookup.get('democratic peoples republic of korea'), 'KP');
+    assert.equal(lookup.get('bosnia and herzegovina'), 'BA');
   });
 
-  it('handles non-string values defensively (skips entries that arent name-string → ISO-string pairs)', () => {
-    const lookup = buildNameLookup({
-      iran: 'IR',
-      // Defensive: not a string value — must not throw, must not appear.
-      malformed: { not: 'a string' },
-      // valid neighbour
-      myanmar: 'MM',
-    });
+  it('handles non-string values defensively', () => {
+    const lookup = buildNameLookup({ iran: 'IR', malformed: { not: 'a string' }, myanmar: 'MM' });
     assert.equal(lookup.get('iran'), 'IR');
     assert.equal(lookup.get('myanmar'), 'MM');
     assert.equal(lookup.has('malformed'), false);
   });
 });
 
-describe('extractPublicationDate — slug + header inference', () => {
-  it('parses YYYY-MM from URL slug', () => {
-    const date = extractPublicationDate(
-      'https://www.fatf-gafi.org/en/publications/foo/high-risk-2026-02.html',
-      '<html></html>',
-    );
-    assert.equal(date, '2026-02-01');
+describe('resolvePublicationDate — FATF statement date, not the HMT publish date', () => {
+  it('REAL FIXTURE: extracts the FATF plenary statement date (2026-06-19), not 2026-06-22', () => {
+    assert.equal(resolvePublicationDate(BODY, NOTICE_FIXTURE.public_updated_at), '2026-06-19');
   });
 
-  it('falls back to "February 2026" header when URL slug is dateless', () => {
-    const date = extractPublicationDate(
-      'https://www.fatf-gafi.org/en/publications/foo/high-risk.html',
-      '<h2>High-Risk Jurisdictions — February 2026</h2>',
-    );
-    assert.equal(date, '2026-02-01');
+  it('REAL FIXTURE: does NOT pick up the earlier "On 25 March 2026, HM Treasury laid" sentence', () => {
+    // A naive "first Month YYYY in the body" scan returns 2026-03 here,
+    // because the amendment-regulations paragraph precedes the FATF
+    // statement. Confirm positively that the trap sentence is in the fixture.
+    assert.match(BODY, /25 March 2026, HM Treasury laid/,
+      'fixture must still contain the decoy date sentence; otherwise this test proves nothing');
+    assert.equal(resolvePublicationDate(BODY, null), '2026-06-19');
   });
 
-  it('falls back to current date when neither URL nor header has a date', () => {
-    const date = extractPublicationDate(
-      'https://www.fatf-gafi.org/en/publications/foo.html',
-      '<html><body>No date here</body></html>',
+  it('zero-pads single-digit days', () => {
+    assert.equal(resolvePublicationDate('<p>On 4 February 2027, the FATF published its lists.</p>', null), '2027-02-04');
+  });
+
+  it('falls back to the GOV.UK notice timestamp when the statement sentence is missing', () => {
+    assert.equal(resolvePublicationDate('<p>no statement sentence</p>', '2026-06-22T09:00:07Z'), '2026-06-22');
+  });
+
+  it('falls back to today when neither signal is present', () => {
+    assert.match(resolvePublicationDate('<p>nothing</p>', null), /^\d{4}-\d{2}-\d{2}$/);
+    assert.match(resolvePublicationDate('<p>nothing</p>', 'not-a-date'), /^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('fetchFatfListings — payload assembly and sanity bands', () => {
+  it('REAL FIXTURES: produces the June 2026 payload (3 black / 22 grey, zero unmatched)', async () => {
+    const calls = [];
+    const data = await fetchFatfListings({ fetchJsonFn: fixtureFetcher({ onCall: (p) => calls.push(p) }) });
+    assert.deepEqual(calls, [HMT_NOTICE_BASE_PATH, NOTICE_FIXTURE.base_path],
+      'exactly two GETs: the series document, then the resolved child notice');
+    assert.deepEqual(data.counts, { black: 3, gray: 22 });
+    assert.deepEqual(data.unmatchedCandidates, []);
+    assert.equal(data.publicationDate, '2026-06-19');
+    assert.deepEqual(
+      Object.entries(data.listings).filter(([, s]) => s === 'black').map(([k]) => k).sort(),
+      EXPECTED_BLACK,
     );
-    // Just check it's a valid YYYY-MM-DD; can't pin the value because it's "today".
-    assert.match(date, /^\d{4}-\d{2}-\d{2}$/);
+    assert.deepEqual(
+      Object.entries(data.listings).filter(([, s]) => s === 'gray').map(([k]) => k).sort(),
+      EXPECTED_GREY,
+    );
+    assert.equal(validate(data), true);
+  });
+
+  it('carries HM Treasury (OGL v3.0) attribution AND FATF as the ultimate source', async () => {
+    const data = await fetchFatfListings({ fetchJsonFn: fixtureFetcher() });
+    assert.match(data.attribution, /Open Government Licence v3\.0/);
+    assert.equal(data.attribution, ATTRIBUTION);
+    const retrieved = data.sources.find((s) => s.role === 'retrieved');
+    const ultimate = data.sources.find((s) => s.role === 'ultimate-source');
+    assert.ok(retrieved, 'sources[] must record what was actually fetched');
+    assert.match(retrieved.publisher, /HM Treasury/);
+    assert.equal(retrieved.licence, 'Open Government Licence v3.0');
+    assert.match(retrieved.licenceUrl, /nationalarchives\.gov\.uk\/doc\/open-government-licence\/version\/3/);
+    assert.match(retrieved.url, /^https:\/\/www\.gov\.uk\//);
+    assert.equal(retrieved.apiUrl, `https://www.gov.uk/api/content${NOTICE_FIXTURE.base_path}`);
+    assert.ok(ultimate, 'sources[] must name FATF as the originating authority');
+    assert.match(ultimate.publisher, /Financial Action Task Force/);
+  });
+
+  it('throws when details.body is missing (200 + plausible JSON != valid payload)', async () => {
+    const fetchJsonFn = async (basePath) =>
+      basePath === HMT_NOTICE_BASE_PATH ? SERIES_FIXTURE : { base_path: basePath, details: {} };
+    await assert.rejects(fetchFatfListings({ fetchJsonFn }), /has no details\.body/);
+  });
+
+  it('black-list band rejects an over-collected list (the sanctions-<ul> trap, simulated)', async () => {
+    // If the "first <ul> only" scoping ever regressed, the black-list section
+    // would yield the 9-entry UK-sanctions list. Assert the band catches it
+    // rather than silently reclassifying six grey jurisdictions.
+    const body = `
+      <h4>Jurisdictions under Increased Monitoring</h4>
+      <ul>${['Angola','Bolivia','Bulgaria','Cameroon','Haiti','Iraq','Kenya','Kuwait','Lebanon','Monaco','Nepal','Syria','Venezuela','Yemen'].map((n) => `<li>${n}</li>`).join('')}</ul>
+      <h4>High-Risk Jurisdictions subject to a Call for Action</h4>
+      <ul>${['Iran','Myanmar','Haiti','Syria','Venezuela','Yemen','Kenya','Kuwait','Lebanon'].map((n) => `<li>${n}</li>`).join('')}</ul>
+    `;
+    const fetchJsonFn = async (basePath) =>
+      basePath === HMT_NOTICE_BASE_PATH ? SERIES_FIXTURE : { base_path: basePath, details: { body } };
+    await assert.rejects(fetchFatfListings({ fetchJsonFn }), /black-list count 9 outside expected 1-6 band/);
+  });
+
+  it('grey-list band rejects a truncated list', async () => {
+    const body = `
+      <h4>Jurisdictions under Increased Monitoring</h4>
+      <ul><li>Angola</li><li>Bolivia</li><li>Bulgaria</li></ul>
+      <h4>High-Risk Jurisdictions subject to a Call for Action</h4>
+      <ul><li>Iran</li><li>Myanmar</li></ul>
+    `;
+    const fetchJsonFn = async (basePath) =>
+      basePath === HMT_NOTICE_BASE_PATH ? SERIES_FIXTURE : { base_path: basePath, details: { body } };
+    await assert.rejects(fetchFatfListings({ fetchJsonFn }), /grey-list count 3 outside expected 12-40 band/);
+  });
+
+  it('rejects the seed when more than 2 country names fail to resolve (never silently drops)', async () => {
+    const grey = ['Angola','Bolivia','Bulgaria','Cameroon','Haiti','Iraq','Kenya','Kuwait','Lebanon','Monaco','Nepal','Syria','Venezuela','Yemen'];
+    const body = `
+      <h4>Jurisdictions under Increased Monitoring</h4>
+      <ul>${[...grey, 'Atlantis', 'Wakanda', 'Genovia'].map((n) => `<li>${n}</li>`).join('')}</ul>
+      <h4>High-Risk Jurisdictions subject to a Call for Action</h4>
+      <ul><li>Iran</li><li>Myanmar</li></ul>
+    `;
+    const fetchJsonFn = async (basePath) =>
+      basePath === HMT_NOTICE_BASE_PATH ? SERIES_FIXTURE : { base_path: basePath, details: { body } };
+    await assert.rejects(
+      fetchFatfListings({ fetchJsonFn }),
+      /3 unmatched country-name candidates .*Atlantis, Wakanda, Genovia/s,
+    );
+  });
+});
+
+describe('fetchGovUkJson — boundary-2 (v9) fetch posture', () => {
+  it('sends the honest declared bot UA and asks for JSON', async () => {
+    let seen;
+    const fetchFn = async (url, opts) => {
+      seen = { url, opts };
+      return {
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json; charset=utf-8']]),
+        text: async () => '{"ok":true}',
+      };
+    };
+    const out = await fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn });
+    assert.deepEqual(out, { ok: true });
+    assert.equal(seen.url, `https://www.gov.uk/api/content${HMT_NOTICE_BASE_PATH}`);
+    assert.equal(seen.opts.headers['User-Agent'], SYNACTIC_UA);
+    assert.equal(seen.opts.headers.Accept, 'application/json');
+    assert.match(SYNACTIC_UA, /^the-synactic\/[\d.]+ \(\+https:\/\/github\.com\//,
+      'UA must be an honest, attributable bot identifier');
+    assert.doesNotMatch(SYNACTIC_UA, /Mozilla|AppleWebKit|Chrome|Safari|Gecko/,
+      'UA must not impersonate a browser (CONTEXT.md boundary 2)');
+  });
+
+  it('surfaces HTTP 429 as a terminal failure — exactly ONE request, no retry through the refusal', async () => {
+    let calls = 0;
+    const fetchFn = async () => {
+      calls += 1;
+      return { ok: false, status: 429, headers: new Map(), text: async () => '' };
+    };
+    await assert.rejects(
+      fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }),
+      /HTTP 429 \(rate limited\)\. Not retried by design/,
+    );
+    assert.equal(calls, 1, 'a 429 is the publisher declining; re-issuing the request is forbidden');
+  });
+
+  it('rejects a 200 that is not JSON (200 + plausible bytes != valid payload)', async () => {
+    const fetchFn = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Map([['content-type', 'text/html; charset=utf-8']]),
+      text: async () => '<html><body>CDN error page</body></html>',
+    });
+    await assert.rejects(fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }), /expected JSON, got content-type="text\/html/);
+  });
+
+  it('reports a malformed JSON body with a bounded preview instead of throwing a bare SyntaxError', async () => {
+    const fetchFn = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Map([['content-type', 'application/json']]),
+      text: async () => '{ not json',
+    });
+    await assert.rejects(fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }), /JSON parse failed.*firstChars=/s);
+  });
+
+  it('reports non-429 HTTP failures with the status code', async () => {
+    const fetchFn = async () => ({ ok: false, status: 503, headers: new Map(), text: async () => '' });
+    await assert.rejects(fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }), /HTTP 503/);
+  });
+
+  it('unwraps transport errors (err.cause) into an operator-actionable message', async () => {
+    const fetchFn = async () => {
+      const err = new TypeError('fetch failed');
+      err.cause = Object.assign(new Error('getaddrinfo ENOTFOUND www.gov.uk'), { code: 'ENOTFOUND' });
+      throw err;
+    };
+    await assert.rejects(fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }), /request failed.*ENOTFOUND/s);
   });
 });
 
@@ -262,9 +497,6 @@ describe('validate', () => {
   });
 
   it('rejects payload with too few grey-listed jurisdictions (parser likely failed)', () => {
-    // Floor tightened from 8 → 12 — historical FATF grey-list size has
-    // been 15+ since 2020. A grey count below 12 indicates real upstream
-    // failure or parser drift.
     const listings = { KP: 'black' };
     for (let i = 0; i < 10; i++) listings[`X${i.toString().padStart(2, '0')}`] = 'gray';
     assert.equal(validate({ listings }), false);
@@ -277,312 +509,79 @@ describe('validate', () => {
   });
 });
 
-// ── fetchViaWayback — Cloudflare-bypass fallback ─────────────────────────
+describe('no forbidden fetch measures may return to this seeder', () => {
+  // Source-shape guard. The deleted chain was: CHROME_UA -> Decodo residential
+  // CONNECT proxy -> Wayback (also CHROME_UA + proxy), all aimed at defeating
+  // Cloudflare's managed challenge on fatf-gafi.org. CONTEXT.md boundary 2
+  // (v9) forbids every one of those measures. Re-sourcing was the remedy.
+  //
+  // CRLF: this checkout materializes CRLF working-tree files. Normalize before
+  // matching or these regexes silently match nothing and the guard passes
+  // vacuously.
+  const seederSrc = readFileSync(resolve(__testDir, '../scripts/seed-fatf-listing.mjs'), 'utf8')
+    .replace(/\r\n/g, '\n');
 
-describe('fetchViaWayback — Cloudflare-bypass via Wayback Machine', () => {
-  const FATF_URL = 'https://www.fatf-gafi.org/en/countries/black-and-grey-lists.html';
-  // CDX response shape: [headerRow, ...snapshotRows]. Each snapshot row
-  // is [urlkey, timestamp, original, mimetype, statuscode, digest, length].
-  // Ordered timestamp-ascending — last row is most recent.
-  function cdxResponse(...timestamps) {
-    const rows = [
-      ['urlkey', 'timestamp', 'original', 'mimetype', 'statuscode', 'digest', 'length'],
-      ...timestamps.map((ts) => [
-        'org,fatf-gafi)/en/countries/black-and-grey-lists.html',
-        ts,
-        FATF_URL,
-        'text/html',
-        '200',
-        'DIGEST',
-        '18000',
-      ]),
-    ];
-    return {
-      ok: true,
-      headers: new Map(),
-      arrayBuffer: async () => Buffer.from(JSON.stringify(rows)),
-    };
-  }
-  // Snapshot mock helper. Tests previously used `{ ok: true, text: async () => '...' }`
-  // before the seeder switched to raw `arrayBuffer()` + magic-byte gzip detection.
-  function snapshotResponse(html) {
-    return {
-      ok: true,
-      headers: new Map(),
-      arrayBuffer: async () => Buffer.from(html, 'utf8'),
-    };
-  }
+  // Strip comments so the historical explanation at the top of the file (which
+  // legitimately names CHROME_UA, Decodo and Wayback) cannot mask real code.
+  const seederCode = seederSrc
+    .split('\n')
+    .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+    .join('\n');
 
-  it('happy path: queries CDX for latest 200 snapshot, fetches it via id_ modifier, returns HTML', async () => {
-    const calls = [];
-    const fetchFn = async (url) => {
-      calls.push(url);
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        return cdxResponse('20260224230921', '20260331230909', '20260403144947');
-      }
-      // Snapshot fetch — must use the LATEST timestamp + id_ modifier
-      assert.match(url, /web\/20260403144947id_\//, 'must request the latest CDX timestamp with id_ modifier');
-      return snapshotResponse('<html><body><h2>Black & grey lists</h2></body></html>');
-    };
-    const html = await fetchViaWayback(FATF_URL, { fetchFn });
-    assert.match(html, /Black & grey lists/);
-    assert.equal(calls.length, 2, 'one CDX call + one snapshot call');
+  it('the guard is operating on real, non-empty code (anti-vacuous-pass check)', () => {
+    assert.ok(seederSrc.length > 4000, `seeder source looks truncated: len=${seederSrc.length}`);
+    assert.ok(seederCode.length > 1500, `comment-stripped code looks truncated: len=${seederCode.length}`);
+    assert.match(seederCode, /export async function fetchGovUkJson/, 'strip step must not have eaten the code');
   });
 
-  it('CDX URL is built with statuscode:200 filter, a from-date, AND limit=-1 (negative limit returns the most-recent capture)', async () => {
-    let cdxUrl;
-    const fetchFn = async (url) => {
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        cdxUrl = url;
-        return cdxResponse('20260403144947');
-      }
-      return snapshotResponse('<html></html>');
-    };
-    await fetchViaWayback(FATF_URL, { fetchFn, lookbackDays: 90 });
-    assert.match(cdxUrl, /filter=statuscode%3A200|filter=statuscode:200/, 'CDX query must filter to status 200');
-    assert.match(cdxUrl, /from=\d{8}/, 'CDX query must include a from-date floor');
-    assert.match(cdxUrl, /output=json/);
-    // Critical: CDX default ordering is timestamp-ASCENDING. A positive
-    // `limit=N` returns the OLDEST N captures within the window — not the
-    // newest. FATF accumulates well over 20 captures per 180-day window,
-    // so a positive limit would silently serve a stale archived snapshot
-    // even when a newer one exists. `limit=-1` = "last 1 capture" =
-    // most-recent. Pin this so a future cleanup can't regress it.
-    assert.match(cdxUrl, /[?&]limit=-1(&|$)/, 'CDX query MUST use negative limit (limit=-1) to get the most-recent snapshot, not the oldest within the window');
-    assert.doesNotMatch(cdxUrl, /[?&]limit=(?!-)\d+/, 'CDX query must NOT use a positive limit — that returns the oldest captures and serves stale data');
+  it('imports nothing from _seed-utils beyond loadEnvFile / runSeed / describeErr', () => {
+    const importLine = /^import \{([^}]*)\} from '\.\/_seed-utils\.mjs';$/m.exec(seederCode);
+    assert.ok(importLine, 'expected exactly one named import from _seed-utils.mjs');
+    const named = importLine[1].split(',').map((s) => s.trim()).filter(Boolean).sort();
+    assert.deepEqual(named, ['describeErr', 'loadEnvFile', 'runSeed']);
   });
 
-  it('throws clear error when Wayback has NO status-200 snapshots in window', async () => {
-    const fetchFn = async (url) => {
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        // Only the header row, no actual snapshots.
-        return {
-          ok: true,
-          headers: new Map(),
-          arrayBuffer: async () => Buffer.from(JSON.stringify([['urlkey', 'timestamp', 'original', 'mimetype', 'statuscode', 'digest', 'length']])),
-        };
-      }
-      throw new Error('snapshot fetch should not be reached when CDX is empty');
-    };
-    await assert.rejects(
-      fetchViaWayback(FATF_URL, { fetchFn }),
-      /no status-200 snapshots/,
-    );
+  it('contains no browser-impersonation User-Agent', () => {
+    assert.doesNotMatch(seederCode, /CHROME_UA/, 'CHROME_UA must not be used here');
+    assert.doesNotMatch(seederCode, /Mozilla\/5\.0/, 'no hardcoded browser UA string');
   });
 
-  it('throws when CDX itself is unreachable (HTTP 5xx) AND no proxy is configured', async () => {
-    // Pass proxyAuth: null to disable the new proxy fallback so this
-    // test stays focused on the direct-CDX failure mode. The proxy
-    // fallback path is exercised in dedicated cases below.
-    const fetchFn = async () => ({ ok: false, status: 503 });
-    await assert.rejects(
-      fetchViaWayback(FATF_URL, { fetchFn, proxyAuth: null }),
-      /Wayback CDX direct failed.*HTTP 503.*no proxy configured/,
-    );
-  });
-
-  it('throws when the snapshot itself returns non-200 AND no proxy is configured (e.g. Wayback re-fetched a Cloudflare 403)', async () => {
-    const fetchFn = async (url) => {
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        return cdxResponse('20260403144947');
-      }
-      return { ok: false, status: 403 };
-    };
-    await assert.rejects(
-      fetchViaWayback(FATF_URL, { fetchFn, proxyAuth: null }),
-      /Wayback snapshot 20260403144947 direct failed.*HTTP 403.*no proxy configured/,
-    );
-  });
-
-  it('rejects malformed CDX timestamps (defends against CDX schema drift)', async () => {
-    const fetchFn = async (url) => {
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        return {
-          ok: true,
-          headers: new Map(),
-          arrayBuffer: async () => Buffer.from(JSON.stringify([
-            ['urlkey', 'timestamp', 'original', 'mimetype', 'statuscode', 'digest', 'length'],
-            ['org,fatf-gafi)/x', 'NOT-A-TIMESTAMP', FATF_URL, 'text/html', '200', 'D', '1'],
-          ])),
-        };
-      }
-      throw new Error('snapshot fetch should not run with malformed timestamp');
-    };
-    await assert.rejects(
-      fetchViaWayback(FATF_URL, { fetchFn }),
-      /malformed timestamp/,
-    );
-  });
-
-  it('sends a User-Agent header on BOTH the CDX query and the snapshot fetch (AGENTS.md convention)', async () => {
-    // AGENTS.md mandates "Always include `User-Agent` header in
-    // server-side fetch calls". The direct FATF fetch sends CHROME_UA;
-    // the Wayback path must match. archive.org doesn't usually block
-    // header-less requests, but house-style consistency is the point —
-    // and a future Wayback rate-limiter could reasonably enforce UA.
-    const seenHeaders = [];
-    const fetchFn = async (url, opts) => {
-      seenHeaders.push({ url, ua: opts?.headers?.['User-Agent'] });
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        return cdxResponse('20260403144947');
-      }
-      return snapshotResponse('<html></html>');
-    };
-    await fetchViaWayback(FATF_URL, { fetchFn });
-    assert.equal(seenHeaders.length, 2, 'expected one CDX + one snapshot fetch');
-    for (const { url, ua } of seenHeaders) {
-      assert.ok(typeof ua === 'string' && ua.length > 0,
-        `User-Agent must be set on ${url} (got: ${ua})`);
-      // Pin that we're not sending some empty/sentinel value — it should
-      // be the real CHROME_UA the rest of the seeder uses.
-      assert.match(ua, /Mozilla\/5\.0/,
-        `User-Agent on ${url} should be the canonical CHROME_UA, not a placeholder; got: ${ua}`);
+  it('contains no proxy / IP-rotation machinery', () => {
+    for (const forbidden of ['httpsProxyFetchRaw', 'resolveProxyForConnect', 'PROXY_URL', 'decodo', 'Decodo']) {
+      assert.ok(!seederCode.includes(forbidden), `${forbidden} must not appear in seeder code`);
     }
   });
 
-  it('per-tier timeouts sum to a budget that fits in seed-bundle-macro.mjs FATF-Listing timeoutMs (no SIGTERM mid-fetch)', async () => {
-    // Static-shape regression guard. Pre-PR-#3415 the tier timeouts were:
-    //   direct 30s + proxy 30s + wayback 4×45s = 240s/URL
-    //   × 3 URLs (entry sequential + black/grey parallel) = 480s end-to-end
-    // while the section was capped at 120_000ms. That meant bundle-runner
-    // would SIGTERM the seeder mid-fetch instead of letting runSeed reach
-    // its graceful "Failed gracefully" path. This test pins the new
-    // budget so a future cleanup can't silently regress it.
-    const { readFileSync } = await import('node:fs');
-    const { fileURLToPath } = await import('node:url');
-    const { dirname, resolve } = await import('node:path');
-    const here = dirname(fileURLToPath(import.meta.url));
-    const seederSrc = readFileSync(resolve(here, '../scripts/seed-fatf-listing.mjs'), 'utf-8');
-    const bundleSrc = readFileSync(resolve(here, '../scripts/seed-bundle-macro.mjs'), 'utf-8');
-    // Direct fetch timeout — 10s ceiling; Cloudflare 403s in <1s when blocking.
-    assert.match(seederSrc, /AbortSignal\.timeout\(10_000\)/, 'direct fetch must use 10s timeout (was 30s pre-fix)');
-    // Proxy fetch timeout — 15s ceiling.
-    assert.match(seederSrc, /timeoutMs:\s*15_000\s*\}\s*\)/, 'proxy fetch must use 15s timeoutMs (was 30s pre-fix)');
-    // Wayback per-tier — 25s ceiling.
-    assert.match(seederSrc, /WAYBACK_TIMEOUT_MS\s*=\s*25_000/, 'WAYBACK_TIMEOUT_MS must be 25s (was 45s pre-fix)');
-    // Section timeoutMs — 300s, matches peer sections.
-    assert.match(bundleSrc, /label:\s*'FATF-Listing'[^\n]*timeoutMs:\s*300_000/, 'FATF-Listing section must use 300_000 ms timeoutMs (was 120_000 pre-fix)');
+  it('makes no Wayback / archive.org request', () => {
+    assert.doesNotMatch(seederCode, /web\.archive\.org|fetchViaWayback|WAYBACK_/);
   });
 
-  it('falls back to CONNECT proxy when direct CDX query fails (Railway-egress rate-limit defense)', async () => {
-    // Production observation 2026-04-25T20:35: Railway egress IPs hit
-    // 20s+ timeouts on CDX while local desktop probes complete in <2s.
-    // The same pool gets soft-rate-limited or routed slowly to
-    // archive.org. Routing CDX through Decodo's residential proxy pool
-    // bypasses that without changing the response shape.
-    const fetchFn = async () => {
-      // Direct CDX fails — simulate timeout/rate-limit.
-      throw new Error('fetch failed');
-    };
-    const proxyCalls = [];
-    const proxyFetcher = async (url, auth, opts) => {
-      proxyCalls.push({ url, auth, opts });
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        // Return CDX response shape: header + 1 row.
-        return {
-          buffer: Buffer.from(JSON.stringify([
-            ['urlkey', 'timestamp', 'original', 'mimetype', 'statuscode', 'digest', 'length'],
-            ['org,fatf-gafi)/x', '20260403144947', FATF_URL, 'text/html', '200', 'D', '1'],
-          ])),
-        };
-      }
-      // Snapshot via proxy.
-      return { buffer: Buffer.from('<html><body><h2>Wayback via proxy</h2></body></html>') };
-    };
-    const html = await fetchViaWayback(FATF_URL, {
-      fetchFn,
-      proxyFetcher,
-      proxyAuth: 'test-user:test-pass@gate.decodo.com:7000',
-    });
-    assert.match(html, /Wayback via proxy/);
-    // Both CDX and snapshot must have hit the proxy after direct failed.
-    assert.equal(proxyCalls.length, 2, 'both CDX and snapshot must route through proxy after direct failure');
-    assert.match(proxyCalls[0].url, /^https:\/\/web\.archive\.org\/cdx\//);
-    assert.match(proxyCalls[1].url, /\/web\/20260403144947id_\//, 'snapshot proxy fetch must still use the id_ modifier + the CDX timestamp');
-  });
-
-  it('error message unwraps err.cause when both direct and proxy fail (operator-actionable diagnostics)', async () => {
-    // The pre-fix error was "wayback=fetch failed" with no detail —
-    // unactionable in production logs. The fix adds a describeErr
-    // helper that pulls err.cause.code / err.cause.message so failures
-    // surface DNS / TCP-reset / TLS-abort distinctions.
-    const fetchFn = async () => {
-      const err = new TypeError('fetch failed');
-      err.cause = Object.assign(new Error('getaddrinfo ENOTFOUND web.archive.org'), { code: 'ENOTFOUND' });
-      throw err;
-    };
-    const proxyFetcher = async () => {
-      const err = new Error('Proxy CONNECT: HTTP/1.1 407 Proxy Authentication Required');
-      throw err;
-    };
-    await assert.rejects(
-      fetchViaWayback(FATF_URL, {
-        fetchFn,
-        proxyFetcher,
-        proxyAuth: 'test:test@proxy.example:7000',
-      }),
-      (err) => {
-        // Error message must include BOTH the direct cause (ENOTFOUND
-        // unwrapped) and the proxy error message — gives operators the
-        // full failure surface in one log line.
-        assert.match(err.message, /direct=.*ENOTFOUND/, `expected ENOTFOUND cause unwrapped; got: ${err.message}`);
-        assert.match(err.message, /proxy=.*407/, `expected proxy 407 in message; got: ${err.message}`);
-        return true;
-      },
+  it('sends exactly one User-Agent, and it is the honest declared bot UA', () => {
+    const uaLines = seederCode.split('\n').filter((l) => l.includes("'User-Agent'"));
+    assert.equal(uaLines.length, 1, `expected one User-Agent header site; got ${uaLines.length}`);
+    assert.match(uaLines[0], /'User-Agent': SYNACTIC_UA/);
+    assert.match(
+      seederCode,
+      /SYNACTIC_UA = 'the-synactic\/2\.10 \(\+https:\/\/github\.com\/clduab11\/the-synactic\)'/,
+      'the mandated boundary-2 honest UA string',
     );
   });
 
-  it('PROXY path: decompresses gzip-encoded snapshot bodies (Wayback `id_` returns FATF-origin gzipped bytes when CONNECT-proxy strips Content-Encoding header)', async () => {
-    // Production observation 2026-04-25 (run 1777155637881-7uafzc):
-    // FATF AEM origin gzips its HTML responses. Wayback's `id_` modifier
-    // preserves the byte-identical capture INCLUDING the gzipped body.
-    // The CONNECT-tunnel proxy code in scripts/_proxy-utils.cjs reads
-    // `Content-Encoding` to decide whether to inflate, but Wayback's
-    // re-served headers don't always include `content-encoding: gzip`
-    // (intermediate Cloudflare/CDN strips it on some routes). When that
-    // header is missing, raw gzip bytes were being treated as utf8 text,
-    // surfacing ~111 false-positive country candidates from chance
-    // ASCII patterns inside the compressed stream.
-    //
-    // Fix: detect gzip magic bytes (1f 8b) on the response body and
-    // decompress unconditionally on the proxy path.
-    const { gzipSync } = await import('node:zlib');
-    const realHtml = '<a href="/en/countries/detail/iran.html">Iran</a><a href="/en/countries/detail/Myanmar.html">Myanmar</a>';
-    const gzippedBody = gzipSync(Buffer.from(realHtml, 'utf8'));
-    const fetchFn = async () => { throw new Error('direct disabled to force proxy'); };
-    const proxyFetcher = async (url) => {
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        return { buffer: Buffer.from(JSON.stringify([
-          ['urlkey', 'timestamp', 'original', 'mimetype', 'statuscode', 'digest', 'length'],
-          ['org,fatf-gafi)/x', '20260403144947', FATF_URL, 'text/html', '200', 'D', '1'],
-        ])) };
-      }
-      // Snapshot returned with gzipped body and NO content-encoding header
-      // (the missing-header case that broke production).
-      return { buffer: gzippedBody, headers: {} };
-    };
-    const html = await fetchViaWayback(FATF_URL, {
-      fetchFn,
-      proxyFetcher,
-      proxyAuth: 'test:test@proxy.example:7000',
-    });
-    assert.equal(html, realHtml, 'gzip body must be decompressed before being returned as text');
-  });
-
-  it('uses id_ modifier (NOT the bare /web/timestamp/url path) — keeps the parser DOM byte-for-byte identical to direct FATF', async () => {
-    // Without `id_`, Wayback prepends a ~3KB toolbar banner and rewrites
-    // every href/src to /web/.../ paths. Both would break the existing
-    // parser. This test pins the modifier so a future "cleanup" can't
-    // silently regress to the broken bare form.
-    let snapshotUrl;
-    const fetchFn = async (url) => {
-      if (url.startsWith('https://web.archive.org/cdx/')) {
-        return cdxResponse('20260403144947');
-      }
-      snapshotUrl = url;
-      return snapshotResponse('<html></html>');
-    };
-    await fetchViaWayback(FATF_URL, { fetchFn });
-    assert.match(snapshotUrl, /\/web\/\d{14}id_\//, 'snapshot URL MUST use the id_ modifier');
+  it('only ever fetches www.gov.uk', () => {
+    const hosts = new Set(
+      [...seederCode.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)].map((m) => m[1].toLowerCase()),
+    );
+    // fatf-gafi.org and nationalarchives.gov.uk appear only inside the
+    // attribution metadata (sources[] / licenceUrl) — never fetched. Pin the
+    // full set so a new outbound host cannot slip in unnoticed.
+    assert.deepEqual([...hosts].sort(), [
+      'github.com',
+      'www.fatf-gafi.org',
+      'www.gov.uk',
+      'www.nationalarchives.gov.uk',
+    ]);
+    assert.match(seederCode, /const GOVUK_ORIGIN = 'https:\/\/www\.gov\.uk'/);
+    // The only fetch call site must build its URL from the GOV.UK API base.
+    assert.match(seederCode, /const url = `\$\{GOVUK_CONTENT_API\}\$\{basePath\}`/);
   });
 });
