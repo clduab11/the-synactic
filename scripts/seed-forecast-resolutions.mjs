@@ -498,7 +498,8 @@ function createLiveJudgeModels(options = {}) {
       modelOverrides: {
         openrouter: process.env.FORECAST_RESOLUTION_JUDGE_MODEL_OPENROUTER
           || process.env.FORECAST_LLM_MODEL_OPENROUTER
-          || 'deepseek/deepseek-v4-flash',
+          // Free-tier policy (owner 2026-08-03); the two env overrides above still win.
+          || 'nvidia/nemotron-3-ultra-550b-a55b:free',
       },
     }),
     (entry, archiveItems, nowMs) => callLiveJudgedModel(entry, archiveItems, nowMs, {

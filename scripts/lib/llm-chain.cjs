@@ -49,7 +49,11 @@ const LLM_PROVIDERS = [
     name: 'openrouter',
     envKey: 'OPENROUTER_API_KEY',
     apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'google/gemini-2.5-flash',
+    // Free-tier policy (owner, 2026-08-03): upstream named a PAID model here.
+    // CommonJS, so it cannot import scripts/_openrouter-model.mjs — it reads the
+    // same env var with the same free default, keeping OPENROUTER_MODEL the one
+    // control surface for model choice across every call site.
+    model: (process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free'),
     headers: (key) => ({ 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor', 'User-Agent': SERVICE_UA }),
     timeout: 20_000,
   },

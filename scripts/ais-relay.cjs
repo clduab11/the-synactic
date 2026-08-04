@@ -3551,7 +3551,9 @@ const CLASSIFY_LLM_PROVIDERS = [
     name: 'openrouter',
     envKey: 'OPENROUTER_API_KEY',
     apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-v4-flash',
+    // Free-tier policy (owner, 2026-08-03) — see scripts/_openrouter-model.mjs.
+    // CommonJS: reads OPENROUTER_MODEL inline rather than importing the ESM helper.
+    model: (process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free'),
     headers: (key) => ({ Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor', 'User-Agent': CHROME_UA }),
     extraBody: { reasoning: { enabled: false } },
     timeout: 30000,
