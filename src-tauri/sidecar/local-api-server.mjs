@@ -901,11 +901,51 @@ function getSidecarCorsOrigin(req) {
   return 'tauri://localhost';
 }
 
+// MUST stay a superset of api/_cors.js ALLOWED_HEADERS. Preflight is answered
+// HERE (dispatch() short-circuits OPTIONS before the auth gate), while the
+// actual response is built by api/_cors.js — so any header this list omits is
+// rejected at preflight and the real request is never sent. Parity is asserted
+// by tests/sidecar-cors-parity.test.mjs.
+const SIDECAR_ALLOWED_HEADERS = [
+  'Content-Type',
+  'Authorization',
+  'X-WorldMonitor-Key',
+  'X-Api-Key',
+  'X-Widget-Key',
+  'X-Pro-Key',
+  'X-WorldMonitor-Desktop-Timestamp',
+  'X-WorldMonitor-Desktop-Signature',
+  'Idempotency-Key',
+  'Mcp-Session-Id',
+  'MCP-Protocol-Version',
+  'Last-Event-ID',
+];
+
 function makeCorsHeaders(req) {
   return {
     'Access-Control-Allow-Origin': getSidecarCorsOrigin(req),
+    // Preflight must advertise the SAME credential policy the real response
+    // uses, or every credentialed cross-origin call dies before it is sent.
+    // api/_cors.js sets Allow-Credentials: true on actual responses; omitting
+    // it here made the browser reject the preflight with "the value of the
+    // 'Access-Control-Allow-Credentials' header in the response is '' which
+    // must be 'true'" — net::ERR_FAILED, no request, no server-side trace.
+    // That killed every fetch that was BOTH credentialed AND preflight-
+    // triggering: src/services/premium-fetch.ts forces credentials:'include'
+    // on all 37 PREMIUM_RPC_PATHS across 24 modules, and the generated RPC
+    // clients send Content-Type: application/json, which forces the preflight.
+    // Only cross-origin callers were affected, which is why it hid for so
+    // long: the packaged desktop's default IPC transport is CORS-exempt and a
+    // same-origin browser never preflights. It surfaces the moment the app
+    // talks to a stack on another origin (VITE_TAURI_API_BASE_URL).
+    //
+    // Safe: Allow-Origin above is an allowlist ECHO and never '*', so this
+    // cannot open the sidecar to arbitrary origins. It also grants no new
+    // authority — the sidecar authenticates on the X-WorldMonitor-Local-Token
+    // header, never on a cookie, so credentials that now flow are ignored.
+    'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-WorldMonitor-Desktop-Timestamp, X-WorldMonitor-Desktop-Signature',
+    'Access-Control-Allow-Headers': SIDECAR_ALLOWED_HEADERS.join(', '),
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
   };
