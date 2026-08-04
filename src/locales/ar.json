@@ -3488,7 +3488,10 @@
     "quickConnect": "الاتصال السريع",
     "or": "أو أدخل خادماً مخصصاً",
     "generatingVisualization": "جاري بناء التصور...",
-    "visualizationFailed": "فشل التصور"
+    "visualizationFailed": "فشل التصور",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "علامات تبويب لوحة التحكم",

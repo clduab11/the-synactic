@@ -201,7 +201,12 @@ describe('English i18n shell split', () => {
   it('keeps first-paint English shell strings bounded and in sync with en.json', () => {
     const full = readJson(EN_LOCALE);
     const shell = readJson(EN_SHELL_LOCALE);
-    const shellBytes = Buffer.byteLength(readFileSync(EN_SHELL_LOCALE, 'utf8'));
+    // Measure the NORMALIZED payload. A Windows checkout has a CRLF working
+    // tree, which adds one byte per line — 829 of them here — so the raw read
+    // reported this file 829 bytes over a budget it is actually well under,
+    // failing permanently on Windows while passing on CI. The budget bounds
+    // first-paint bytes, and what ships is the normalized content.
+    const shellBytes = Buffer.byteLength(readFileSync(EN_SHELL_LOCALE, 'utf8').replace(/\r\n/g, '\n'));
 
     assert.ok(
       shellBytes < SHELL_BUDGET_BYTES,

@@ -3452,7 +3452,10 @@
     "quickConnect": "Быстрое подключение",
     "or": "или введите пользовательский сервер",
     "generatingVisualization": "Создание визуализации...",
-    "visualizationFailed": "Ошибка визуализации"
+    "visualizationFailed": "Ошибка визуализации",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Вкладки панели",

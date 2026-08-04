@@ -3416,7 +3416,10 @@
     "quickConnect": "Γρήγορη Σύνδεση",
     "or": "ή εισάγετε έναν προσαρμοσμένο διακομιστή",
     "generatingVisualization": "Δημιουργία απεικόνισης...",
-    "visualizationFailed": "Η απεικόνιση απέτυχε"
+    "visualizationFailed": "Η απεικόνιση απέτυχε",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Καρτέλες πίνακα ελέγχου",

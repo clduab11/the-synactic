@@ -3416,7 +3416,10 @@
     "quickConnect": "Schnellverbindung",
     "or": "oder geben Sie einen benutzerdefinierten Server ein",
     "generatingVisualization": "Visualisierung wird erstellt...",
-    "visualizationFailed": "Visualisierung fehlgeschlagen"
+    "visualizationFailed": "Visualisierung fehlgeschlagen",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Dashboard-Tabs",

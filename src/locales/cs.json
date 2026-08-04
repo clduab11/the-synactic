@@ -3452,7 +3452,10 @@
     "quickConnect": "Rychlé připojení",
     "or": "nebo zadejte vlastní server",
     "generatingVisualization": "Vytváření vizualizace...",
-    "visualizationFailed": "Vizualizace selhala"
+    "visualizationFailed": "Vizualizace selhala",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Karty řídicího panelu",

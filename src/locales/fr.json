@@ -3434,7 +3434,10 @@
     "quickConnect": "Connexion rapide",
     "or": "ou saisissez un serveur personnalisé",
     "generatingVisualization": "Construction de la visualisation...",
-    "visualizationFailed": "Échec de la visualisation"
+    "visualizationFailed": "Échec de la visualisation",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Onglets du tableau de bord",

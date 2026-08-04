@@ -7,6 +7,7 @@ import { jsonResponse } from './_json-response.js';
 import { isCallerPremium } from '../server/_shared/premium-check';
 import { isBlockedResolvedAddress } from '../server/_shared/ip-address-classification';
 import { ENDPOINT_RATE_POLICIES, checkScopedRateLimit, getClientIp } from '../server/_shared/rate-limit';
+import { withPresetAuth, listConfiguredPresetHosts } from './_mcp-preset-auth';
 
 export const config = { runtime: 'edge' };
 
@@ -561,6 +562,13 @@ function captureMeta(serverUrl: URL, customHeaders: unknown, meta: ProxyMeta): v
 
 async function handleListTools(req: Request, cors: Record<string, string>, meta: ProxyMeta): Promise<Response> {
   const url = new URL(req.url);
+  // Capability probe. Answers "which quick-connect presets does this server
+  // already hold a key for?" so the modal can render them as configured instead
+  // of demanding a paste. Returns HOSTNAMES ONLY — never a key value. Handled
+  // before the serverUrl requirement because it targets no upstream.
+  if (url.searchParams.get('capabilities') === '1') {
+    return jsonResponse({ configuredHosts: listConfiguredPresetHosts() }, 200, cors);
+  }
   const rawServer = url.searchParams.get('serverUrl');
   const rawHeaders = url.searchParams.get('headers');
   if (!rawServer) return jsonResponse({ error: 'Missing serverUrl' }, 400, cors);
@@ -570,6 +578,9 @@ async function handleListTools(req: Request, cors: Record<string, string>, meta:
   if (rawHeaders) {
     try { customHeaders = JSON.parse(rawHeaders); } catch { /* ignore */ }
   }
+  // Server-side preset auth. Caller-supplied headers WIN — a pasted key is a
+  // deliberate override of whatever `.env` holds.
+  customHeaders = withPresetAuth(serverUrl.hostname, customHeaders);
   captureMeta(serverUrl, customHeaders, meta);
   const tools = isSseTransport(serverUrl)
     ? await mcpListToolsSse(serverUrl, customHeaders)
@@ -584,10 +595,11 @@ async function handleCallTool(req: Request, cors: Record<string, string>, meta: 
   if (!toolName) return jsonResponse({ error: 'Missing toolName' }, 400, cors);
   const serverUrl = await validateServerUrl(rawServer);
   if (!serverUrl) return jsonResponse({ error: 'Invalid serverUrl' }, 400, cors);
-  captureMeta(serverUrl, customHeaders, meta);
+  const authedHeaders = withPresetAuth(serverUrl.hostname, customHeaders);
+  captureMeta(serverUrl, authedHeaders, meta);
   const result = isSseTransport(serverUrl)
-    ? await mcpCallToolSse(serverUrl, toolName, toolArgs || {}, customHeaders || {})
-    : await mcpCallTool(serverUrl, toolName, toolArgs || {}, customHeaders || {});
+    ? await mcpCallToolSse(serverUrl, toolName, toolArgs || {}, authedHeaders)
+    : await mcpCallTool(serverUrl, toolName, toolArgs || {}, authedHeaders);
   return jsonResponse({ result }, 200, cors);
 }
 

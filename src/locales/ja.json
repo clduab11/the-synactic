@@ -3416,7 +3416,10 @@
     "quickConnect": "クイック接続",
     "or": "またはカスタムサーバーを入力",
     "generatingVisualization": "ビジュアライゼーションを生成中...",
-    "visualizationFailed": "ビジュアライゼーションに失敗しました"
+    "visualizationFailed": "ビジュアライゼーションに失敗しました",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "ダッシュボードタブ",

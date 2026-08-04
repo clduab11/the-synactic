@@ -3634,7 +3634,10 @@
     "quickConnect": "Brzo povezivanje",
     "or": "ili unesite prilagođeni poslužitelj",
     "generatingVisualization": "Izrada vizualizacije...",
-    "visualizationFailed": "Vizualizacija nije uspjela"
+    "visualizationFailed": "Vizualizacija nije uspjela",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Kartice nadzorne ploče",

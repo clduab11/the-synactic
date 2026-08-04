@@ -3416,7 +3416,10 @@
     "quickConnect": "Gyors csatlakozás",
     "or": "vagy adjon meg egyéni kiszolgálót",
     "generatingVisualization": "Vizualizáció készítése...",
-    "visualizationFailed": "A vizualizáció sikertelen volt"
+    "visualizationFailed": "A vizualizáció sikertelen volt",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Irányítópult fülek",

@@ -3416,7 +3416,10 @@
     "quickConnect": "빠른 연결",
     "or": "또는 사용자 지정 서버 입력",
     "generatingVisualization": "시각화 구성 중...",
-    "visualizationFailed": "시각화 실패"
+    "visualizationFailed": "시각화 실패",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "대시보드 탭",

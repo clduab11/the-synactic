@@ -3416,7 +3416,10 @@
     "quickConnect": "त्वरित कनेक्ट",
     "or": "या कस्टम सर्वर दर्ज करें",
     "generatingVisualization": "विज़ुअलाइज़ेशन बना रहे हैं...",
-    "visualizationFailed": "विज़ुअलाइज़ेशन असफल"
+    "visualizationFailed": "विज़ुअलाइज़ेशन असफल",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "डैशबोर्ड टैब",

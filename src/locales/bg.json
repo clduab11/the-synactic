@@ -3416,7 +3416,10 @@
     "quickConnect": "Бърза връзка",
     "or": "или въведете персонализиран сървър",
     "generatingVisualization": "Построяване на визуализация...",
-    "visualizationFailed": "Визуализацията не успя"
+    "visualizationFailed": "Визуализацията не успя",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Раздели на таблото",

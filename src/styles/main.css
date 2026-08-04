@@ -18758,6 +18758,23 @@ a.prediction-link:hover {
   display: none;
 }
 
+/* Quick-connect preset whose key the SERVER already holds (.env). The badge
+   swaps 🔑 -> ✓ so the operator can see at a glance which presets need nothing
+   pasted. Green rather than the cyan key colour: this is a resolved state. */
+.mcp-preset-configured-badge {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.mcp-preset-card.mcp-preset-configured .mcp-preset-name::after {
+  content: ' · configured';
+  color: #22c55e;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
 /* Map tile attribution */
 .map-attribution {
   position: absolute;

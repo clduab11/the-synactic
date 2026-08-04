@@ -49,6 +49,54 @@ function extractAuthHint(authNote: string): string {
   return m?.[1] ?? authNote;
 }
 
+/** Hostname of a preset serverUrl, or '' when it is not a parseable URL. */
+function presetHost(serverUrl: string): string {
+  try { return new URL(serverUrl).hostname.toLowerCase(); } catch { return ''; }
+}
+
+/**
+ * Hosts the SERVER already holds a complete credential for.
+ *
+ * The proxy performs every MCP request server-side, so a key in `.env` never
+ * needs to reach the browser. This probe asks which presets are already
+ * configured and gets back HOSTNAMES ONLY — never a key value. Cached for the
+ * page session because `.env` cannot change without a restart.
+ */
+let configuredHostsCache: Promise<Set<string>> | null = null;
+function fetchConfiguredHosts(): Promise<Set<string>> {
+  if (!configuredHostsCache) {
+    configuredHostsCache = premiumFetch(`${proxyUrl('/api/mcp-proxy')}?capabilities=1`)
+      .then(r => (r.ok ? r.json() : { configuredHosts: [] }))
+      .then((j: { configuredHosts?: unknown }) => new Set(
+        Array.isArray(j?.configuredHosts)
+          ? j.configuredHosts.filter((h): h is string => typeof h === 'string').map(h => h.toLowerCase())
+          : [],
+      ))
+      // A failed probe must never block the modal — fall back to "nothing is
+      // configured", which is exactly the pre-feature behaviour.
+      .catch(() => new Set<string>());
+  }
+  return configuredHostsCache;
+}
+
+/**
+ * Swap the 🔑 "needs a key" badge for a ✓ "configured on the server" badge.
+ * Runs after the modal is mounted so the probe never delays first paint.
+ */
+function markConfiguredPresets(modal: HTMLElement, hosts: Set<string>): void {
+  modal.querySelectorAll<HTMLElement>('.mcp-preset-card').forEach(card => {
+    const host = (card.dataset.host || '').toLowerCase();
+    if (!host || !hosts.has(host)) return;
+    card.classList.add('mcp-preset-configured');
+    const badge = card.querySelector('.mcp-preset-key-badge');
+    if (badge) {
+      badge.textContent = '✓';
+      badge.classList.add('mcp-preset-configured-badge');
+      badge.setAttribute('title', t('mcp.configuredOnServer'));
+    }
+  });
+}
+
 export function openMcpConnectModal(options: McpConnectOptions): void {
   closeMcpConnectModal();
 
@@ -61,6 +109,7 @@ export function openMcpConnectModal(options: McpConnectOptions): void {
 
   const presetsHtml = MCP_PRESETS.map(p => `
     <button class="mcp-preset-card" data-url="${escapeHtml(p.serverUrl)}"
+      data-host="${escapeHtml(presetHost(p.serverUrl))}"
       data-tool="${escapeHtml(p.defaultTool ?? '')}"
       data-args="${escapeHtml(JSON.stringify(p.defaultArgs ?? {}))}"
       data-title="${escapeHtml(p.defaultTitle ?? p.name)}"
@@ -160,6 +209,24 @@ export function openMcpConnectModal(options: McpConnectOptions): void {
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+
+  // Non-blocking: upgrade preset badges once the server says what it holds.
+  let configuredHosts = new Set<string>();
+  void fetchConfiguredHosts().then(hosts => {
+    configuredHosts = hosts;
+    markConfiguredPresets(modal, hosts);
+    // If a configured preset is already selected (edit flow), relax its hint.
+    const selected = modal.querySelector<HTMLElement>('.mcp-preset-card.selected');
+    const host = (selected?.dataset.host || '').toLowerCase();
+    if (host && hosts.has(host)) applyConfiguredHint(host);
+  });
+
+  /** Tell the operator the key field is optional for a server-configured preset. */
+  function applyConfiguredHint(host: string): void {
+    if (!configuredHosts.has(host)) return;
+    apiKeyHint.textContent = t('mcp.configuredOnServerHint');
+    apiKeyInput.placeholder = t('mcp.configuredOnServerPlaceholder');
+  }
 
   let tools: McpToolDef[] = [];
   let selectedTool: McpToolDef | null = existing
@@ -290,6 +357,10 @@ export function openMcpConnectModal(options: McpConnectOptions): void {
         apiKeyInput.value = '';
         connectStatus.textContent = '';
         connectStatus.className = 'mcp-connect-status';
+        // The server may already hold this key, in which case the field is
+        // optional. showSimpleMode() has just overwritten the hint with the
+        // preset's authNote, so this must run AFTER it.
+        applyConfiguredHint((card.dataset.host || '').toLowerCase());
       } else {
         activeApiKeyHeader = '';
         apiKeyGroup.style.display = 'none';

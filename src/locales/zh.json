@@ -3416,7 +3416,10 @@
     "quickConnect": "快速连接",
     "or": "或输入自定义服务器",
     "generatingVisualization": "正在生成可视化...",
-    "visualizationFailed": "可视化失败"
+    "visualizationFailed": "可视化失败",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "仪表板标签页",

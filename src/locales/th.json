@@ -3416,7 +3416,10 @@
     "quickConnect": "เชื่อมต่อด่วน",
     "or": "หรือป้อนเซิร์ฟเวอร์แบบกำหนดเอง",
     "generatingVisualization": "กำลังสร้างการแสดงผล...",
-    "visualizationFailed": "การแสดงผลล้มเหลว"
+    "visualizationFailed": "การแสดงผลล้มเหลว",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "แท็บแดชบอร์ด",

@@ -7,6 +7,7 @@
     "offlineRetry": "Retry"
   },
   "header": {
+    "trader": "TRADER",
     "world": "WORLD",
     "tech": "TECH",
     "live": "LIVE",
@@ -277,6 +278,9 @@
     "settings": "Settings"
   },
   "mcp": {
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServer": "Configured on this server",
     "connectPanel": "Connect MCP",
     "modalTitle": "Connect MCP Server",
     "serverUrl": "Server URL",
@@ -307,6 +311,8 @@
     "visualizationFailed": "Visualization failed"
   },
   "widgets": {
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again.",
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
     "confirmDelete": "Remove this widget permanently?",
     "chatTitle": "Widget Builder",
     "modifyTitle": "Modify Widget",
@@ -399,6 +405,9 @@
     "copyCoordinates": "Copy Coordinates"
   },
   "components": {
+    "defcon": {
+      "title": "DEFCON Readiness Estimate"
+    },
     "deckgl": {
       "views": {
         "global": "Global",

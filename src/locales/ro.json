@@ -3434,7 +3434,10 @@
     "quickConnect": "Conexiune rapidă",
     "or": "sau introduceți un server personalizat",
     "generatingVisualization": "Se construiește vizualizarea...",
-    "visualizationFailed": "Vizualizarea a eșuat"
+    "visualizationFailed": "Vizualizarea a eșuat",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "File tablou de bord",
