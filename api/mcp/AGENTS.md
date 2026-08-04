@@ -1,6 +1,8 @@
 # AGENTS.md — api/mcp/
 
-**v2 — 2026-07-29.** Tool count and line numbers corrected against `docs/plans/recon-01.md`.
+**v3 — 2026-08-04.** Tool count re-verified three ways (70, not 41). ⚠ The line
+citations below this header were last checked at v2 and several have since
+drifted — re-derive any line number before relying on it.
 
 ## Self-hosting facts the docs omit
 
@@ -12,13 +14,28 @@
 - `api/mcp-proxy.ts` is **not** the server. It is an outbound SSRF-guarded proxy letting the web app act as an MCP *client*. Do not confuse them.
 - Self-host branch: non-production hosts route tool fetches to their own origin — ternary at `downstream.ts:101-107`, assignment at `:105`.
 
-## Tool count — 41 in this checkout
+## Tool count — 70 in this checkout
 
-**28 cache tools + 13 RPC tools = 41**, merged from exactly **two** registry files (`cache-tools.ts`, `rpc-tools.ts`) at `api/mcp/registry/index.ts:5-12`. Corroborated by two in-repo anchors: `tests/mcp-output-budget.test.mjs:22` ("3/41 tools") and `tests/mcp-tool-output-contracts.test.mjs:84` ("all 41 tools").
+**37 cache + 29 rpc + 4 nlp = 70**, across **five** registry files. Verified three
+independent ways on 2026-08-04: evaluating `TOOL_REGISTRY.length` = 70,
+`public/.well-known/mcp/server-card.json`.tools.length = 70, and
+`docs/generated/stats.json`.mcpToolCount = 70.
 
-> **v1 CORRECTION.** v1 claimed "exactly 59 tools across five registry files: cache 30 / rpc 17 / analysis 7 / company-intel 1 / nlp 4." Those files do not exist here. The 59 figure came from the **live hosted service**; it was written up as a claim about repo source in error.
->
-> **Both are likely true of different things — this checkout is roughly 18 tools behind hosted.** Contracts captured from the hosted instance may describe tools with no local implementation. Verify a tool exists in `registry/` before reconciling its schema.
+> **COUNTING TRAP.** `api/mcp/registry/index.ts` imports only THREE names
+> (CACHE_TOOLS, NLP_TOOLS, RPC_TOOLS), so counting its imports yields three files
+> and is wrong. `rpc-tools.ts` itself imports ANALYSIS_TOOLS and COMPANY_INTEL_TOOL
+> and folds them into its own export, so the "29 rpc" already absorbs 7 analysis
+> tools and 1 company-intel tool. Five files, three imports, one merged count.
+
+> **DO NOT HAND-EDIT THIS NUMBER.** Regenerate with `npm run product:facts`
+> and `npm run docs:stats`. Note that `docs/generated/stats.json` does NOT read
+> the registry — it reads `server-card.json`.tools.length — so adding a tool and
+> running only `docs:stats` leaves the published count stale.
+
+> **v1/v2 CORRECTION (2026-08-04).** v1 claimed 59 tools; v2 claimed 41 from
+> "exactly two registry files" and cited two test titles that no longer contain
+> that number. Both were wrong about this checkout, and the hosted-vs-local drift
+> theory v2 advanced is obsolete — local IS the full 70.
 
 ## Credential classes — Convex is off the critical path
 
