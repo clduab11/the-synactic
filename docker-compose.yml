@@ -129,6 +129,10 @@ services:
       LUNARCRUSH_API_KEY: "${LUNARCRUSH_API_KEY:-}"
       # Fine-grained PAT. The registry also accepts GITHUB_TOKEN / GH_TOKEN.
       GITHUB_PAT: "${GITHUB_PAT:-}"
+      LINEAR_API_KEY: "${LINEAR_API_KEY:-}"
+      # NOTE THE SPELLING: no underscore between ALPHA and VANTAGE. The
+      # registry accepts both, but this is the name actually set in .env.
+      ALPHAVANTAGE_API_KEY: "${ALPHAVANTAGE_API_KEY:-}"
       # Session-09 [2b]: local intel-history backend. Routes the three history
       # RPCs (search-intel-history / get-intel-timeline / get-similar-events)
       # to the `chroma` service below instead of Convex — this self-host

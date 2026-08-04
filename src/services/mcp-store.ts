@@ -204,7 +204,7 @@ export const MCP_PRESETS: McpPreset[] = [
     icon: '🌍',
     description: 'Google\'s open knowledge graph — global stats on health, economy, demographics, and more',
     serverUrl: 'https://api.datacommons.org/mcp',
-    authNote: 'Requires x-api-key: <API_KEY> (free at console.cloud.google.com)',
+    authNote: 'Requires x-api-key: <API_KEY> (free, self-service at apikeys.datacommons.org)',
     apiKeyHeader: 'x-api-key: {key}',
     defaultTool: 'search_indicators',
     defaultArgs: { query: 'GDP per capita' },
