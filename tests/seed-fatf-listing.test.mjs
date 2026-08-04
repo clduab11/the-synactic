@@ -445,9 +445,47 @@ describe('fetchGovUkJson — boundary-2 (v9) fetch posture', () => {
     };
     await assert.rejects(
       fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }),
-      /HTTP 429 \(rate limited\)\. Not retried by design/,
+      (err) => {
+        assert.match(err.message, /HTTP 429 \(rate limited\)\. Not retried by design/);
+        // THE LOAD-BEARING ASSERTION. Counting calls on fetchGovUkJson alone
+        // proves nothing about the seeder: runSeed wraps this call in withRetry,
+        // which re-issues on any error NOT carrying this flag. The message said
+        // "not retried by design" while four GETs went into the refusal with
+        // 1s/2s/4s backoff. The flag is the mechanism; the sentence is a comment.
+        assert.equal(err.nonRetryable, true, 'a 429 must be tagged nonRetryable or withRetry re-issues it');
+        return true;
+      },
     );
     assert.equal(calls, 1, 'a 429 is the publisher declining; re-issuing the request is forbidden');
+  });
+
+  it('tags non-429 4xx refusals nonRetryable too, so withRetry does not re-issue them', async () => {
+    for (const status of [403, 404]) {
+      let calls = 0;
+      const fetchFn = async () => {
+        calls += 1;
+        return { ok: false, status, headers: new Map(), text: async () => '' };
+      };
+      await assert.rejects(
+        fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }),
+        (err) => {
+          assert.equal(err.nonRetryable, true, `HTTP ${status} must not be retried`);
+          return true;
+        },
+      );
+      assert.equal(calls, 1, `HTTP ${status}: one request`);
+    }
+  });
+
+  it('leaves 5xx retryable — a transient fault on their side is not a refusal aimed at us', async () => {
+    const fetchFn = async () => ({ ok: false, status: 503, headers: new Map(), text: async () => '' });
+    await assert.rejects(
+      fetchGovUkJson(HMT_NOTICE_BASE_PATH, { fetchFn }),
+      (err) => {
+        assert.notEqual(err.nonRetryable, true, '503 must stay retryable');
+        return true;
+      },
+    );
   });
 
   it('rejects a 200 that is not JSON (200 + plausible bytes != valid payload)', async () => {

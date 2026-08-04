@@ -172,13 +172,24 @@ export async function fetchGovUkJson(basePath, { fetchFn = fetch, timeoutMs = FE
     throw new Error(`GOV.UK Content API ${url}: request failed (${describeErr(err)})`);
   }
   if (resp?.status === 429) {
-    throw new Error(
+    const err = new Error(
       `GOV.UK Content API ${url}: HTTP 429 (rate limited). Not retried by design — ` +
         'CONTEXT.md boundary 2 forbids retrying through a refusal. Previous payload remains under cache TTL.',
     );
+    // The flag is what actually stops the retry — runSeed wraps this call in
+    // withRetry, which re-issues on any error that is not tagged. Saying "not
+    // retried by design" in the message alone left four GETs going into the
+    // refusal with 1s/2s/4s backoff while the log claimed otherwise.
+    err.nonRetryable = true;
+    throw err;
   }
   if (!resp?.ok) {
-    throw new Error(`GOV.UK Content API ${url}: HTTP ${resp?.status ?? 'no-response'}`);
+    const err = new Error(`GOV.UK Content API ${url}: HTTP ${resp?.status ?? 'no-response'}`);
+    // A 4xx here is GOV.UK refusing or the document being gone; neither is
+    // cured by asking again immediately. 5xx stays retryable — that is a
+    // transient fault on their side, not a refusal aimed at us.
+    if (resp?.status >= 400 && resp?.status < 500) err.nonRetryable = true;
+    throw err;
   }
   // "HTTP 200 + plausible bytes != valid payload" — a CDN error page or an
   // HTML redirect interstitial would otherwise parse as a body-less document

@@ -155,7 +155,7 @@ test('helper CODE contains no proxy / Decodo wiring', () => {
 
 // ─── 3. Loud failure carrying the upstream status ───────────────────────────
 
-test('429 exhausted: throws and names the upstream status', async () => {
+test('429 is not retried at all: exactly one request, and the status is named', async () => {
   const { fetchOpenMeteoArchiveBatch } = await loadHelper();
 
   let calls = 0;
@@ -172,7 +172,28 @@ test('429 exhausted: throws and names the upstream status', async () => {
       return true;
     },
   );
-  assert.equal(calls, 2, '1 initial + 1 retry (maxRetries=1)');
+  // A 429 is the publisher enforcing its published quota. Boundary 2 requires
+  // backing off, so the correct request count is ONE — no retry, however
+  // politely spaced. This assertion previously demanded 1 initial + 1 retry,
+  // which pinned the retry-through-a-refusal posture as if it were the
+  // contract; the seeder's own 3h/24h loop is the backoff.
+  assert.equal(calls, 1, 'a 429 must be surfaced immediately, never retried through');
+});
+
+test('429 given a Retry-After header is still not retried', async () => {
+  const { fetchOpenMeteoArchiveBatch } = await loadHelper();
+
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    // A generous Retry-After must not become permission to try again sooner:
+    // parseRetryAfterMs caps values DOWN to 60s, so honouring it on a 429 would
+    // mean re-asking well before the publisher said we could.
+    return { ok: false, status: 429, headers: { get: (h) => (h === 'retry-after' ? '3600' : null) }, json: async () => ({}) };
+  };
+
+  await assert.rejects(() => fetchOpenMeteoArchiveBatch(ZONES, ARCHIVE_OPTS), /HTTP 429/);
+  assert.equal(calls, 1, 'Retry-After on a 429 does not license a retry');
 });
 
 test('non-retryable 500: throws immediately, still names the status', async () => {

@@ -181,3 +181,50 @@ test('seeder CODE: POWER monthly endpoint with the WMO window, no climatology sh
   assert.doesNotMatch(src, /resolveProxy|httpsProxyFetchRaw|curlFetch|_PROXY_DEFAULTS/);
   assert.doesNotMatch(src, /CHROME_UA/);
 });
+
+// ─── Coverage floor ─────────────────────────────────────────────────────────
+// A value published under `referencePeriod: '1991-2020'` must actually rest on
+// a 1991-2020 sample. Sentinel-dropping removes month-years, and before the
+// floor existed a single surviving year was averaged to one number and shipped
+// wearing a 30-year label — which seed-climate-anomalies then subtracts from
+// every observation, so the lie propagates into every anomaly for that zone.
+
+test('a month with too few surviving years yields no normal (WMO 80% floor)', () => {
+  // July keeps only 1991-2000 (10 of 30 years); every other month is complete.
+  const payload = powerPayload({
+    temp: (year, month) => (month === 7 && year > 2000 ? -999 : 12),
+    precip: () => 2,
+  });
+
+  const months = parsePowerMonthlyNormals(payload);
+
+  assert.equal(months.some((m) => m.month === 7), false,
+    'a 10-of-30-year July must not be published as a 1991-2020 normal');
+  assert.equal(months.length, 11, 'the other eleven months are unaffected');
+});
+
+test('a month at the 24-year floor is still published', () => {
+  // August keeps 1991-2014 = exactly 24 years, the documented threshold.
+  const payload = powerPayload({
+    temp: (year, month) => (month === 8 && year > 2014 ? -999 : 9),
+    precip: () => 3,
+  });
+
+  const august = parsePowerMonthlyNormals(payload).find((m) => m.month === 8);
+
+  assert.ok(august, 'exactly 24 years meets the floor and must not be discarded');
+  assert.equal(august.tempMean, 9);
+});
+
+test('a zone whose months fall below the floor fails the 12-month gate rather than publishing thin means', () => {
+  // Whole-zone degradation: every month loses all but the first five years.
+  const payload = powerPayload({
+    temp: (year) => (year > 1995 ? -999 : 8),
+    precip: (year) => (year > 1995 ? -999 : 1),
+  });
+
+  const months = parsePowerMonthlyNormals(payload);
+
+  assert.equal(months.length, 0,
+    'no month clears the floor, so the zone yields nothing and routes to the fallback with a recorded reason');
+});

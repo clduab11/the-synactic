@@ -28,7 +28,14 @@ import { sleep } from './_seed-utils.mjs';
 const ARCHIVE_UA = 'the-synactic/2.10 (+https://github.com/clduab11/the-synactic)';
 
 const MAX_RETRY_AFTER_MS = 60_000;
-const RETRYABLE_STATUSES = new Set([429, 503]);
+// 429 is DELIBERATELY ABSENT. It is the publisher enforcing a published quota,
+// and boundary 2 requires backing off rather than retrying through it. This
+// helper is called with maxRetries: 4, so treating 429 as retryable meant five
+// requests into a refusal — a milder form of the same posture the Decodo proxy
+// cascade was removed from this file for. The seeder runs on a 3h/24h loop, so
+// the next cycle IS the backoff; a rate-limited run records its reason and stops.
+// 503 stays: that is a transient fault on their side, not a refusal aimed at us.
+const RETRYABLE_STATUSES = new Set([503]);
 
 export function chunkItems(items, size) {
   const chunks = [];

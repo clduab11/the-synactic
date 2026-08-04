@@ -73,6 +73,17 @@ const MAX_PLAUSIBLE_TEMP_C = 60;
 const MIN_PLAUSIBLE_PRECIP_MM_DAY = 0;
 const MAX_PLAUSIBLE_PRECIP_MM_DAY = 500;
 
+// A month's normal is published under the label `referencePeriod: '1991-2020'`,
+// so it has to actually be a 1991-2020 normal. Sentinel-dropping removes
+// month-years, and without a floor a single surviving year would be averaged to
+// one number and shipped wearing a 30-year label — a silent lie that
+// seed-climate-anomalies would then subtract from every observation.
+// WMO practice for a standard normal is at least 80% of the period present;
+// 24 of 30 years is that threshold. A month below it yields no value, which
+// fails the zone's 12-month completeness gate, which routes the zone to the
+// Open-Meteo fallback and records a reason instead of publishing the thin mean.
+const MIN_YEARS_PER_MONTH_NORMAL = 24;
+
 // Source attribution published with the payload.
 export const CLIMATE_NORMALS_SOURCES = Object.freeze([
   Object.freeze({
@@ -157,6 +168,9 @@ export function parsePowerMonthlyNormals(payload, opts = {}) {
   return Array.from(byMonth.entries())
     .map(([month, bucket]) => {
       if (bucket.temps.length === 0 || bucket.precips.length === 0) return null;
+      // Coverage floor, not just non-emptiness — see MIN_YEARS_PER_MONTH_NORMAL.
+      // temps and precips are pushed together, so one length check covers both.
+      if (bucket.temps.length < MIN_YEARS_PER_MONTH_NORMAL) return null;
       const tempMean = round(average(bucket.temps));
       const precipMean = round(average(bucket.precips));
       if (!isPlausibleNormal(tempMean, precipMean)) return null;
