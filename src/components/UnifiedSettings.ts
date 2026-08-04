@@ -644,6 +644,13 @@ export class UnifiedSettings {
      * whose every action errors. This predicate is only for feature surfaces.
      */
     const hasLocalPro = isSignedIn || isSelfHostPremiumUnlock();
+    // The API Keys and MCP Clients tab labels carried an UNCONDITIONAL "PRO"
+    // badge — unlike every other badge in the app, which is already predicated
+    // (Panel.ts:249). On a self-host that owns its operator key those two were
+    // the last visible padlocks in the UI, advertising a paywall that does not
+    // apply. Both tab BODIES render self-host content, so the badge was also
+    // factually wrong about what the user would find inside.
+    const proBadge = isSelfHostPremiumUnlock() ? '' : '<span class="panel-pro-badge">PRO</span>';
     const prefs = renderPreferences({
       isDesktopApp: this.config.isDesktopApp,
       onMapProviderChange: this.config.onMapProviderChange,
@@ -680,8 +687,8 @@ export class UnifiedSettings {
           <button class="${tabClass('panels')}" tabindex="${this.activeTab === 'panels' ? 0 : -1}" data-tab="panels" role="tab" aria-selected="${this.activeTab === 'panels'}" id="us-tab-panels" aria-controls="us-tab-panel-panels">${t('header.tabPanels')}</button>
           <button class="${tabClass('sources')}" tabindex="${this.activeTab === 'sources' ? 0 : -1}" data-tab="sources" role="tab" aria-selected="${this.activeTab === 'sources'}" id="us-tab-sources" aria-controls="us-tab-panel-sources">${t('header.tabSources')}</button>
           ${showNotificationsTab ? `<button class="${tabClass('notifications')}" tabindex="${this.activeTab === 'notifications' ? 0 : -1}" data-tab="notifications" role="tab" aria-selected="${this.activeTab === 'notifications'}" id="us-tab-notifications" aria-controls="us-tab-panel-notifications">${t('header.tabNotifications')}</button>` : ''}
-          <button class="${tabClass('api-keys')}" tabindex="${this.activeTab === 'api-keys' ? 0 : -1}" data-tab="api-keys" role="tab" aria-selected="${this.activeTab === 'api-keys'}" id="us-tab-api-keys" aria-controls="us-tab-panel-api-keys">API Keys <span class="panel-pro-badge">PRO</span></button>
-          ${showMcpClientsTab ? `<button class="${tabClass('mcp-clients')}" tabindex="${this.activeTab === 'mcp-clients' ? 0 : -1}" data-tab="mcp-clients" role="tab" aria-selected="${this.activeTab === 'mcp-clients'}" id="us-tab-mcp-clients" aria-controls="us-tab-panel-mcp-clients">MCP Clients <span class="panel-pro-badge">PRO</span></button>` : ''}
+          <button class="${tabClass('api-keys')}" tabindex="${this.activeTab === 'api-keys' ? 0 : -1}" data-tab="api-keys" role="tab" aria-selected="${this.activeTab === 'api-keys'}" id="us-tab-api-keys" aria-controls="us-tab-panel-api-keys">API Keys ${proBadge}</button>
+          ${showMcpClientsTab ? `<button class="${tabClass('mcp-clients')}" tabindex="${this.activeTab === 'mcp-clients' ? 0 : -1}" data-tab="mcp-clients" role="tab" aria-selected="${this.activeTab === 'mcp-clients'}" id="us-tab-mcp-clients" aria-controls="us-tab-panel-mcp-clients">MCP Clients ${proBadge}</button>` : ''}
         </div>
         <div class="unified-settings-tab-panel${this.activeTab === 'settings' ? ' active' : ''}" data-panel-id="settings" id="us-tab-panel-settings" role="tabpanel" aria-labelledby="us-tab-settings">
           ${prefs.html}
@@ -1698,8 +1705,65 @@ export class UnifiedSettings {
   // tokens for Claude Desktop / Cursor / etc).
   // ---------------------------------------------------------------------------
 
+  /**
+   * Self-host / desktop view of the MCP tab.
+   *
+   * The hosted tab lists OAuth-registered clients out of Convex, which a
+   * self-host has none of — so the sign-in wall below was showing an account
+   * prompt for a deployment that owns its own operator key and already serves
+   * the full tool surface ungated and unmetered (api/mcp/auth.ts env_key
+   * class). Showing the connection recipe is strictly more useful than either
+   * a padlock or an empty hosted-client list.
+   *
+   * Mirrors renderSelfHostApiKeysContent(); the key is server-side only and is
+   * deliberately never rendered here.
+   */
+  private renderSelfHostMcpClientsContent(): string {
+    const origin = typeof location !== 'undefined' ? location.origin : '';
+    const row = (label: string, value: string) =>
+      `<div class="api-keys-selfhost-row"><span class="api-keys-selfhost-label">${escapeHtml(label)}</span>` +
+      `<span class="api-keys-selfhost-value">${escapeHtml(value)}</span></div>`;
+
+    return `
+      <div class="api-keys-section api-keys-selfhost">
+        <div class="api-keys-header">
+          <p class="api-keys-desc">
+            This deployment does not use hosted MCP client registration. Point a client
+            straight at the endpoint below — every tool is available, ungated and
+            unmetered, under this deployment's own operator key.
+          </p>
+        </div>
+
+        <div class="api-keys-selfhost-group">
+          <div class="api-keys-selfhost-title">Endpoint</div>
+          ${row('MCP URL', `${origin}/api/mcp`)}
+          ${row('Transport', 'HTTP (JSON-RPC)')}
+          ${row('Auth header', 'X-WorldMonitor-Key')}
+          ${row('Configured in', '.env -> WORLDMONITOR_VALID_KEYS')}
+        </div>
+
+        <div class="api-keys-selfhost-group">
+          <div class="api-keys-selfhost-title">Notes</div>
+          <p class="api-keys-desc">
+            From this machine no credential is needed: the reverse proxy attaches the
+            operator key to every <code>/api/</code> request, so a local client can call
+            <code>${escapeHtml(origin)}/api/mcp</code> with no header at all. Supply
+            <code>X-WorldMonitor-Key</code> only when calling from somewhere that does not
+            pass through the proxy. The OAuth flow is a hosted-only path and is expected to
+            be unavailable here.
+          </p>
+        </div>
+      </div>`;
+  }
+
   private renderMcpClientsContent(): string {
     const authState = getAuthState();
+
+    // Self-host / desktop: show the connection recipe instead of a hosted-account
+    // wall. A real signed-in account still takes precedence below.
+    if (!authState.user && isSelfHostPremiumUnlock()) {
+      return this.renderSelfHostMcpClientsContent();
+    }
 
     if (!authState.user) {
       const lockIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`;
