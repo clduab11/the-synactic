@@ -303,6 +303,58 @@ function isKeyFreeApiTarget(target: string): boolean {
     || target.startsWith('/api/version');
 }
 
+/**
+ * Fork-local: send /api/* to an explicitly configured stack instead of the
+ * bundled sidecar.
+ *
+ * WHY THIS EXISTS. The desktop app serves its own API from
+ * src-tauri/sidecar/local-api-server.mjs, which keeps its own store. A
+ * self-hoster running the full docker-compose stack therefore sees BLANK
+ * panels — DEFCON, PizzInt, CII, AI Insights — while the very same build
+ * against the stack renders them fully, because the seeded data lives in the
+ * stack's Redis and the sidecar has never heard of it.
+ *
+ * `VITE_TAURI_API_BASE_URL` looked like the knob for this and was NOT: every
+ * /api/* request is intercepted by installRuntimeFetchPatch and handed to the
+ * Rust command `proxy_local_api_request`, which never reads it. The var only
+ * reached getApiBaseUrl(), which no panel data path calls. This wires it to
+ * the path that actually carries panel traffic.
+ *
+ * OPT-IN AND UNSET BY DEFAULT. With no value configured this returns null and
+ * every request goes through the IPC bridge exactly as before — a stock
+ * desktop build is self-contained and unaffected. Setting it makes the app
+ * depend on that stack being reachable, which is why it is a deliberate choice
+ * rather than a default. A failed direct call still falls through to the
+ * sidecar below, so a stopped stack degrades instead of breaking.
+ *
+ * The native process keeps sole ownership of LOCAL_API_TOKEN either way: this
+ * path never touches the token, it just talks to an origin the operator named.
+ */
+/** The pre-patch window.fetch, captured by installRuntimeFetchPatch. */
+let nativeFetchRef: typeof fetch | null = null;
+
+function getConfiguredLocalApiOverride(): string | null {
+  const configured = ENV.VITE_TAURI_API_BASE_URL;
+  if (!configured) return null;
+  const trimmed = normalizeBaseUrl(String(configured).trim());
+  if (!trimmed) return null;
+  try {
+    // Loopback only. The override exists to reach a stack the operator runs on
+    // this machine; allowing an arbitrary origin would turn a convenience flag
+    // into a way to point every API call at a remote host.
+    const { hostname, protocol } = new URL(trimmed);
+    const isLoopback = hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]' || hostname === '::1';
+    if (!isLoopback || (protocol !== 'http:' && protocol !== 'https:')) {
+      console.warn('[runtime] VITE_TAURI_API_BASE_URL ignored — loopback http(s) only:', trimmed);
+      return null;
+    }
+    return trimmed;
+  } catch {
+    console.warn('[runtime] VITE_TAURI_API_BASE_URL ignored — not a valid URL:', trimmed);
+    return null;
+  }
+}
+
 async function fetchLocalWithStartupRetry(
   target: string,
   input: RequestInfo | URL,
@@ -311,6 +363,20 @@ async function fetchLocalWithStartupRetry(
   const maxAttempts = 4;
   let lastError: unknown = null;
   const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+
+  const override = nativeFetchRef ? getConfiguredLocalApiOverride() : null;
+  if (override && nativeFetchRef) {
+    try {
+      const resp = await nativeFetchRef(`${override}${target}`, init);
+      // Only a transport failure falls through to the sidecar. A real HTTP
+      // status from the configured stack is the answer — masking a 404 or 500
+      // by silently re-asking a different backend would make the two sources
+      // indistinguishable in the panel and in the logs.
+      return resp;
+    } catch (error) {
+      console.warn(`[runtime] configured API base unreachable for ${target}; falling back to the sidecar`, error);
+    }
+  }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
@@ -349,6 +415,10 @@ export function installRuntimeFetchPatch(): void {
   }
 
   const nativeFetch = window.fetch.bind(window);
+  // Kept module-level so the configured-base override in
+  // fetchLocalWithStartupRetry can reach the UNPATCHED fetch. Calling
+  // window.fetch from inside the patch would re-enter it and recurse forever.
+  nativeFetchRef = nativeFetch;
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const target = getApiTargetFromRequestInput(input);
     const debug = localStorage.getItem('wm-debug-log') === '1';
