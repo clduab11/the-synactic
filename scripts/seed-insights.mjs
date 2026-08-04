@@ -765,6 +765,12 @@ async function fetchInsights() {
   const parsedSynthesis = synthesisResult
     ? parseBriefSynthesis(synthesisResult.text, topStories.length)
     : null;
+  // GATE is one bucket over seven distinct composer null-returns, and a
+  // scheduled run cannot be reproduced from outside (topStories come from a
+  // fresh digest each time). Capture WHICH gate fired so a failing run is
+  // diagnosable from its own log.
+  let gateReason = null;
+  let gateDetail = null;
   const composed = synthesisResult
       ? composeSynthesizedBrief(synthesisResult.text, topStories, {
         validatorMode: BRIEF_VALIDATOR_MODE,
@@ -772,6 +778,7 @@ async function fetchInsights() {
         sourceFromStory: briefSourceFromStory,
         briefCluster,
         parsedSynthesis,
+        onReject: (code, detail) => { gateReason = code; gateDetail = detail ?? null; },
       })
     : null;
   synthesisFailureCode = classifyInsightsSynthesisFailure({
@@ -796,9 +803,14 @@ async function fetchInsights() {
     console.log(`  Brief synthesized (top-${topStories.length}) via ${briefProvider} (${briefModel})`);
   } else {
     console.warn(
-      `  [brief_synthesis] rejected (${synthesisFailureCode || INSIGHTS_SYNTHESIS_FAILURE_CODES.PROVIDER}) — `
+      `  [brief_synthesis] rejected (${synthesisFailureCode || INSIGHTS_SYNTHESIS_FAILURE_CODES.PROVIDER}`
+      + `${gateReason ? `/${gateReason}` : ''}) — `
       + 'falling back to single-headline brief',
     );
+    // Model-derived tokens: opt-in only, never persisted to seed-meta or health.
+    if (gateDetail && process.env.BRIEF_GATE_DEBUG) {
+      console.warn(`  [brief_synthesis DEBUG] ${gateReason}: ${String(gateDetail).slice(0, 200)}`);
+    }
     const legacy = await generateLegacySingleHeadlineBrief(topStories);
     worldBrief = legacy.worldBrief;
     briefProvider = legacy.briefProvider;

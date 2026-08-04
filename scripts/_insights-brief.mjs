@@ -166,18 +166,23 @@ export function parseBriefSynthesis(rawText, storyCount) {
  * }} null → caller falls back to the legacy single-headline path.
  */
 export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
+  // Optional rejection telemetry. `code` is low-cardinality and safe for logs
+  // and seed-meta; `detail` may contain model-derived tokens, so callers MUST
+  // gate it behind an explicit debug switch and never persist it.
+  const onReject = typeof opts.onReject === 'function' ? opts.onReject : null;
+  const reject = (code, detail) => { if (onReject) onReject(code, detail); return null; };
   const validatorMode = opts.validatorMode === 'shadow' ? 'shadow' : 'enforce';
   const sanitize = typeof opts.sanitizeTitle === 'function' ? opts.sanitizeTitle : (t) => t;
   const sourceFromStory = typeof opts.sourceFromStory === 'function' ? opts.sourceFromStory : () => null;
 
-  if (!Array.isArray(topStories) || topStories.length === 0) return null;
+  if (!Array.isArray(topStories) || topStories.length === 0) return reject('NO_STORIES');
   // Editorial gate: same bar the legacy pickBriefCluster enforced. The caller
   // may pass the already-selected cluster so the synthesis path does not scan
   // the ranked list a second time.
   const hasBriefCluster = Object.prototype.hasOwnProperty.call(opts, 'briefCluster')
     ? opts.briefCluster != null
     : topStories.some(isBriefLeadEligible);
-  if (!hasBriefCluster) return null;
+  if (!hasBriefCluster) return reject('NO_CLUSTER');
 
   // The caller may also pass the parser result when it needs to classify a
   // rejection. Keeping this seam optional preserves the pure public helper's
@@ -185,7 +190,7 @@ export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
   const parsed = Object.prototype.hasOwnProperty.call(opts, 'parsedSynthesis')
     ? opts.parsedSynthesis
     : parseBriefSynthesis(rawText, topStories.length);
-  if (!parsed) return null;
+  if (!parsed) return reject('PARSE');
 
   const groundingStories = topStories.map((story) => ({ headline: story.primaryTitle }));
   const storyGroundText = (story) =>
@@ -201,18 +206,22 @@ export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
   const leadCheck = verifyCitationIndexes(parsed.lead, topStories.length);
   strippedCitations += leadCheck.stripped;
   const leadSentences = leadCheck.text.split(/(?<=[.!?])\s+/).filter((sentence) => sentence.trim().length > 0);
-  if (leadSentences.length === 0) return null;
+  if (leadSentences.length === 0) return reject('LEAD_NO_SENTENCES');
   for (const sentence of leadSentences) {
     const cited = [...sentence.matchAll(/\[(\d{1,3})\]/g)]
       .map((match) => Number.parseInt(match[1], 10))
       .filter((n) => n >= 1 && n <= topStories.length);
     // Contract: every claim is cited. An uncited sentence is unverifiable.
-    if (cited.length === 0) return null;
+    if (cited.length === 0) return reject('LEAD_UNCITED', sentence);
     const scopedGround = cited.map((n) => storyGroundText(topStories[n - 1])).join(' — ');
     const sentenceValidation = validateNoHallucinatedProperNouns(sentence, scopedGround);
-    if (!sentenceValidation.ok && validatorMode === 'enforce') return null;
+    if (!sentenceValidation.ok && validatorMode === 'enforce') {
+      return reject('LEAD_PROPER_NOUN', (sentenceValidation.hallucinated || []).join(' '));
+    }
   }
-  if (!checkLeadGrounding({ lead: leadCheck.text }, groundingStories, topStories.length)) return null;
+  if (!checkLeadGrounding({ lead: leadCheck.text }, groundingStories, topStories.length)) {
+    return reject('LEAD_GROUNDING');
+  }
 
   const lineByIndex = new Map(parsed.lines.map((line) => [line.n, line.text]));
   let hallucinatedLines = 0;

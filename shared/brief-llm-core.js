@@ -688,7 +688,7 @@ export function validateNoHallucinatedProperNouns(summary, headline) {
   // subsequence of it appears in some headline sequence.
   for (const summarySeq of summarySequences) {
     if (groundsInAnySequence(summarySeq, headlineSequences)) continue;
-    if (isGroundedAfterRelaxation(summarySeq, headlineSequences)) continue;
+    if (isGroundedAfterRelaxation(summarySeq, headlineSequences, headline)) continue;
     return { ok: false, hallucinated: summarySeq };
   }
 
@@ -774,7 +774,35 @@ function expandHyphenatedSequences(sequences) {
  * @param {string[][]} headlineSequences normalized sequences from the cited stories
  * @returns {boolean} true → treat as grounded; false → keep the rejection
  */
-function isGroundedAfterRelaxation(summarySeq, headlineSequences) {
+/**
+ * Does `seq` occur as a contiguous, ordered run of words in the raw source
+ * text (case-insensitively, after the same acronym normalization)?
+ *
+ * extractProperNounSequences admits only CAPITALIZED tokens, so a lowercase
+ * word in the headline never enters a sequence at all. Measured consequence: a
+ * headline reading "…reopening Hormuz strait" yields ['hormuz'], so a summary
+ * writing "Hormuz Strait" (a normal capitalization of a real place) was scored
+ * as invention. The words are present, adjacent, and in order — that is
+ * evidence, and this restores it.
+ *
+ * Adjacency is load-bearing, NOT incidental. Set containment would let a
+ * summary saying "South Korea" ground against a headline sequence built from
+ * "South Sudan and North Korea". Requiring a contiguous run rejects that.
+ */
+function occursAsContiguousRun(seq, text) {
+  // Single tokens are already covered by the strict path's includes() check.
+  if (seq.length < 2 || typeof text !== 'string' || text.length === 0) return false;
+  const words = normalizeSequence(
+    normalizeDottedAcronyms(text).split(/[^\p{L}\p{N}'’-]+/u).filter(Boolean).map((w) => w.toLowerCase()),
+  );
+  return containsSubsequence(words, seq);
+}
+
+function isGroundedAfterRelaxation(summarySeq, headlineSequences, headlineText) {
+  // Verbatim run in the source outranks every structural heuristic below: if
+  // the exact words are there in the exact order, nothing was invented.
+  if (occursAsContiguousRun(summarySeq, headlineText)) return true;
+
   // Split ONLY on the coordinator, then require EVERY part to ground on its
   // own. "Iran and the US" → ['iran'] + ['us']: both real, both cited, accept.
   // "Iran and Atlantis" → ['atlantis'] grounds nowhere, so the whole sequence

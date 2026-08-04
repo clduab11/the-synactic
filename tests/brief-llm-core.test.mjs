@@ -706,4 +706,40 @@ describe('grounding relaxation', () => {
       assert.equal(ok('The effort was led from Washington.', H_IRAN_US), false);
     });
   });
+
+  describe('verbatim run in the source (case-insensitive)', () => {
+    // extractProperNounSequences admits only CAPITALIZED tokens, so a lowercase
+    // word in the headline never enters a sequence. Measured live failure:
+    // headline "…reopening Hormuz strait" yields ['hormuz'], so the model's
+    // normal capitalization "Hormuz Strait" scored as invention. The words are
+    // present, adjacent and in order — that is evidence, not a hallucination.
+    const REAL = 'US and Qatar report progress on Iran ceasefire and reopening Hormuz strait';
+
+    it('grounds a capitalized phrase whose source spelling is lowercase', () => {
+      assert.equal(ok('The Hormuz Strait reopening advances.', REAL), true);
+    });
+
+    it('requires the ORDER to match — a transposition is not a verbatim run', () => {
+      assert.equal(ok('The Strait Hormuz reopening advances.', REAL), false);
+    });
+
+    it('still rejects an invented noun adjacent to a real one', () => {
+      assert.equal(ok('The Atlantis Strait reopening advances.', REAL), false);
+      assert.equal(ok('Washington pressed for a deal.', REAL), false);
+    });
+
+    // The reason this branch demands ADJACENCY rather than set containment.
+    // "South Sudan and North Korea" bridges into ONE sequence
+    // ['south','sudan','and','north','korea'], of which "South Korea" is a
+    // subset. Set containment would ground a country never mentioned.
+    it('does not ground a subset that is not contiguous in the source', () => {
+      const v = verdict('South Korea issued a statement.', 'South Sudan and North Korea sign a pact');
+      assert.equal(v.ok, false);
+      assert.deepEqual(v.hallucinated, ['south', 'korea']);
+    });
+
+    it('grounds the genuinely adjacent pair in that same headline', () => {
+      assert.equal(ok('North Korea issued a statement.', 'South Sudan and North Korea sign a pact'), true);
+    });
+  });
 });
