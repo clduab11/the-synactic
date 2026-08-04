@@ -2025,10 +2025,46 @@ describe('CII scoring', () => {
       'utf8',
     );
 
+    // 2026-08-04: the `degraded` stamp here was a hard `false`. That laundered a
+    // payload the BUILDER had already marked degraded (e.g. ACLED unavailable)
+    // into one claiming completeness, purely because an unrelated advisory
+    // backfill failed. It now carries the incoming value forward. The property
+    // this test actually guards — fall back to normalized cached data rather
+    // than dropping the cache hit — is unchanged.
     assert.match(
       source,
-      /if \(!hasCompleteRiskScoreAdvisoryDisclosure\(freshResult\)\) \{[\s\S]*try \{[\s\S]*buildRiskScoresPayload\(\)[\s\S]*\} catch \{[\s\S]*normalizeRiskScoreAdvisoryDisclosure\(freshResult\)[\s\S]*degraded: false,[\s\S]*stale: false,[\s\S]*\}[\s\S]*\}/,
+      /if \(!hasCompleteRiskScoreAdvisoryDisclosure\(freshResult\)\) \{[\s\S]*try \{[\s\S]*buildRiskScoresPayload\(\)[\s\S]*\} catch \{[\s\S]*normalizeRiskScoreAdvisoryDisclosure\(freshResult\)[\s\S]*degraded: freshResult\.degraded === true,[\s\S]*stale: false,[\s\S]*\}[\s\S]*\}/,
       'live-cache advisory backfill must fall back to normalized cached data instead of dropping the cache hit',
+    );
+  });
+
+  it('never stamps degraded=false over a degradation the builder recorded', () => {
+    const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
+    const source = readFileSync(
+      resolve(root, 'server', 'worldmonitor', 'intelligence', 'v1', 'get-risk-scores.ts'),
+      'utf8',
+    );
+
+    // The CII cold-start deadlock (2026-08-04): ACLED's throw killed the whole
+    // getRiskScores try block, and persistFreshRiskScorePayload — the ONLY
+    // writer of risk:scores:sebuf:stale:v8 — lives inside it. The fallback then
+    // READ that missing key, so recovery could only run when nothing was wrong.
+    // ACLED now degrades instead of aborting; this pins that the degradation is
+    // reported rather than silently overwritten on the way out.
+    assert.match(
+      source,
+      /degraded: acled\.unavailable/,
+      'buildRiskScoresPayload must report ACLED unavailability as degraded',
+    );
+    assert.doesNotMatch(
+      source,
+      /withRiskScoreRuntimeState\(result, \{ degraded: false/,
+      'a cache/fresh hit must not hard-code degraded=false over a builder-recorded degradation',
+    );
+    assert.match(
+      source,
+      /unavailable = true/,
+      'a failed ACLED window must be recorded, not swallowed',
     );
   });
 

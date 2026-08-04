@@ -615,7 +615,38 @@ export function getAcledFetchWindows(now = Date.now()): {
   };
 }
 
-async function fetchACLEDEvents(): Promise<Array<{ country: string; event_type: string; fatalities: number; daysAgo: number }>> {
+interface AcledFetchResult {
+  rows: Array<{ country: string; event_type: string; fatalities: number; daysAgo: number }>;
+  /** True when at least one window failed upstream (403/429/timeout/…). */
+  unavailable: boolean;
+}
+
+/**
+ * DEADLOCK GUARD (2026-08-04). fetchAcledCached THROWS on any API error
+ * (server/_shared/acled.ts:71 `if (!resp.ok) throw`). That throw used to
+ * propagate through buildRiskScoresPayload into the cachedFetchJsonWithMeta
+ * fetcher, where getRiskScores' catch swallowed it — and because
+ * persistFreshRiskScorePayload (the ONLY writer of risk:scores:sebuf:stale:v8)
+ * lives inside that same try, the stale key could never be written while any
+ * upstream was failing. The fallback then READ that missing key, so the
+ * recovery path could only run when nothing was wrong. get_country_risk
+ * returned upstreamUnavailable permanently. Observed live as a sustained
+ * "ACLED API error: 403" (account lacks API rights) with riskScores EMPTY for
+ * 768+ minutes while the warmer re-pinged every 5 minutes.
+ *
+ * Catching per-window restores the contract THIS FUNCTION ALREADY DOCUMENTS
+ * below — its 0-event warning explicitly names "an upstream ACLED API
+ * error/rate-limit" as a cause, which the throw made unreachable. It also
+ * matches fetchAcledCached's own missing-token path (`if (!token) return []`,
+ * with a test asserting graceful degradation) and fetchAuxiliarySources, which
+ * wraps every read in `.catch(() => null)`. A missing token degrading while a
+ * 403 is fatal was an inconsistency, not a design.
+ *
+ * The loss is NOT hidden: `unavailable` propagates to the response's
+ * `degraded` flag. ACLED feeds two of four CII components (unrest + conflict,
+ * 0.55 of the event-score weight), so a consumer must be able to see this.
+ */
+async function fetchACLEDEvents(): Promise<AcledFetchResult> {
   const now = Date.now();
   const { recent: recentWindow, older: olderWindow } = getAcledFetchWindows(now);
   const eventTypes = 'Protests|Riots|Battles|Explosions/Remote violence|Violence against civilians';
@@ -624,9 +655,23 @@ async function fetchACLEDEvents(): Promise<Array<{ country: string; event_type: 
   // A single 30-day request at limit:1500 silently drops tail events once the
   // global count exceeds the cap; splitting ensures post-conflict countries
   // (low recent activity, higher older activity) are not squeezed out.
+  let unavailable = false;
+  const fetchWindow = async (startDate: string, endDate: string) => {
+    try {
+      return await fetchAcledCached({ eventTypes, startDate, endDate, limit: 1000 });
+    } catch (err) {
+      unavailable = true;
+      console.warn(
+        `[CII] ACLED window ${startDate}..${endDate} failed (${err instanceof Error ? err.message : String(err)}) — `
+        + 'continuing with a DEGRADED CII rather than aborting the whole computation. '
+        + 'A 403 here means the ACLED account lacks API rights (tier is assigned by email domain).',
+      );
+      return [];
+    }
+  };
   const [recent, older] = await Promise.all([
-    fetchAcledCached({ eventTypes, startDate: recentWindow.startDate, endDate: recentWindow.endDate, limit: 1000 }),
-    fetchAcledCached({ eventTypes, startDate: olderWindow.startDate, endDate: olderWindow.endDate, limit: 1000 }),
+    fetchWindow(recentWindow.startDate, recentWindow.endDate),
+    fetchWindow(olderWindow.startDate, olderWindow.endDate),
   ]);
 
   const toRow = (e: (typeof recent)[number]) => {
@@ -653,7 +698,7 @@ async function fetchACLEDEvents(): Promise<Array<{ country: string; event_type: 
     );
   }
 
-  return [...recent.map(toRow), ...older.map(toRow)];
+  return { rows: [...recent.map(toRow), ...older.map(toRow)], unavailable };
 }
 
 interface AuxiliarySources {
@@ -1527,11 +1572,14 @@ async function buildRiskScoresPayload(): Promise<{
     readCiiTrendPriorScores(nowMs),
   ]);
   if (!priorCiiScores?.length) recordCiiTrendPriorGap(nowMs);
-  const realtimeSignalDensityCoverageCount = countCiiRealtimeSignalDensityCoverage(acled, aux, nowMs);
-  const ciiScores = computeCIIScores(acled, aux, { priorScores: priorCiiScores, nowMs });
+  const realtimeSignalDensityCoverageCount = countCiiRealtimeSignalDensityCoverage(acled.rows, aux, nowMs);
+  const ciiScores = computeCIIScores(acled.rows, aux, { priorScores: priorCiiScores, nowMs });
   const strategicRisks = computeStrategicRisks(ciiScores);
+  // degraded reflects ACLED availability. A payload built without ACLED is
+  // still worth serving and persisting — it breaks the deadlock — but it is
+  // missing 0.55 of the event-score weight and must say so.
   return {
-    response: { ciiScores, strategicRisks, degraded: false, stale: false },
+    response: { ciiScores, strategicRisks, degraded: acled.unavailable, stale: false },
     realtimeSignalDensityCoverageCount,
   };
 }
@@ -1575,17 +1623,22 @@ export async function getRiskScores(
       },
     );
     if (result) {
-      let freshResult = withRiskScoreRuntimeState(result, { degraded: false, stale: false });
+      // Preserve a degradation the BUILDER recorded (e.g. ACLED unavailable).
+      // Hard-coding false here would launder an incomplete payload as complete.
+      let freshResult = withRiskScoreRuntimeState(result, { degraded: result.degraded === true, stale: false });
       let liveCacheBackfill = false;
       if (!hasCompleteRiskScoreAdvisoryDisclosure(freshResult)) {
         try {
           const built = await buildRiskScoresPayload();
           realtimeSignalDensityCoverageCount = built.realtimeSignalDensityCoverageCount;
-          freshResult = withRiskScoreRuntimeState(built.response, { degraded: false, stale: false });
+          freshResult = withRiskScoreRuntimeState(built.response, {
+            degraded: built.response.degraded === true,
+            stale: false,
+          });
           liveCacheBackfill = true;
         } catch {
           freshResult = withRiskScoreRuntimeState(normalizeRiskScoreAdvisoryDisclosure(freshResult), {
-            degraded: false,
+            degraded: freshResult.degraded === true,
             stale: false,
           });
         }
