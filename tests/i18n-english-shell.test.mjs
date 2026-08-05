@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { replaceRawI18nKeyPlaceholders } from '../src/app/i18n-raw-key-healer.ts';
@@ -8,7 +9,12 @@ const APP_SOURCE = 'src/App.ts';
 const EN_LOCALE = 'src/locales/en.json';
 const EN_SHELL_LOCALE = 'src/locales/en.shell.json';
 const COMPONENTS_DIR = 'src/components';
-const SHELL_BUDGET_BYTES = 50 * 1024;
+// First-paint budget, measured on the GZIPPED payload — that is what crosses
+// the wire. Budgeting raw source bytes made this guard tighten on key COUNT
+// rather than on delivered size: at migration time the shell was 51153 B raw
+// (47 B under a 50 KiB raw budget) but only 17017 B gzipped. gzip rather than
+// brotli because it is the larger, universally-supported floor.
+const SHELL_GZIP_BUDGET_BYTES = 20 * 1024;
 
 function tsFilesUnder(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -201,16 +207,18 @@ describe('English i18n shell split', () => {
   it('keeps first-paint English shell strings bounded and in sync with en.json', () => {
     const full = readJson(EN_LOCALE);
     const shell = readJson(EN_SHELL_LOCALE);
-    // Measure the NORMALIZED payload. A Windows checkout has a CRLF working
-    // tree, which adds one byte per line — 829 of them here — so the raw read
-    // reported this file 829 bytes over a budget it is actually well under,
-    // failing permanently on Windows while passing on CI. The budget bounds
-    // first-paint bytes, and what ships is the normalized content.
-    const shellBytes = Buffer.byteLength(readFileSync(EN_SHELL_LOCALE, 'utf8').replace(/\r\n/g, '\n'));
+    // Normalize BEFORE measuring. A Windows checkout has a CRLF working tree,
+    // which adds one byte per line — 829 of them here — and CRLF also changes
+    // the compressed size. What ships is the normalized content.
+    const normalized = readFileSync(EN_SHELL_LOCALE, 'utf8').replace(/\r\n/g, '\n');
+    const rawBytes = Buffer.byteLength(normalized);
+    const gzipBytes = gzipSync(normalized).length;
 
     assert.ok(
-      shellBytes < SHELL_BUDGET_BYTES,
-      `expected ${EN_SHELL_LOCALE} to stay below ${SHELL_BUDGET_BYTES} bytes, got ${shellBytes}`,
+      gzipBytes < SHELL_GZIP_BUDGET_BYTES,
+      `expected ${EN_SHELL_LOCALE} to stay below ${SHELL_GZIP_BUDGET_BYTES} bytes GZIPPED, `
+      + `got ${gzipBytes} (raw ${rawBytes}). Trim the shell or re-justify the budget — `
+      + 'do not simply raise it, the point is to notice first paint getting heavier.',
     );
 
     const requiredPaths = [
