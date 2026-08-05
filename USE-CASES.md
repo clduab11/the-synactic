@@ -162,6 +162,138 @@ selling verified, citable, machine-readable geopolitical *event* context to
 agents** — nobody is doing for events what Daloopa does for fundamentals. That is
 the gap, and it is the one this instrument was already built for.
 
+## The narrow lanes
+
+The six above are the categories. Money is not made in categories — it is made
+in lanes narrow enough that the incumbent's product manager cannot justify the
+roadmap slot. Each of these maps to capability already in the instrument, names
+a buyer who already writes cheques for a worse version, and states the thing
+only provenance makes possible.
+
+### Hail-fraud defence, per-parcel, per-date
+
+NOAA SWDI hail-swath and NX3TVS tornado records plus NCEI hourly observations,
+queried at a lat/lon and a date. The claim is not "was there weather" — it is
+*"was there hail at this roof on 14 March, and how large."*
+
+Property insurers lose real money to roofing contractors who canvass a
+storm-adjacent postcode and file for parcels the swath never touched. Denials
+need defensible evidence, and the incumbent products certify weather reports
+one address at a time at retail prices. The instrument answers it as a tool call
+with the source, the station, and the observation window attached — which is
+exactly the shape an adjuster's file and an appraisal-clause dispute both need.
+
+Buyer: property carriers, TPAs, defence-side construction counsel.
+
+### Charter-party force majeure, adjudicated on the transit record
+
+Chokepoint status and vessel-traffic history against a specific date and route.
+When an owner declares force majeure and a charterer disputes it, the argument
+is *whether the passage was actually impassable* — and it is argued in London
+and Singapore arbitration on evidence assembled after the fact.
+
+An event history with per-record provenance and freshness state is a
+contemporaneous transit record rather than a reconstruction. The capability that
+matters is the one nobody sells: not "is the strait open now" but "what did the
+transit picture look like on the day, and what is the source."
+
+Buyer: shipowners, charterers, P&I clubs, maritime arbitration practices.
+
+### GPS-spoofing exposure for lessors, not pilots
+
+`gpsjam` interference geography joined to NOTAM closures and airspace state. The
+safety conversation is well covered. The *asset* conversation is not: an aircraft
+lessor needs to know whether its airframe is being flown through persistent
+spoofing corridors, because it bears on hull-war placement, maintenance
+reserves, and lease-covenant argument at redelivery.
+
+Nobody is selling interference exposure keyed to a tail number's routing. The
+data is public; the join is the product.
+
+Buyer: lessors, hull-war underwriters, aviation insurance brokers.
+
+### SRCC triggers for multi-site retail
+
+Strikes, riots and civil commotion cover is priced on unrest that is dense,
+local, and short. Unrest-event streams plus the composite index give a trigger
+with a defensible timestamp — and the honesty discipline is load-bearing here in
+a way it is not elsewhere, because **a parametric trigger fed by a fabricated
+zero is a paid claim or a missed one**, and the difference between "no unrest"
+and "no data about unrest" is the entire product.
+
+Buyer: SRCC underwriters, multi-site hospitality and retail risk managers.
+
+### Event-contract mispricing against a measured base rate
+
+The instrument carries prediction-market state *and* its own event history. That
+combination answers a question neither carries alone: **where does the crowd's
+implied probability disagree with the measured base rate for that event class,
+and on what sample size.**
+
+This is not a signal to trade on — the instrument does not trade, permanently.
+It is a research surface for whoever does, and it is only credible because the
+base rate is auditable back to dated events rather than asserted.
+
+Buyer: event-contract desks, research shops covering them.
+
+### Pre-positioning for humanitarian logistics
+
+Displacement statistics against conflict events and climate anomalies, with
+federal procurement notices as the buying channel in the same instrument. The
+narrow version is not "forecast a crisis" — it is *"which corridor's inventory
+should move this month, and what is the evidence I show the funder."*
+
+Grant-funded logistics lives and dies on justifying spend before the need is
+visible. An auditable evidence trail is not a nicety there; it is the reporting
+requirement.
+
+Buyer: NGO logistics, humanitarian procurement, donor-reporting teams.
+
+### Cloud-concentration accumulation for cyber underwriters
+
+Service-status monitoring across major SaaS and infrastructure providers, joined
+to company-headquarters geography and cyber threat feeds. Cyber's unsolved
+problem is accumulation: **if one provider goes down, which insureds go down
+with it** — and the answer is a dependency map nobody maintains honestly.
+
+The instrument already watches those status pages as first-class OSINT. Turning
+that into an accumulation view is a join, not a new collection programme.
+
+Buyer: cyber underwriters, reinsurance cat modellers.
+
+### Dual-use export-control screening on the commodity graph
+
+Commodity geography, supply-chain stress, tariff movement and sanctions
+programmes against a bill of materials. The compliance question is narrow and
+expensive to answer: *does this shipment touch a controlled corridor or a
+designated counterparty, and can I show the check was run on dated evidence.*
+
+Provenance is the deliverable, not the data. An export-control file that cannot
+say when it knew something is not a defence.
+
+Buyer: dual-use exporters, trade-finance compliance, customs brokerage.
+
+### Duty-of-care files that survive a deposition
+
+Travel advisories, conflict events and country risk, captured with the date and
+the source at decision time rather than reconstructed afterwards. When an
+employee is harmed abroad, the question is not whether the company had a policy
+— it is what it knew, and when.
+
+The commodity is not the risk score. It is the dated, sourced record that the
+score was computed from, held in a form that survives being asked "how did you
+know that on the ninth."
+
+Buyer: corporate security, D&O and duty-of-care counsel, travel risk managers.
+
+---
+
+Note what these have in common. Not one is "we have more data." Every one is a
+**join across two feeds nobody bothers to join**, sold to a buyer who is already
+paying for the worse half — and every one is only sellable because the numbers
+carry their provenance. That is the thesis at the top of this document, applied
+until it gets specific enough to invoice.
+
 ## The regulatory turn that lands directly on this
 
 Between February 2025 and July 2026, four venues moved from silence to express AI

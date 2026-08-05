@@ -104,6 +104,45 @@ forked private, hardened end to end, and extended with Praxen's original
 core ([synactic/](synactic/README.md)). Upstream's honesty patterns didn't
 just survive the fork; they were promoted to house style.
 
+## The agent surface
+
+Three doors, all typed, all provenance-carrying. The instrument is a tool
+*provider*, a tool *consumer*, and a discoverable *capability directory* — and
+the interesting engineering is in keeping those three from leaking into each
+other.
+
+**Outbound — what agents call.** 70 typed MCP tools over one endpoint, plus 25
+[Agent Skills](public/.well-known/agent-skills/) published at
+`/.well-known/agent-skills/` against the agentskills.io discovery schema. A tool
+surface tells an agent *what it can call*; a skill directory tells it *when the
+call is worth making*. Shipping both is the difference between an API an agent
+can reach and one it actually reaches for. Every tool accepts a server-side
+JMESPath projection, so a context window carries the three fields the task needs
+rather than the ninety the record happens to have.
+
+**Inbound — what the instrument calls.** 16 curated MCP connectors, each one
+live-verified rather than listed on faith: Exa, Tavily, Perigon, Robtex, Pyth,
+LunarCrush, NOAA weather records, Alpha Vantage, GitHub, Cloudflare Radar,
+Google Maps, Browser Fetch, Linear, PostHog, Stripe, Data Commons.
+
+The credential design is the part worth stealing. Every MCP request already
+executed server-side — the browser never speaks to an upstream MCP server — so a
+key in `.env` is resolved by the proxy on the way out and **never enters the
+browser, the bundle, or localStorage**. The panel asks one question over the
+wire, *"which hostnames do you already hold a key for?"*, and gets back
+hostnames. Never values. A pasted key still wins over the environment, because an
+explicit paste is an override and silently preferring a stale `.env` value over
+what an operator just typed is the kind of behaviour that costs an afternoon.
+
+**Verified, not assumed.** Every connector in that list has been exercised end to
+end against its real upstream with the injected credential — because a
+"configured" badge derived from an environment variable being *present* is a
+weaker claim than it looks, and two connectors sat green while returning 401 and
+405 until something actually called them. Three were removed rather than left
+showing a lock that could never be opened: two hosted servers accept only
+OAuth-issued tokens, which a stateless relay cannot obtain, and one pointed at a
+hostname that no longer resolves.
+
 ## The scarce good
 
 Agentic systems do not fail because the model reasons badly. They fail because
