@@ -1065,9 +1065,13 @@ canvas,
   /* Link + Embed share .copy-link-btn */
   .copy-link-btn { display: none !important; }
 }
-@media (max-width: 1200px) {
-  .pizzint-indicator { display: none !important; }
-}
+/* PizzINT deliberately has NO drop tier here. It and DEFCON are siblings: the
+   same `SITE_VARIANT === 'full'` gate loads both (data-loader.ts, App.ts) and
+   they sit together in the header alerts cluster. Dropping PizzINT at 1200px
+   while .defcon-indicator had no matching rule left the pizza gone and DEFCON
+   present on any window between 768px and 1200px — which read as PizzINT
+   having been removed. Both now survive down to the 768px mobile breakpoint,
+   where the hamburger takes over and both are hidden together. */
 @media (max-width: 1075px) {
   .mission-preset-mount { display: none !important; }
 }
@@ -14694,8 +14698,12 @@ a.prediction-link:hover {
     display: none;
   }
 
-  /* Hide DEFCON indicator and FOCUS region selector on mobile */
+  /* Hide the PizzINT + DEFCON alerts cluster and the FOCUS region selector on
+     mobile. This rule's comment always said "DEFCON" but the selector list only
+     carried .pizzint-indicator, so DEFCON stayed visible on mobile while its
+     sibling vanished. Both are listed now — matching the stated intent. */
   .pizzint-indicator,
+  .defcon-indicator,
   .focus-label,
   .focus-select {
     display: none !important;
