@@ -178,9 +178,13 @@ export const MCP_PRESETS: McpPreset[] = [
     serverUrl: 'https://mcp.posthog.com/mcp',
     authNote: 'Requires Authorization: Bearer <POSTHOG_PERSONAL_API_KEY> (PostHog → Settings → Personal API keys)',
     apiKeyHeader: 'Authorization: Bearer {key}',
-    // No defaultTool on purpose: this server's tool names are not enumerable
-    // without a key, and a guessed name would silently mis-select. Use
-    // "Connect & List Tools" and choose from the live list.
+    // Measured against the live server: it exposes exactly ONE tool, `exec`,
+    // taking a CLI-style { command } — tools | search | info | schema | call.
+    // `tools` takes no arguments, is read-only, and is what the tool's own
+    // description says to run first, so the panel always renders something
+    // useful. Swap in e.g. "call insight-query {…}" for a real metric panel.
+    defaultTool: 'exec',
+    defaultArgs: { command: 'tools' },
     defaultTitle: 'PostHog Analytics',
   },
   {

@@ -122,7 +122,7 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
   {
     presetName: 'Sentry',
     host: 'mcp.sentry.dev',
-    headers: [{ template: BEARER, envVars: ['SENTRY_AUTH_TOKEN'] }],
+    headers: [{ template: BEARER, envVars: ['SENTRY_AUTH_TOKEN', 'SENTRY_TOKEN', 'SENTRY_API_KEY'] }],
   },
   {
     presetName: 'PostHog',
@@ -134,12 +134,14 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
   {
     presetName: 'Stripe',
     host: 'mcp.stripe.com',
-    headers: [{ template: BEARER, envVars: ['STRIPE_SECRET_KEY', 'STRIPE_API_KEY'] }],
+    // Prefer a RESTRICTED key (rk_…) — listed first so it wins over an
+    // unrestricted sk_ if both happen to be set.
+    headers: [{ template: BEARER, envVars: ['STRIPE_RESTRICTED_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_API_KEY'] }],
   },
   {
     presetName: 'Notion',
     host: 'mcp.notion.com',
-    headers: [{ template: BEARER, envVars: ['NOTION_API_KEY', 'NOTION_INTEGRATION_TOKEN'] }],
+    headers: [{ template: BEARER, envVars: ['NOTION_API_KEY', 'NOTION_INTEGRATION_TOKEN', 'NOTION_TOKEN'] }],
   },
 ]);
 

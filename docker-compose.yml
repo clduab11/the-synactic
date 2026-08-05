@@ -137,6 +137,7 @@ services:
       # https://apikeys.datacommons.org — not the Google Cloud console. Their
       # docs state MCP server requests require a key, so there is no free path.
       DATA_COMMONS_API_KEY: "${DATA_COMMONS_API_KEY:-}"
+      POSTHOG_API_KEY: "${POSTHOG_API_KEY:-}"
       # Session-09 [2b]: local intel-history backend. Routes the three history
       # RPCs (search-intel-history / get-intel-timeline / get-similar-events)
       # to the `chroma` service below instead of Convex — this self-host
