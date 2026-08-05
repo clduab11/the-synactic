@@ -4,6 +4,7 @@ import {
   pickBriefCluster,
   briefSystemPrompt,
   briefUserPrompt,
+  splitLeadSentences,
 } from '../scripts/_insights-brief.mjs';
 
 describe('pickBriefCluster', () => {
@@ -109,5 +110,52 @@ describe('briefUserPrompt', () => {
 
   it('instructs using only facts from the provided headline', () => {
     assert.match(briefUserPrompt('X'), /only facts from this headline/i);
+  });
+});
+
+describe('splitLeadSentences', () => {
+  // Regression for the live INSIGHTS_SYNTHESIS_GATE/LEAD_UNCITED failure whose
+  // debug detail was literally "U.S." — the old /(?<=[.!?])\s+/ split turned a
+  // correct, fully-cited lead into an uncitable fragment and rejected the brief.
+  it('does not split inside dotted acronyms', () => {
+    assert.deepEqual(
+      splitLeadSentences('U.S. and Iran resumed talks [1].'),
+      ['U.S. and Iran resumed talks [1].'],
+    );
+    for (const acronym of ['U.K.', 'E.U.', 'D.C.', 'U.N.']) {
+      const lead = `${acronym} officials met [2].`;
+      assert.deepEqual(splitLeadSentences(lead), [lead], `${acronym} must stay whole`);
+    }
+  });
+
+  it('does not split after common abbreviations', () => {
+    for (const lead of [
+      'Dr. Smith briefed reporters [1].',
+      'The Sept. 4 deadline passed [2].',
+      'Acme Corp. issued a statement [3].',
+      'Sen. Doe objected [1].',
+    ]) {
+      assert.deepEqual(splitLeadSentences(lead), [lead]);
+    }
+  });
+
+  // The gate still needs real multi-sentence leads split, or per-sentence
+  // citation and grounding checks would collapse into one permissive pass.
+  it('still splits genuine sentence boundaries', () => {
+    assert.deepEqual(
+      splitLeadSentences('Talks resumed [1]. Markets rallied [2].'),
+      ['Talks resumed [1].', 'Markets rallied [2].'],
+    );
+    assert.deepEqual(
+      splitLeadSentences('Did talks resume [1]? Markets rallied [2]!'),
+      ['Did talks resume [1]?', 'Markets rallied [2]!'],
+    );
+    assert.equal(splitLeadSentences('Output fell in 2026. The trend held [1].').length, 2);
+  });
+
+  it('returns [] for non-string or empty input', () => {
+    assert.deepEqual(splitLeadSentences(null), []);
+    assert.deepEqual(splitLeadSentences(''), []);
+    assert.deepEqual(splitLeadSentences('   '), []);
   });
 });

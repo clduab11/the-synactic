@@ -165,6 +165,53 @@ export function parseBriefSynthesis(rawText, storyCount) {
  *   strippedCitations: number;
  * }} null → caller falls back to the legacy single-headline path.
  */
+// Abbreviations whose trailing period does NOT end a sentence. Multi-letter
+// only — single-letter dotted acronyms (U.S., U.K., E.U., D.C.) are covered
+// structurally by the first lookbehind in LEAD_SENTENCE_BOUNDARY.
+const NON_TERMINAL_ABBREVIATIONS = [
+  'Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Rev', 'Hon',
+  'Gen', 'Lt', 'Col', 'Maj', 'Capt', 'Sgt', 'Adm', 'Cmdr',
+  'Sen', 'Rep', 'Gov', 'Amb', 'Sec', 'Pres', 'Amb',
+  'St', 'Mt', 'Ft', 'Jr', 'Sr',
+  'Inc', 'Ltd', 'Co', 'Corp', 'Bros',
+  'vs', 'etc', 'al', 'approx', 'est', 'No', 'Nos', 'Op', 'Art',
+  'Jan', 'Feb', 'Mar', 'Apr', 'Jun', 'Jul', 'Aug', 'Sept', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/**
+ * Sentence boundary for the lead gate.
+ *
+ * Two negative lookbehinds sit in front of the terminator assertion:
+ *   1. `(?<!\b[A-Z]\.)` — a period closing a single capital letter is part of
+ *      a dotted acronym, not a sentence end. "U.S. and Iran…" has 'S' at
+ *      offset-2 preceded by a word boundary (the '.' in "U."), so this fires.
+ *   2. the abbreviation alternation — "Dr. Smith", "Sept. 4", "Corp. said".
+ *
+ * WHY THIS EXISTS. The naive `/(?<=[.!?])\s+/` split shattered any lead
+ * opening on a dotted acronym: "U.S. and Iran resumed talks [1]." became
+ * ["U.S.", "and Iran resumed talks [1]."]. The fragment carries no [N] marker,
+ * so the every-sentence-is-cited contract below rejected it as LEAD_UNCITED
+ * and the whole synthesized brief fell back to the legacy single-headline
+ * path. The model's output was correct and fully cited; the splitter invented
+ * a sentence that was not there. Observed live as
+ * `INSIGHTS_SYNTHESIS_GATE/LEAD_UNCITED` with detail "U.S.".
+ *
+ * Deliberately conservative in one direction: a sentence genuinely ending in a
+ * single capital ("…was met by J.") will not split. Under-splitting is safe
+ * here — it merges two sentences into one gate check, which still requires a
+ * citation and still grounds every proper noun. Over-splitting is what
+ * manufactured an uncitable fragment.
+ */
+const LEAD_SENTENCE_BOUNDARY = new RegExp(
+  `(?<!\\b[A-Z]\\.)(?<!\\b(?:${NON_TERMINAL_ABBREVIATIONS.join('|')})\\.)(?<=[.!?])\\s+`,
+);
+
+/** Split lead prose into gate-checkable sentences. Exported for testing. */
+export function splitLeadSentences(text) {
+  if (typeof text !== 'string') return [];
+  return text.split(LEAD_SENTENCE_BOUNDARY).filter((sentence) => sentence.trim().length > 0);
+}
+
 export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
   // Optional rejection telemetry. `code` is low-cardinality and safe for logs
   // and seed-meta; `detail` may contain model-derived tokens, so callers MUST
@@ -205,7 +252,7 @@ export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
   let strippedCitations = 0;
   const leadCheck = verifyCitationIndexes(parsed.lead, topStories.length);
   strippedCitations += leadCheck.stripped;
-  const leadSentences = leadCheck.text.split(/(?<=[.!?])\s+/).filter((sentence) => sentence.trim().length > 0);
+  const leadSentences = splitLeadSentences(leadCheck.text);
   if (leadSentences.length === 0) return reject('LEAD_NO_SENTENCES');
   for (const sentence of leadSentences) {
     const cited = [...sentence.matchAll(/\[(\d{1,3})\]/g)]
