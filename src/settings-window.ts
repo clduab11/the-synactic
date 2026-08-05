@@ -19,7 +19,6 @@ import { SITE_VARIANT } from '@/config/variant';
 import { loadFromStorage, saveToStorage } from '@/utils';
 import { t } from '@/services/i18n';
 import { escapeHtml } from '@/utils/sanitize';
-import { isDesktopRuntime } from '@/services/runtime';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
 
@@ -56,11 +55,12 @@ export function initSettingsWindow(): void {
     }
   }
 
-  const isDesktopApp = isDesktopRuntime();
-
   function render(): void {
+    // `runtime-config` is filtered out unconditionally: this fork does not mount
+    // the Desktop Configuration panel on desktop either (see panel-layout.ts),
+    // so listing it would be a toggle that switches nothing on.
     const panelEntries = Object.entries(panelSettings).filter(
-      ([key]) => (key !== 'runtime-config' || isDesktopApp) && (!key.startsWith('cw-') || isProUser())
+      ([key]) => key !== 'runtime-config' && (!key.startsWith('cw-') || isProUser())
     );
     const panelHtml = panelEntries
       .map(

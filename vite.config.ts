@@ -1297,10 +1297,23 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         // Widget agent — forward to Railway relay for SSE streaming
-        '/widget-agent': {
-          target: 'https://proxy.worldmonitor.app',
-          changeOrigin: true,
-        },
+        // Dev counterpart to selfHostWidgetAgentBase() in src/utils/proxy.ts.
+        // In dev BOTH the browser and the Tauri shell resolve /widget-agent
+        // here, so without this a self-host still reaches upstream's relay and
+        // gets the 403 that renders as "Pro subscription required". Point it at
+        // this stack's own handler instead; path rewrite because the local API
+        // mounts it under /api/. Falls back to the relay when the self-host
+        // marker is absent, so an upstream checkout is unaffected.
+        '/widget-agent': env.VITE_SELFHOST_PRO?.trim() === '1' && env.VITE_TAURI_API_BASE_URL
+          ? {
+              target: env.VITE_TAURI_API_BASE_URL,
+              changeOrigin: true,
+              rewrite: (path: string) => path.replace(/^\/widget-agent(\/health)?/, '/api/widget-agent'),
+            }
+          : {
+              target: 'https://proxy.worldmonitor.app',
+              changeOrigin: true,
+            },
         // Yahoo Finance API
         '/api/yahoo': {
           target: 'https://query1.finance.yahoo.com',

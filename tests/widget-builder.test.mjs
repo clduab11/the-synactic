@@ -856,6 +856,56 @@ describe('proxy routing — widgetAgentUrl', () => {
     assert.ok(proxy.includes('widgetAgentHealthUrl'), 'widgetAgentHealthUrl() must be defined');
     assert.ok(proxy.includes('/widget-agent/health'), 'widgetAgentHealthUrl() must target /widget-agent/health');
   });
+
+  // A self-host is not a customer of proxy.worldmonitor.app: the relay answers
+  // 403, and WidgetChatModal renders that as "Pro subscription required…
+  // contact support". This stack terminates /api/widget-agent itself, so a
+  // VITE_SELFHOST_PRO build must resolve locally FIRST. Order is the whole
+  // property — a self-host branch placed after the isDesktopRuntime() relay
+  // branch is dead code and the 403 comes straight back.
+  for (const fn of ['widgetAgentUrl', 'widgetAgentHealthUrl']) {
+    it(`${fn} resolves the self-host base before falling back to the relay`, () => {
+      const normalized = proxy.replace(/\r\n/g, '\n');
+      const fnIdx = normalized.indexOf(`export function ${fn}(`);
+      assert.ok(fnIdx !== -1, `${fn} function not found`);
+      const fnBody = normalized.slice(fnIdx, normalized.indexOf('\n}', fnIdx));
+
+      const selfHostIdx = fnBody.indexOf('selfHostWidgetAgentBase()');
+      const relayIdx = fnBody.indexOf('WIDGET_RELAY_BASE');
+      assert.ok(
+        selfHostIdx !== -1,
+        `${fn} must consult selfHostWidgetAgentBase() so a self-host reaches its own stack`,
+      );
+      assert.ok(
+        relayIdx !== -1,
+        `${fn} must keep the upstream relay fallback for non-self-host desktop builds`,
+      );
+      assert.ok(
+        selfHostIdx < relayIdx,
+        `${fn} must check the self-host base BEFORE the relay, or the relay's 403 wins`,
+      );
+    });
+  }
+
+  it('selfHostWidgetAgentBase is gated on VITE_SELFHOST_PRO and desktop runtime', () => {
+    const normalized = proxy.replace(/\r\n/g, '\n');
+    const fnIdx = normalized.indexOf('function selfHostWidgetAgentBase(');
+    assert.ok(fnIdx !== -1, 'selfHostWidgetAgentBase() must be defined in src/utils/proxy.ts');
+    const fnBody = normalized.slice(fnIdx, normalized.indexOf('\n}', fnIdx));
+
+    assert.ok(
+      fnBody.includes('VITE_SELFHOST_PRO'),
+      'Must gate on the build-time self-host marker so upstream desktop builds keep the relay',
+    );
+    assert.ok(
+      fnBody.includes('isDesktopRuntime()'),
+      'Must stay desktop-only — browser builds already resolve /api/widget-agent same-origin',
+    );
+    assert.ok(
+      !fnBody.includes('toRuntimeUrl'),
+      'Must not route via toRuntimeUrl — the sidecar buffers arrayBuffer() and destroys SSE',
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

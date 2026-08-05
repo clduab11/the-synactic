@@ -24,6 +24,33 @@ const expectBoxesToMatch = (actual: Box, expected: Box, message: string): void =
 
 export const assertSignedOutAuthHydrationKeepsHeaderStable = async (page: Page): Promise<void> => {
   await page.locator('.header').waitFor();
+
+  // The 200px reservation exists to absorb auth HYDRATION. A build with no
+  // VITE_CLERK_PUBLISHABLE_KEY never hydrates: AuthHeaderWidget short-circuits
+  // to an empty `.auth-header-widget-disabled` container and the slot collapses
+  // on purpose, so there is no hydration swap to hold space for. Asserting the
+  // reservation there would pin dead space, not stability.
+  const authDisabled = await page.evaluate(() => Boolean(
+    document.querySelector('#authWidgetMount .auth-header-widget-disabled'),
+  ));
+  if (authDisabled) {
+    const collapsed = await page.evaluate(() => {
+      const authMount = document.getElementById('authWidgetMount');
+      if (!authMount) throw new Error('missing header auth reservation elements');
+      return {
+        minWidth: getComputedStyle(authMount).minWidth,
+        skeletonCount: authMount.querySelectorAll('.auth-header-skeleton').length,
+        signInCount: authMount.querySelectorAll('.auth-signin-btn, .auth-signup-link').length,
+      };
+    });
+    // The regression this guards: sticky `isPending` painting its two skeleton
+    // spans forever as blank boxes beside the settings cog.
+    expect(collapsed.skeletonCount, 'auth-disabled build must paint no skeletons').toBe(0);
+    expect(collapsed.signInCount, 'auth-disabled build must offer no dead sign-in CTAs').toBe(0);
+    expect(collapsed.minWidth, 'auth-disabled build must collapse the reserved slot').toBe('0px');
+    return;
+  }
+
   const result = await page.evaluate(() => {
     const header = document.querySelector<HTMLElement>('.header');
     const authMount = document.getElementById('authWidgetMount');

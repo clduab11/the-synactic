@@ -1,5 +1,5 @@
 import { subscribeAuthState, type AuthSession } from '@/services/auth-state';
-import { mountUserButton, openSignIn, openSignUp } from '@/services/clerk';
+import { isClerkAuthEnabled, mountUserButton, openSignIn, openSignUp } from '@/services/clerk';
 import { t } from '@/services/i18n';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
@@ -21,6 +21,22 @@ export class AuthHeaderWidget {
     this.onBillingClick = onBillingClick;
     this.container = document.createElement('div');
     this.container.className = 'auth-header-widget';
+
+    // No Clerk publishable key → there is no auth to hydrate, and `isPending`
+    // is sticky-true forever: auth-state.ts boots pending and only a Clerk
+    // callback clears it, but `scheduleClerkLoad()` returns early without a key
+    // (clerk.ts) and notifies nobody. Subscribing anyway would paint
+    // renderPending()'s two 32px-tall skeleton spans permanently — the pair of
+    // blank boxes beside the settings cog on a self-host build.
+    //
+    // Sign In / Create Account are equally wrong here: `openSignIn()` silently
+    // no-ops with no instance. So render nothing at all and skip the
+    // subscription. `isClerkAuthEnabled()` is the same signal the Pro banner
+    // and the playback gate already use to tell "hydrating" from "never".
+    if (!isClerkAuthEnabled()) {
+      this.container.classList.add('auth-header-widget-disabled');
+      return;
+    }
 
     this.unsubscribeAuth = subscribeAuthState((state: AuthSession) => {
       if (state.isPending) {

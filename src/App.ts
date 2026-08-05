@@ -892,18 +892,12 @@ export class App {
       }
     }
 
-    // Desktop key management panel must always remain accessible in Tauri.
-    if (isDesktopApp) {
-      if (!panelSettings['runtime-config'] || !panelSettings['runtime-config'].enabled) {
-        panelSettings['runtime-config'] = {
-          ...panelSettings['runtime-config'],
-          name: panelSettings['runtime-config']?.name ?? 'Desktop Configuration',
-          enabled: true,
-          priority: panelSettings['runtime-config']?.priority ?? 2,
-        };
-        saveToStorage(STORAGE_KEYS.panels, panelSettings);
-      }
-    }
+    // Upstream force-enabled the "Desktop Configuration" key-management panel on
+    // every Tauri boot, so dismissing it never stuck. This fork does not mount
+    // that panel at all (see panel-layout.ts) — its keys live server-side in the
+    // stack the desktop client talks to — so re-enabling it here would resurrect
+    // a dead entry in stored panel settings. Any pre-existing enabled entry is
+    // harmless: nothing mounts it, and the settings list filters it out.
 
     const initialUrlState: ParsedMapUrlState | null = parseMapUrlState(window.location.search, mapLayers);
     if (initialUrlState.layers) {

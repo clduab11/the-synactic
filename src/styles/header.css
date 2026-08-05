@@ -97,3 +97,13 @@ html.wm-pro-banner-reserved .pro-banner-slot {
 #authWidgetMount:empty {
   visibility: hidden;
 }
+
+/* Builds with no Clerk publishable key mount an intentionally empty widget
+   (AuthHeaderWidget bails when `isClerkAuthEnabled()` is false). The slot's
+   anti-CLS reservation above exists to hold space while auth hydrates — with
+   no auth to hydrate it is just a dead gap, so collapse it. Not `:empty`:
+   the mount still contains the widget's own div. */
+#authWidgetMount:has(> .auth-header-widget-disabled) {
+  min-width: 0;
+  min-height: 0;
+}
