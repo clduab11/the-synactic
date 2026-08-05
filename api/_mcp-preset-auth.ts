@@ -74,7 +74,8 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
     host: 'lunarcrush.ai',
     headers: [{ template: BEARER, envVars: ['LUNARCRUSH_API_KEY'] }],
   },
-  { presetName: 'Weather Forensics', host: 'weatherforensics.dev', headers: [] },
+  // Cloud Run origin behind the weatherforensics.dev redirect stub. Keyless.
+  { presetName: 'NOAA Weather Records', host: 'noaa-mcp-free-bly45pyigq-uk.a.run.app', headers: [] },
   {
     presetName: 'Alpha Vantage',
     host: 'mcp.alphavantage.co',
@@ -120,11 +121,6 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
     headers: [{ template: BEARER, envVars: ['LINEAR_API_KEY'] }],
   },
   {
-    presetName: 'Sentry',
-    host: 'mcp.sentry.dev',
-    headers: [{ template: BEARER, envVars: ['SENTRY_AUTH_TOKEN', 'SENTRY_TOKEN', 'SENTRY_API_KEY'] }],
-  },
-  {
     presetName: 'PostHog',
     host: 'mcp.posthog.com',
     // Measured: an unauthenticated initialize returns 401 with
@@ -137,11 +133,6 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
     // Prefer a RESTRICTED key (rk_…) — listed first so it wins over an
     // unrestricted sk_ if both happen to be set.
     headers: [{ template: BEARER, envVars: ['STRIPE_RESTRICTED_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_API_KEY'] }],
-  },
-  {
-    presetName: 'Notion',
-    host: 'mcp.notion.com',
-    headers: [{ template: BEARER, envVars: ['NOTION_API_KEY', 'NOTION_INTEGRATION_TOKEN', 'NOTION_TOKEN'] }],
   },
 ]);
 

@@ -143,6 +143,48 @@ describe('MCP preset auth registry parity', () => {
   });
 });
 
+describe('MCP preset auth reaches the container', () => {
+  // THE BUG THIS EXISTS FOR (session 12, hit live): the registry accepts several
+  // spellings per preset, but docker-compose forwards only the names it LISTS.
+  // Rename a key in .env to another accepted alias and the container receives an
+  // EMPTY value — while the registry and .env each look correct in isolation and
+  // nothing reports a mismatch. Registry alias tolerance is worthless without
+  // matching compose coverage, so assert the two actually meet.
+  it('compose forwards EVERY accepted alias for every key-taking preset', () => {
+    const compose = readFileSync(resolve(ROOT, 'docker-compose.yml'), 'utf8').replace(/\r\n/g, '\n');
+    // Scope to the app service — it is the one api/mcp-proxy.ts runs in.
+    const start = compose.indexOf('\n  the-synactic:');
+    const end = compose.indexOf('\n  cii-warmer:', start);
+    assert.ok(start !== -1 && end !== -1, 'could not locate the the-synactic service block');
+    const appBlock = compose.slice(start, end);
+
+    const registry = readFileSync(resolve(ROOT, 'api/_mcp-preset-auth.ts'), 'utf8').replace(/\r\n/g, '\n');
+    const blocks = registry.split(/presetName: '/).slice(1);
+    assert.ok(blocks.length >= 10, `parsed only ${blocks.length} registry blocks — parser likely broke`);
+
+    const uncovered = [];
+    for (const block of blocks) {
+      const name = block.slice(0, block.indexOf("'"));
+      const envVars = [...block.slice(0, block.indexOf('},')).matchAll(/'([A-Z0-9_]+)'/g)].map((m) => m[1]);
+      if (envVars.length === 0) continue; // keyless preset
+      // EVERY alias, not just one. Requiring one leaves the exact bug this
+      // was written for: a key renamed in .env to another ACCEPTED spelling
+      // that compose does not forward arrives as an empty string, with both
+      // files looking correct in isolation.
+      for (const v of envVars) {
+        if (!appBlock.includes(`      ${v}:`)) uncovered.push(`${name}: ${v}`);
+      }
+    }
+
+    assert.deepEqual(
+      uncovered,
+      [],
+      'the registry accepts these env names but the app service forwards none of them — '
+      + 'a key set under one would silently arrive EMPTY in the container',
+    );
+  });
+});
+
 describe('MCP preset auth stays server-side', () => {
   it('the registry is never imported by browser code', () => {
     // api/ runs server-side. A src/ import would pull env-reading code into the

@@ -82,13 +82,18 @@ export const MCP_PRESETS: McpPreset[] = [
     defaultTitle: 'Crypto Sentiment',
   },
   {
-    name: 'Weather Forensics',
+    name: 'NOAA Weather Records',
     icon: '🌦️',
-    description: 'Free historical and current weather data — hourly, daily, and severe events',
-    serverUrl: 'https://weatherforensics.dev/mcp/free',
+    description: 'NOAA historical weather (NCEI) plus hurricane, tornado and hail impact records',
+    // The weatherforensics.dev vanity domain is a redirect stub: /mcp/free
+    // 308s here and /mcp 404s, so there is no non-redirecting path on it. The
+    // proxy will not follow a cross-host redirect (correct SSRF hygiene), so
+    // the preset points at the origin directly. Named for the DATA rather than
+    // the vanity brand — every tool it exposes is NOAA NCEI/NHC/SWDI.
+    serverUrl: 'https://noaa-mcp-free-bly45pyigq-uk.a.run.app/mcp',
     defaultTool: 'noaa_ncei_daily_weather_for_location_date',
     defaultArgs: { latitude: 33.8938, longitude: 35.5018, date: '2026-03-19' },
-    defaultTitle: 'Weather',
+    defaultTitle: 'NOAA Weather',
   },
   {
     name: 'Alpha Vantage',
@@ -161,17 +166,6 @@ export const MCP_PRESETS: McpPreset[] = [
     defaultTitle: 'Linear Issues',
   },
   {
-    name: 'Sentry',
-    icon: '🐛',
-    description: 'Live error rates, recent exceptions, and release health',
-    serverUrl: 'https://mcp.sentry.dev/mcp',
-    authNote: 'Requires Authorization: Bearer <SENTRY_AUTH_TOKEN>',
-    apiKeyHeader: 'Authorization: Bearer {key}',
-    defaultTool: 'get_issues',
-    defaultArgs: { organization_slug: 'your-org', project_slug: 'your-project', limit: 20 },
-    defaultTitle: 'Sentry Errors',
-  },
-  {
     name: 'PostHog',
     icon: '📊',
     description: 'Product analytics, session insights, feature flags, and error tracking',
@@ -197,17 +191,6 @@ export const MCP_PRESETS: McpPreset[] = [
     defaultTool: 'retrieve_balance',
     defaultArgs: {},
     defaultTitle: 'Stripe Balance',
-  },
-  {
-    name: 'Notion',
-    icon: '📝',
-    description: 'Search and query your Notion databases, pages, and notes',
-    serverUrl: 'https://mcp.notion.com/mcp',
-    authNote: 'Requires Authorization: Bearer <NOTION_INTEGRATION_TOKEN>',
-    apiKeyHeader: 'Authorization: Bearer {key}',
-    defaultTool: 'search',
-    defaultArgs: { query: '', filter: { value: 'database', property: 'object' }, page_size: 20 },
-    defaultTitle: 'Notion',
   },
   {
     name: 'Data Commons',

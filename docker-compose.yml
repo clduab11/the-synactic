@@ -138,6 +138,25 @@ services:
       # docs state MCP server requests require a key, so there is no free path.
       DATA_COMMONS_API_KEY: "${DATA_COMMONS_API_KEY:-}"
       POSTHOG_API_KEY: "${POSTHOG_API_KEY:-}"
+      # BOTH spellings are forwarded on purpose. The registry accepts either,
+      # but compose passes through only the names it LISTS — so a rename in
+      # .env silently produced an empty value in the container while both files
+      # looked correct in isolation. Registry alias tolerance is worthless
+      # without matching compose coverage.
+      POSTHOG_PERSONAL_API_KEY: "${POSTHOG_PERSONAL_API_KEY:-}"
+      # Remaining accepted aliases, forwarded so ANY spelling the registry
+      # honours also reaches the container. Unset ones resolve to "" and the
+      # registry treats empty as absent, so these are inert until used.
+      EXA_API_KEY: "${EXA_API_KEY:-}"
+      ALPHA_VANTAGE_API_KEY: "${ALPHA_VANTAGE_API_KEY:-}"
+      DATACOMMONS_API_KEY: "${DATACOMMONS_API_KEY:-}"
+      GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
+      CF_API_TOKEN: "${CF_API_TOKEN:-}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+      GH_TOKEN: "${GH_TOKEN:-}"
+      STRIPE_RESTRICTED_KEY: "${STRIPE_RESTRICTED_KEY:-}"
+      STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY:-}"
+      STRIPE_API_KEY: "${STRIPE_API_KEY:-}"
       # Session-09 [2b]: local intel-history backend. Routes the three history
       # RPCs (search-intel-history / get-intel-timeline / get-similar-events)
       # to the `chroma` service below instead of Convex — this self-host
