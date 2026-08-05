@@ -461,7 +461,10 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
     ['@/services/i18n', 'export function t(key) { return key; }'],
     ['@/services/widget-store', 'export function deleteWidget(){} export function getWidget(){ return null; } export function saveWidget(){} export function isProUser(){ return true; }'],
     ['@/services/mcp-store', 'export function deleteMcpPanel(){} export function getMcpPanel(){ return null; } export function saveMcpPanel(){}'],
-    ['@/services/runtime', 'export function isDesktopRuntime(){ return false; }'],
+    // Must cover every name src/utils/proxy.ts imports from this module —
+    // esbuild fails the whole bundle on a missing export rather than yielding
+    // undefined, and that build error cancels every sibling test in the run.
+    ['@/services/runtime', 'export function isDesktopRuntime(){ return false; } export function getApiBaseUrl(){ return ""; } export function toApiUrl(p){ return p; } export function toRuntimeUrl(p){ return p; }'],
     ['@/services/tauri-bridge', 'export async function invokeTauri(){ return null; }'],
     ['@/services/gps-interference', 'export function getCachedGpsInterference(){ return null; }'],
     ['@/services/ml-worker', 'export const mlWorker = {};'],

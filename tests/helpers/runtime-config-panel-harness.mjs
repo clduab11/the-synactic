@@ -89,9 +89,22 @@ async function loadRuntimeConfigPanel() {
         return { valid: true };
       }
     `],
-    ['runtime-stub', `export function isDesktopRuntime() { return true; }`],
+    // Must export EVERYTHING src/utils/proxy.ts imports from @/services/runtime.
+    // esbuild resolves the stub at bundle time, so a missing name is a hard
+    // build error that fails the whole file before a single test runs — it does
+    // not degrade to undefined. Keep in sync with proxy.ts's import list.
+    ['runtime-stub', `
+      export function isDesktopRuntime() { return true; }
+      export function getApiBaseUrl() { return ''; }
+      export function toApiUrl(path) { return path; }
+      export function toRuntimeUrl(path) { return path; }
+    `],
     ['tauri-bridge-stub', `export async function invokeTauri() {}`],
-    ['i18n-stub', `export function t(key) { return key; }`],
+    // src/utils/index.ts pulls getCurrentLanguage from the same module as t().
+    ['i18n-stub', `
+      export function t(key) { return key; }
+      export function getCurrentLanguage() { return 'en'; }
+    `],
     ['dom-utils-stub', `
       function append(parent, child) {
         if (child == null || child === false) return;
