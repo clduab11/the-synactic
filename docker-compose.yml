@@ -133,6 +133,10 @@ services:
       # NOTE THE SPELLING: no underscore between ALPHA and VANTAGE. The
       # registry accepts both, but this is the name actually set in .env.
       ALPHAVANTAGE_API_KEY: "${ALPHAVANTAGE_API_KEY:-}"
+      # Data Commons keys come from the SELF-SERVICE portal at
+      # https://apikeys.datacommons.org — not the Google Cloud console. Their
+      # docs state MCP server requests require a key, so there is no free path.
+      DATA_COMMONS_API_KEY: "${DATA_COMMONS_API_KEY:-}"
       # Session-09 [2b]: local intel-history backend. Routes the three history
       # RPCs (search-intel-history / get-intel-timeline / get-similar-events)
       # to the `chroma` service below instead of Convex — this self-host

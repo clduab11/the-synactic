@@ -78,7 +78,8 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
   {
     presetName: 'Alpha Vantage',
     host: 'mcp.alphavantage.co',
-    headers: [{ template: BEARER, envVars: ['ALPHA_VANTAGE_API_KEY', 'ALPHAVANTAGE_API_KEY'] }],
+    // NOT Bearer — measured 401 on that, 200 on X-API-Key.
+    headers: [{ template: 'X-API-Key: {key}', envVars: ['ALPHA_VANTAGE_API_KEY', 'ALPHAVANTAGE_API_KEY'] }],
   },
   {
     presetName: 'Data Commons',

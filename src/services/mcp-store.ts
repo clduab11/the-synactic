@@ -95,8 +95,11 @@ export const MCP_PRESETS: McpPreset[] = [
     icon: '📉',
     description: 'Stocks, forex, crypto, and commodities — real-time and historical market data',
     serverUrl: 'https://mcp.alphavantage.co/mcp',
-    authNote: 'Requires Authorization: Bearer <ALPHA_VANTAGE_API_KEY> (free at alphavantage.co)',
-    apiKeyHeader: 'Authorization: Bearer {key}',
+    authNote: 'Requires X-API-Key: <ALPHAVANTAGE_API_KEY> (free at alphavantage.co)',
+    // Measured 2026-08-04: this server 401s on Authorization: Bearer
+    // ("invalid_token") and accepts X-API-Key. A ?apikey= query param also
+    // works, but a header keeps the credential out of URLs and logs.
+    apiKeyHeader: 'X-API-Key: {key}',
     defaultTool: 'get_quote',
     defaultArgs: { symbol: 'SPY' },
     defaultTitle: 'Market Data',
@@ -116,7 +119,8 @@ export const MCP_PRESETS: McpPreset[] = [
     name: 'Cloudflare Radar',
     icon: '🌐',
     description: 'Live internet traffic, outages, BGP anomalies, and attack trends',
-    serverUrl: 'https://radar.mcp.cloudflare.com/sse',
+    // /sse returns HTTP 405 — Cloudflare moved these to streamable HTTP.
+    serverUrl: 'https://radar.mcp.cloudflare.com/mcp',
     authNote: 'Requires Authorization: Bearer <CF_API_TOKEN> (from Cloudflare dashboard)',
     apiKeyHeader: 'Authorization: Bearer {key}',
     defaultTool: 'get_summary_attacks',
