@@ -109,12 +109,18 @@ describe('MCP preset auth registry parity', () => {
     }
   });
 
-  it('Datadog is the two-header case and declares both', () => {
-    // It has no single apiKeyHeader in the store, which is exactly why the
-    // modal routes it to custom-headers mode. The registry must still be able
-    // to satisfy it from env, and only when BOTH halves are present.
-    assert.match(registrySrc, /DD-API-KEY: \{key\}/);
-    assert.match(registrySrc, /DD-APPLICATION-KEY: \{key\}/);
+  it('still supports MULTI-header presets even with none currently configured', () => {
+    // Datadog was the only two-header preset and was replaced by PostHog
+    // (single Bearer) in session 12. That left the multi-header code path with
+    // no live exercise, so pin the CAPABILITY at the source instead: the
+    // resolver must iterate every declared header and refuse to return a
+    // partial set. Half a credential produces a confusing upstream 403 rather
+    // than an honest "not configured".
+    const registryImpl = readFileSync(resolve(ROOT, 'api/_mcp-preset-auth.ts'), 'utf8');
+    assert.match(registryImpl, /for \(const spec of entry\.headers\)/,
+      'resolver must loop over ALL declared headers');
+    assert.match(registryImpl, /if \(!key\) return \{\};/,
+      'a preset with any unresolved header must resolve to nothing at all');
   });
 
   it('the one Cloudflare token serves both Cloudflare presets', () => {

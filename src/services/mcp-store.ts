@@ -172,14 +172,16 @@ export const MCP_PRESETS: McpPreset[] = [
     defaultTitle: 'Sentry Errors',
   },
   {
-    name: 'Datadog',
-    icon: '📈',
-    description: 'Metrics, monitors, dashboards, and infrastructure alerts',
-    serverUrl: 'https://mcp.datadoghq.com/api/unstable/mcp-server/mcp',
-    authNote: 'Requires DD-API-KEY: <KEY> and DD-APPLICATION-KEY: <KEY> headers (from Datadog → Organization Settings → API Keys)',
-    defaultTool: 'get_active_monitors',
-    defaultArgs: { tags: [], count: 20 },
-    defaultTitle: 'Datadog Monitors',
+    name: 'PostHog',
+    icon: '📊',
+    description: 'Product analytics, session insights, feature flags, and error tracking',
+    serverUrl: 'https://mcp.posthog.com/mcp',
+    authNote: 'Requires Authorization: Bearer <POSTHOG_PERSONAL_API_KEY> (PostHog → Settings → Personal API keys)',
+    apiKeyHeader: 'Authorization: Bearer {key}',
+    // No defaultTool on purpose: this server's tool names are not enumerable
+    // without a key, and a guessed name would silently mis-select. Use
+    // "Connect & List Tools" and choose from the live list.
+    defaultTitle: 'PostHog Analytics',
   },
   {
     name: 'Stripe',

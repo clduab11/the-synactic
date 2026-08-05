@@ -125,14 +125,11 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
     headers: [{ template: BEARER, envVars: ['SENTRY_AUTH_TOKEN'] }],
   },
   {
-    presetName: 'Datadog',
-    host: 'mcp.datadoghq.com',
-    // The only two-header preset — which is why it has no single `apiKeyHeader`
-    // in mcp-store.ts and why the modal routes it to custom-headers mode.
-    headers: [
-      { template: 'DD-API-KEY: {key}', envVars: ['DATADOG_API_KEY', 'DD_API_KEY'] },
-      { template: 'DD-APPLICATION-KEY: {key}', envVars: ['DATADOG_APP_KEY', 'DD_APPLICATION_KEY'] },
-    ],
+    presetName: 'PostHog',
+    host: 'mcp.posthog.com',
+    // Measured: an unauthenticated initialize returns 401 with
+    // `WWW-Authenticate: Bearer` and "No token provided" — plain Bearer.
+    headers: [{ template: BEARER, envVars: ['POSTHOG_PERSONAL_API_KEY', 'POSTHOG_API_KEY'] }],
   },
   {
     presetName: 'Stripe',
@@ -171,8 +168,10 @@ function firstSetEnv(envVars: string[], env: Record<string, string | undefined>)
  * Returns `{}` when the host is unknown, keyless, or has no key configured.
  *
  * A preset is only considered configured when EVERY header it declares
- * resolves. Datadog needs two; supplying one would produce a request that
- * fails upstream with a confusing 403 rather than an honest "not configured".
+ * resolves. No CURRENT preset needs more than one — Datadog was the two-header
+ * case and was replaced by PostHog in session 12 — but the all-or-nothing rule
+ * stays, because supplying half a credential produces a confusing upstream 403
+ * rather than an honest "not configured".
  */
 export function resolvePresetAuthHeaders(
   hostname: string,
