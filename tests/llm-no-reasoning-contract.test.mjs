@@ -11,9 +11,16 @@ function read(p) {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// EVERY transport with a local-LLM leg is listed here. llm-chain.cjs and
+// server/_shared/llm.ts were missing from the original pin and regressed to
+// think:false alone — which LM Studio ignores (re-measured 2026-08-06 on
+// qwen3.5-4b-uncensored-hauhaucs: a 400-token budget went 100% to reasoning
+// with EMPTY content). startMarker/endMarker isolate each file's ollama leg.
 const SITES = [
-  { label: 'seed-insights', path: resolve(__dirname, '../scripts/seed-insights.mjs') },
-  { label: 'ais-relay', path: resolve(__dirname, '../scripts/ais-relay.cjs') },
+  { label: 'seed-insights', path: resolve(__dirname, '../scripts/seed-insights.mjs'), startMarker: "name: 'ollama'", endMarker: "name: 'openrouter'" },
+  { label: 'ais-relay', path: resolve(__dirname, '../scripts/ais-relay.cjs'), startMarker: "name: 'ollama'", endMarker: "name: 'openrouter'" },
+  { label: 'llm-chain', path: resolve(__dirname, '../scripts/lib/llm-chain.cjs'), startMarker: "name: 'ollama'", endMarker: "name: 'groq'" },
+  { label: 'server/llm', path: resolve(__dirname, '../server/_shared/llm.ts'), startMarker: "provider === 'ollama'", endMarker: "provider === 'groq'" },
 ];
 
 /**
@@ -21,11 +28,11 @@ const SITES = [
  * operator's local server. The cloud legs use different, provider-specific
  * suppression shapes and are deliberately not covered here.
  */
-function ollamaProviderBlock(source, label) {
-  const start = source.indexOf("name: 'ollama'");
+function ollamaProviderBlock(source, label, startMarker, endMarker) {
+  const start = source.indexOf(startMarker);
   assert.ok(start > -1, `${label}: could not locate the ollama provider entry`);
   // Stop at the next provider so we never read a sibling's extraBody.
-  const nextProvider = source.indexOf("name: 'openrouter'", start);
+  const nextProvider = source.indexOf(endMarker, start);
   const end = nextProvider > -1 ? nextProvider : start + 4000;
   const block = source.slice(start, end);
   assert.ok(block.includes('extraBody'), `${label}: ollama entry has no extraBody`);
@@ -42,8 +49,8 @@ describe('local LLM no-reasoning contract (session 11)', () => {
   // answer is the failure mode this repo least wants, so the suppression keys
   // are a contract, not a tuning knob.
 
-  for (const { label, path } of SITES) {
-    const block = ollamaProviderBlock(read(path), label);
+  for (const { label, path, startMarker, endMarker } of SITES) {
+    const block = ollamaProviderBlock(read(path), label, startMarker, endMarker);
 
     it(`${label}: sends reasoning_effort:'none' (the key that actually works on LM Studio)`, () => {
       assert.match(

@@ -29,7 +29,17 @@ const LLM_PROVIDERS = [
       if (apiKey) h.Authorization = `Bearer ${apiKey}`;
       return h;
     },
-    extraBody: { think: false },
+    // NO-REASONING CONTRACT (see tests/llm-no-reasoning-contract.test.mjs).
+    // think:false alone is Ollama-native and LM Studio IGNORES it — measured
+    // 2026-08-06 on qwen3.5-4b-uncensored-hauhaucs via LM Studio: a 400-token
+    // budget went entirely to reasoning and returned an EMPTY string. Only
+    // reasoning_effort:'none' reaches 0 there; enable_thinking:false is kept
+    // so a vLLM/SGLang host cannot silently reintroduce the empty string.
+    extraBody: {
+      think: false,
+      reasoning_effort: 'none',
+      chat_template_kwargs: { enable_thinking: false },
+    },
     timeout: 25_000,
   },
   // NOTE (#4944): this chain is the brief-prose transport (sole requirer:

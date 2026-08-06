@@ -83,7 +83,18 @@ export function getProviderCredentials(
       apiUrl: new URL('/v1/chat/completions', baseUrl).toString(),
       model: overrides.model || process.env.OLLAMA_MODEL || 'llama3.1:8b',
       headers,
-      extraBody: { think: false },
+      // NO-REASONING CONTRACT (see tests/llm-no-reasoning-contract.test.mjs).
+      // think:false alone is Ollama-native and LM Studio IGNORES it — a
+      // reasoning model then spends the whole budget thinking and returns an
+      // empty string with a 200. reasoning_effort:'none' is the key LM Studio
+      // honors (measured 0 reasoning tokens on qwen3.5-4b-uncensored-hauhaucs,
+      // 2026-08-06); enable_thinking:false covers vLLM/SGLang templates. The
+      // <think>-stripping below stays as the output-side belt.
+      extraBody: {
+        think: false,
+        reasoning_effort: 'none',
+        chat_template_kwargs: { enable_thinking: false },
+      },
     };
   }
 
