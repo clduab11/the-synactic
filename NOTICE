@@ -1,0 +1,25 @@
+NOTICE — Statement of Modification (GNU AGPL v3.0, section 5(a))
+
+the-synactic is a modified version of World Monitor
+(https://github.com/koala73/worldmonitor), used under the terms of the
+GNU Affero General Public License v3.0.
+
+Modified by Praxen Development & Engineering (https://github.com/clduab11),
+from July 2026 and ongoing. The git history of this repository is the
+complete, dated record of the modifications. The larger changes include:
+
+  - Private self-hosted deployment as a docker compose stack, replacing
+    the upstream hosted topology (Vercel / Railway / Upstash / Convex).
+  - Rebranding to "the-synactic"; the in-app footer retains the upstream
+    credit ("forked from World Monitor").
+  - A trader variant carrying individually licensed venue market data
+    (Kraken), read-only by charter.
+  - A DEFCON OSINT readiness indicator (data by defconlevel.com).
+  - Local model integration (LM Studio) for LLM synthesis and a local
+    embedding/vector-search layer.
+  - An expanded MCP tool surface and agent-skills directory.
+  - Verification and hardening work throughout (contract truthing,
+    provenance labeling, fail-loud degradation states).
+
+Upstream components remain under their original licenses. The upstream
+README is preserved verbatim as UPSTREAM-WORLDMONITOR-README.md.
