@@ -153,6 +153,25 @@ describe('splitLeadSentences', () => {
     assert.equal(splitLeadSentences('Output fell in 2026. The trend held [1].').length, 2);
   });
 
+  // #4928 union hazard: a sentence ending in a dotted acronym whose citation
+  // FOLLOWS the period ("…the U.S. [1]") must still end there. Merging it with
+  // the next sentence produces one unit citing {1,2}, whose proper nouns then
+  // ground against the UNION of both stories — each claim can borrow the other
+  // claim's source, the exact shape-valid misattribution #4928 closed. The
+  // single-capital lookbehind alone under-splits here; the citation run after
+  // the acronym is what marks the boundary as real.
+  it('splits after a sentence-final acronym that carries its citation', () => {
+    const sentences = splitLeadSentences(
+      'Strikes were carried out by the U.S. [1] GCC states condemned Iranian attacks on Kuwait [2].',
+    );
+    assert.equal(sentences.length, 2, `expected 2 units, got: ${JSON.stringify(sentences)}`);
+    assert.match(sentences[0], /U\.S\./);
+    assert.match(sentences[0], /\[1\]/, 'the citation must stay with the sentence it closes');
+    assert.doesNotMatch(sentences[0], /GCC/);
+    assert.match(sentences[1], /^GCC/);
+    assert.match(sentences[1], /\[2\]/);
+  });
+
   it('returns [] for non-string or empty input', () => {
     assert.deepEqual(splitLeadSentences(null), []);
     assert.deepEqual(splitLeadSentences(''), []);
