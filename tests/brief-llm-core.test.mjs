@@ -907,4 +907,40 @@ describe('grounding relaxation', () => {
       assert.equal(ok('North Korea issued a statement.', 'South Sudan and North Korea sign a pact'), true);
     });
   });
+
+  describe('same-entity word-order variance (reordered window)', () => {
+    // "Strait of Hormuz" and "Hormuz Strait" are the same place. The strict
+    // contiguous rule is order-sensitive, so the summary's normal word order
+    // was scored as invention. Acceptance requires a contiguous window of ONE
+    // headline sequence, of the SAME length after name-internal joiners are
+    // stripped, to be a permutation of the summary sequence — adjacency is
+    // preserved, this is NOT set containment.
+    it('grounds a name written in the reverse of the source order', () => {
+      assert.equal(ok('The Hormuz Strait reopening advances.', 'Tankers queue at the Strait of Hormuz'), true);
+    });
+
+    it('grounds a joiner-carrying name against its joinerless form', () => {
+      assert.equal(ok('The Republic of Korea protested.', 'Korea Republic lodges formal protest'), true);
+    });
+
+    it('still rejects when one window token is invented', () => {
+      assert.equal(ok('The Washington Strait reopening advances.', 'Tankers queue at the Strait of Hormuz'), false);
+    });
+
+    // The coordinator is NOT a name-internal joiner: stripping 'and' would
+    // collapse "South Sudan and North Korea" into a 4-token window that a
+    // permutation check could ground "Sudan Korea" against. The pinned
+    // set-containment counterexample must survive this branch too.
+    it('does not let the reorder branch revive the set-containment hazard', () => {
+      const v = verdict('South Korea issued a statement.', 'South Sudan and North Korea sign a pact');
+      assert.equal(v.ok, false);
+      assert.deepEqual(v.hallucinated, ['south', 'korea']);
+    });
+
+    it('requires exact multiplicity, not mere token presence', () => {
+      // Both tokens exist in the source sequence, but no adjacent 2-window
+      // contains them together.
+      assert.equal(ok('The Sudan Korea accord was signed.', 'South Sudan and North Korea sign a pact'), false);
+    });
+  });
 });

@@ -865,6 +865,55 @@ export function validateNoHallucinatedProperNouns(summary, headline) {
 // "Republic of Korea" into two ungrounded halves.
 const PROPER_NOUN_COORDINATOR = new Set(['and']);
 
+// The joiners whose position inside a name is orthography, not identity:
+// "Strait of Hormuz" and "Hormuz Strait" are the same place. The coordinator
+// is deliberately EXCLUDED — stripping 'and' would collapse "South Sudan and
+// North Korea" into one window that a permutation check could ground
+// "Sudan Korea" against.
+const NAME_INTERNAL_JOINER = new Set(
+  [...PROPER_NOUN_JOINER].filter((token) => !PROPER_NOUN_COORDINATOR.has(token)),
+);
+
+/** ['strait','of','hormuz'] → ['strait','hormuz'] */
+function stripNameInternalJoiners(seq) {
+  return seq.filter((token) => !NAME_INTERNAL_JOINER.has(token));
+}
+
+/**
+ * Same-entity word-order variance: accept a summary sequence when some
+ * CONTIGUOUS window of one headline sequence, of the SAME length after
+ * name-internal joiners are stripped from both sides, is a permutation of it.
+ *
+ * Adjacency is load-bearing, exactly as in occursAsContiguousRun: requiring
+ * the window keeps "South Korea" ungrounded against the single bridged
+ * sequence ['south','sudan','and','north','korea'] (windows [south,sudan],
+ * [sudan,and], [and,north], [north,korea] — none is a permutation), while
+ * "Hormuz Strait" grounds against ['strait','of','hormuz'] (stripped window
+ * [strait,hormuz] IS one). Multiplicity is exact — token presence alone
+ * never grounds.
+ */
+function matchesReorderedWindow(summarySeq, headlineSequences) {
+  const summary = stripNameInternalJoiners(summarySeq);
+  // Single tokens are order-insensitive by definition and already covered by
+  // the strict path's includes() check.
+  if (summary.length < 2) return false;
+  const want = new Map();
+  for (const token of summary) want.set(token, (want.get(token) || 0) + 1);
+  for (const headlineSeq of headlineSequences) {
+    const headline = stripNameInternalJoiners(headlineSeq);
+    for (let i = 0; i + summary.length <= headline.length; i++) {
+      const have = new Map();
+      for (let j = i; j < i + summary.length; j++) {
+        have.set(headline[j], (have.get(headline[j]) || 0) + 1);
+      }
+      if (have.size === want.size && [...want].every(([token, count]) => have.get(token) === count)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /** Does `seq` match any headline sequence under the strict rules? */
 function groundsInAnySequence(seq, headlineSequences) {
   for (const headlineSeq of headlineSequences) {
@@ -966,6 +1015,11 @@ function isGroundedAfterRelaxation(summarySeq, headlineSequences, headlineText) 
   // Verbatim run in the source outranks every structural heuristic below: if
   // the exact words are there in the exact order, nothing was invented.
   if (occursAsContiguousRun(summarySeq, headlineText)) return true;
+
+  // Same entity, different word order — "Hormuz Strait" vs "Strait of
+  // Hormuz". Operates on extracted (capitalized) sequences only, so a
+  // lowercase source spelling never widens into a window here.
+  if (matchesReorderedWindow(summarySeq, headlineSequences)) return true;
 
   // Split ONLY on the coordinator, then require EVERY part to ground on its
   // own. "Iran and the US" → ['iran'] + ['us']: both real, both cited, accept.
