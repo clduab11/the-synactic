@@ -366,7 +366,8 @@
     "consumerPrices": "Цени на Потрошувачи",
     "fearGreed": "Страв & Алчност",
     "marketBreadth": "Пазарна Ширина",
-    "climateNews": "Климатски Вести"
+    "climateNews": "Климатски Вести",
+    "fx": "Валутни курсове"
   },
   "commands": {
     "prefixes": {
@@ -1353,7 +1354,8 @@
       "newsSignals": "{{news}} новини • {{signals}} сигнали",
       "provenanceTitle": "Произход на обхвата: колко включени истории и отделни източници е избрано от този преглед",
       "compiledFrom": "Събрано от {{stories}} истории в {{sources}} източници",
-      "briefFreshness": "Генериран преди {{minutes}}м · най-нов източник {{hours}}ч стар"
+      "briefFreshness": "Генериран преди {{minutes}}м · най-нов източник {{hours}}ч стар",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "settings": {
       "exportSettings": "Експорт на настройки",
@@ -2614,6 +2616,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>Валутни курсове</strong> Стрес на валутите и спот курсове:<ul><li>FX Stress класира 45 валути според най-големия им спад от пик към дъно за последните 24 месеца, заедно с промяната за 12 месеца</li><li>Покритието включва ARS, TRY, EGP, NGN, PKR и UAH — валути, които наборите за справка на BIS и ECB пропускат</li><li>Спот списъкът показва курсове спрямо американския долар и еврото на ECB отделно, тъй като двата са котирани от различни бази</li></ul>Източници: Yahoo Finance и Европейска централна банка.",
+      "tabs": {
+        "stress": "FX Stress",
+        "spot": "Спот"
+      },
+      "currency": "Валута",
+      "pair": "Валутна двойка",
+      "rate": "Курс",
+      "yoy": "12м",
+      "drawdown": "Спад за 24м",
+      "peakToTrough": "Пик → Дъно",
+      "change1d": "1д",
+      "perUsd": "На 1 USD",
+      "usdPerUnit": "USD за единица",
+      "usdBase": "Спрямо американския долар",
+      "eurBase": "Референтни курсове на ECB за евро",
+      "stressedCount": "{{stressed}} от {{total}} валути под {{threshold}}",
+      "sourceYahoo": "Източник: Yahoo Finance",
+      "sourceEcb": "Източник: ECB",
+      "degraded": "Недостъпна е в момента: {{sources}}. Преопитване след малко.",
+      "source": {
+        "stress": "FX стрес",
+        "usd": "Курсове на US долара",
+        "eur": "Курсове на евро на ECB"
+      }
     }
   },
   "popups": {
@@ -3433,5 +3462,31 @@
     "deleteTab": "Изтрий раздела",
     "deleteTabAria": "Изтрий раздел {{name}}",
     "tabNameAria": "Име на раздела"
+  },
+  "theaterPresets": {
+    "label": "Пакети за покритие",
+    "applied": "Пакетът {{preset}} е приложен: активирани са {{count}} източника",
+    "alreadyApplied": "Пакетът {{preset}} вече е приложен",
+    "ukraineWar": {
+      "label": "Войната в Украйна",
+      "description": "Активирайте основни украински медии, независим руски печат и източници за оценка на фронта"
+    },
+    "indoPacific": {
+      "label": "Индо-Тихоокеански регион / Тайван",
+      "description": "Активирайте източници за сигурността в Тайван, Пакистан и Югоизточна Азия"
+    },
+    "sahelWestAfrica": {
+      "label": "Сахел и Западна Африка",
+      "description": "Активирайте местни източници от Сахел, Нигерия и Западна Африка"
+    },
+    "caucasusCentralAsia": {
+      "label": "Кавказ и Централна Азия",
+      "description": "Активирайте регионални източници от Южен Кавказ и Централна Азия"
+    },
+    "middleEastFlashpoints": {
+      "label": "Точки на напрежение в Близкия изток",
+      "description": "Активирайте източници за Иран, Израел, Персийския залив и кюрдските региони"
+    },
+    "unavailable": "Пакетът {{preset}} не е наличен с текущите ви панели"
   }
 }

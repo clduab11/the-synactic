@@ -4,9 +4,31 @@
 import { isBriefLeadEligible } from './_clustering.mjs';
 import {
   validateNoHallucinatedProperNouns,
+  validateNoHallucinatedFacts,
   checkLeadGrounding,
   verifyCitationIndexes,
 } from './shared/brief-llm-core.js';
+
+// A dotted acronym ("U.S.", "U.N.", "D.O.J.") that is provably NOT at a sentence
+// boundary, in one of two shapes:
+//   1. followed by a lowercase word — sentences start with a capital;
+//   2. followed by its own citation run that CLOSES the sentence — "[5]." or
+//      "[1][2]!" or a run at end-of-lead. Deliberately narrow — see the sentence
+//      split in composeSynthesizedBrief for why ambiguous cases must not match.
+//
+// #5947: shape 2 matters because the model writes the acronym as the sentence's
+// OBJECT ("...not with the U.S. [5].") whenever the story is about a country
+// rather than by it. Without it the split stranded an uncited fragment and
+// orphaned "[5]." into a pseudo-sentence, rejecting the brief.
+//
+// The trailing [.!?]|$ is load-bearing and was NOT in the first version of this
+// fix. Matching a bare citation marker let "…by the U.S. [1] GCC condemned the
+// strikes [2]." collapse with NO sentence terminator anywhere, so the split
+// produced ONE unit citing {1,2} and each claim validated against the other's
+// story — the exact #4928 misattribution the review below fails closed on.
+// Requiring the run to close the sentence keeps the merge citation-neutral: the
+// fragment can only ever join the citation it already owned.
+const MIDSENTENCE_DOTTED_ACRONYM = /\b[A-Z]\.(?:[A-Z]\.?)+(?=\s+(?:\p{Ll}|(?:\[\d{1,3}\])+(?:[.!?]|$)))/gu;
 
 /**
  * Choose which clustered story to summarize for the WORLD BRIEF.
@@ -66,7 +88,9 @@ Rules:
 - "lines": exactly one entry per numbered story, in order. Each "text" is ONE sentence under 30 words restating that story, ending with its citation [n].
 - Use ONLY facts present in the numbered story text. Do not add names, places, dates, numbers, or context that are not explicitly there.
 - Do not invent proper nouns (people, organizations, countries) that are not in the story text.
-- Never merge facts from different stories into one claim; the lead may JUXTAPOSE stories but each claim keeps its own [n].
+- Two numbered stories can describe the SAME event in different words. A lead claim may combine them, but it MUST carry the citation of EVERY story it drew from — write [3][7], not just [3]. Any name, place, or number you take from a story you did not cite counts as invented.
+- Write acronyms WITHOUT periods: "US", "UN", "EU", "UK" — never "U.S.", "U.N.". A trailing period there reads as the end of a sentence.
+- Refer to an actor by the name the story uses. Do not swap in a capital city, nickname, or synonym for it — write "US", not "Washington"; "Iran", not "Tehran" — unless that word is in the story text.
 - NEVER start with "Breaking news", "Good evening", "Tonight", or TV-style openings.`;
 }
 
@@ -167,7 +191,7 @@ export function parseBriefSynthesis(rawText, storyCount) {
  */
 // Abbreviations whose trailing period does NOT end a sentence. Multi-letter
 // only — single-letter dotted acronyms (U.S., U.K., E.U., D.C.) are covered
-// structurally by the first lookbehind in LEAD_SENTENCE_BOUNDARY.
+// structurally by MIDSENTENCE_DOTTED_ACRONYM above.
 const NON_TERMINAL_ABBREVIATIONS = [
   'Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Rev', 'Hon',
   'Gen', 'Lt', 'Col', 'Maj', 'Capt', 'Sgt', 'Adm', 'Cmdr',
@@ -179,37 +203,58 @@ const NON_TERMINAL_ABBREVIATIONS = [
 ];
 
 /**
- * Sentence boundary for the lead gate.
+ * Mid-clause protection for the abbreviation list, SUBORDINATE to the
+ * citation-run rule MIDSENTENCE_DOTTED_ACRONYM enforces for dotted acronyms.
  *
- * Two negative lookbehinds sit in front of the terminator assertion:
- *   1. `(?<!\b[A-Z]\.)` — a period closing a single capital letter is part of
- *      a dotted acronym, not a sentence end. "U.S. and Iran…" has 'S' at
- *      offset-2 preceded by a word boundary (the '.' in "U."), so this fires.
- *   2. the abbreviation alternation — "Dr. Smith", "Sept. 4", "Corp. said".
+ * The fork's first fix suppressed these boundaries with a blanket lookbehind.
+ * That left the #4928 union hazard open in one shape: an abbreviation followed
+ * by a citation run that does NOT close the sentence ("…Acme Corp. [1] Markets
+ * rallied [2].") merged two real sentences into one validation unit citing
+ * {1,2}, so each claim grounded against the other's story. Upstream's review
+ * of the acronym variant of the same bug (#5947) settled the posture:
+ * ambiguity fails closed.
  *
- * WHY THIS EXISTS. The naive `/(?<=[.!?])\s+/` split shattered any lead
- * opening on a dotted acronym: "U.S. and Iran resumed talks [1]." became
- * ["U.S.", "and Iran resumed talks [1]."]. The fragment carries no [N] marker,
- * so the every-sentence-is-cited contract below rejected it as LEAD_UNCITED
- * and the whole synthesized brief fell back to the legacy single-headline
- * path. The model's output was correct and fully cited; the splitter invented
- * a sentence that was not there. Observed live as
- * `INSIGHTS_SYNTHESIS_GATE/LEAD_UNCITED` with detail "U.S.".
- *
- * Deliberately conservative in one direction: a sentence genuinely ending in a
- * single capital ("…was met by J.") will not split. Under-splitting is safe
- * here — it merges two sentences into one gate check, which still requires a
- * citation and still grounds every proper noun. Over-splitting is what
- * manufactured an uncitable fragment.
+ * The trailing dot is dropped (protecting the boundary from the naive split)
+ * ONLY when what follows is provably not a new sentence:
+ *   - a plain word or number ("Dr. Smith", "Sept. 4", "Corp. said") — these
+ *     abbreviations essentially never end a sentence, follower case
+ *     notwithstanding ("Dr." precedes a capitalized surname); or
+ *   - a citation run that CLOSES the sentence ("…Acme Corp. [2]." / end).
+ * A follower opening with "[" that is not a closing citation run gets no
+ * protection: the boundary stays, the naive split fires, and the stranded
+ * uncited fragment rejects as LEAD_UNCITED — the same fail-closed direction
+ * as the bare-marker acronym cases.
  */
-const LEAD_SENTENCE_BOUNDARY = new RegExp(
-  `(?<!\\b[A-Z]\\.)(?<!\\b(?:${NON_TERMINAL_ABBREVIATIONS.join('|')})\\.)(?<=[.!?])\\s+`,
+const MIDSENTENCE_ABBREVIATION = new RegExp(
+  `\\b(?:${NON_TERMINAL_ABBREVIATIONS.join('|')})\\.(?=\\s+(?:[^\\s\\[]|(?:\\[\\d{1,3}\\])+(?:[.!?]|$)))`,
+  'g',
 );
 
-/** Split lead prose into gate-checkable sentences. Exported for testing. */
+/**
+ * Split lead prose into gate-checkable sentences. Exported for testing.
+ *
+ * #5947: a dotted acronym mid-clause ("U.S. embassies") was read as a
+ * sentence boundary, so the fragment ending at "U.S." inherited the previous
+ * clause's citations and "us" grounded against the wrong story — rejecting
+ * otherwise-valid briefs. Collapse the dots ONLY where the acronym is
+ * provably mid-clause (MIDSENTENCE_DOTTED_ACRONYM: followed by a lowercase
+ * word, or by its own citation run that CLOSES the sentence), protect the
+ * multi-letter abbreviation list under the same citation-run rule, THEN
+ * split naively. Everything else stays a boundary — collapsing more broadly
+ * merged genuine sentences into one validation unit whose citation set was
+ * the UNION of both, re-opening the misattribution #4928 closed and letting
+ * an uncited sentence ride inside a cited one. Ambiguity must fail closed.
+ *
+ * Returns the GATE'S VIEW of the lead (dots collapsed) — the published lead
+ * stays the caller's original text, punctuation intact.
+ */
 export function splitLeadSentences(text) {
   if (typeof text !== 'string') return [];
-  return text.split(LEAD_SENTENCE_BOUNDARY).filter((sentence) => sentence.trim().length > 0);
+  return text
+    .replace(MIDSENTENCE_DOTTED_ACRONYM, (acronym) => acronym.replace(/\./g, ''))
+    .replace(MIDSENTENCE_ABBREVIATION, (abbreviation) => abbreviation.slice(0, -1))
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => sentence.trim().length > 0);
 }
 
 export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
@@ -252,6 +297,8 @@ export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
   let strippedCitations = 0;
   const leadCheck = verifyCitationIndexes(parsed.lead, topStories.length);
   strippedCitations += leadCheck.stripped;
+  // Gate's view only — splitLeadSentences collapses provably-mid-clause dots
+  // (#5947) before splitting; the published lead stays leadCheck.text.
   const leadSentences = splitLeadSentences(leadCheck.text);
   if (leadSentences.length === 0) return reject('LEAD_NO_SENTENCES');
   for (const sentence of leadSentences) {
@@ -264,6 +311,12 @@ export function composeSynthesizedBrief(rawText, topStories, opts = {}) {
     const sentenceValidation = validateNoHallucinatedProperNouns(sentence, scopedGround);
     if (!sentenceValidation.ok && validatorMode === 'enforce') {
       return reject('LEAD_PROPER_NOUN', (sentenceValidation.hallucinated || []).join(' '));
+    }
+    // Numeric and date facts must ground in the cited stories under the same
+    // citation scope as proper nouns.
+    const factValidation = validateNoHallucinatedFacts(sentence, scopedGround);
+    if (!factValidation.ok && validatorMode === 'enforce') {
+      return reject('LEAD_FACT', (factValidation.hallucinated || []).join(' '));
     }
   }
   if (!checkLeadGrounding({ lead: leadCheck.text }, groundingStories, topStories.length)) {

@@ -368,7 +368,8 @@
     "airlineIntel": "✈️ Inteligencia Aeroportuaria",
     "consumerPrices": "Precios al Consumidor",
     "marketBreadth": "Amplitud de Mercado",
-    "climateNews": "Noticias de Clima"
+    "climateNews": "Noticias de Clima",
+    "fx": "Tipos de Cambio"
   },
   "commands": {
     "prefixes": {
@@ -1677,7 +1678,8 @@
       "sources_many": "{{count}} fuentes",
       "provenanceTitle": "Procedencia de cobertura: cuántas historias ingeridas y fuentes distintas se seleccionaron para este resumen",
       "compiledFrom": "Compilado de {{stories}} historias en {{sources}} fuentes",
-      "briefFreshness": "Generado hace {{minutes}}m · fuente más reciente con {{hours}}h de antigüedad"
+      "briefFreshness": "Generado hace {{minutes}}m · fuente más reciente con {{hours}}h de antigüedad",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "etfFlows": {
       "unavailable": "Datos ETF temporalmente no disponibles",
@@ -2632,6 +2634,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>Tipos de Cambio</strong> Estrés cambiario y tipos spot:<ul><li>FX Stress clasifica 45 monedas por su mayor caída acumulada en los últimos 24 meses, junto con el cambio en 12 meses</li><li>La cobertura incluye ARS, TRY, EGP, NGN, PKR y UAH — monedas que los conjuntos de referencia del BIS y BCE omiten</li><li>Spot lista los tipos frente al dólar estadounidense y los tipos de referencia del euro del BCE por separado, porque se cotizan desde bases diferentes</li></ul>Fuentes: Yahoo Finance y el Banco Central Europeo.",
+      "tabs": {
+        "stress": "Estrés Cambiario",
+        "spot": "Spot"
+      },
+      "currency": "Moneda",
+      "pair": "Par",
+      "rate": "Tipo",
+      "yoy": "12m",
+      "drawdown": "Caída 24m",
+      "peakToTrough": "Máximo → Mínimo",
+      "change1d": "1d",
+      "perUsd": "Por 1 USD",
+      "usdPerUnit": "USD por unidad",
+      "usdBase": "Frente al dólar estadounidense",
+      "eurBase": "Tipos de referencia del euro BCE",
+      "stressedCount": "{{stressed}} de {{total}} monedas por debajo de {{threshold}}",
+      "sourceYahoo": "Fuente: Yahoo Finance",
+      "sourceEcb": "Fuente: BCE",
+      "degraded": "No disponible en este momento: {{sources}}. Reintentando en breve.",
+      "source": {
+        "stress": "Estrés del tipo de cambio",
+        "usd": "Tipos de cambio del dólar estadounidense",
+        "eur": "Tipos de cambio del euro del BCE"
+      }
     }
   },
   "popups": {
@@ -3451,5 +3480,31 @@
     "deleteTab": "Eliminar pestaña",
     "deleteTabAria": "Eliminar pestaña {{name}}",
     "tabNameAria": "Nombre de pestaña"
+  },
+  "theaterPresets": {
+    "label": "Paquetes de cobertura",
+    "applied": "Paquete {{preset}} aplicado: {{count}} fuentes activadas",
+    "alreadyApplied": "El paquete {{preset}} ya está aplicado",
+    "ukraineWar": {
+      "label": "Guerra de Ucrania",
+      "description": "Activar medios ucranianos principales, prensa rusa independiente y fuentes de evaluación del frente"
+    },
+    "indoPacific": {
+      "label": "Indo-Pacífico / Taiwán",
+      "description": "Activar fuentes de seguridad de Taiwán, Pakistán y el Sudeste Asiático"
+    },
+    "sahelWestAfrica": {
+      "label": "Sahel y África Occidental",
+      "description": "Activar fuentes locales del Sahel, Nigeria y África Occidental"
+    },
+    "caucasusCentralAsia": {
+      "label": "Cáucaso y Asia Central",
+      "description": "Activar fuentes regionales del Cáucaso Sur y Asia Central"
+    },
+    "middleEastFlashpoints": {
+      "label": "Focos de tensión en Oriente Medio",
+      "description": "Activar fuentes de Irán, Israel, el Golfo y las regiones kurdas"
+    },
+    "unavailable": "El paquete {{preset}} no está disponible con tus paneles actuales"
   }
 }

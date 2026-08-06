@@ -17,6 +17,7 @@
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
+import { buildSourceAttributionStats } from './source-attribution.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -320,14 +321,13 @@ function parseBootstrapKeyTiers(source = read('shared/bootstrap-tier-keys.js')) 
   ]) {
     const block = source.match(new RegExp(`const ${constName} = new Set\\(\\[([\\s\\S]*?)\\n\\]\\);`));
     if (!block) throw new Error(`docs-stats: could not parse ${constName} in shared/bootstrap-tier-keys.js`);
-    // Strip // comments BEFORE matching quoted names. These Sets are heavily
-    // commented, and a single apostrophe in prose ("defconlevel.com's estimate")
-    // opens a spurious quote pair that swallows everything up to the next real
-    // quote — every match after it is shifted by one, so entries turn into
-    // fragments like ",\n  // Slow tier: ..." and the duplicate check then
-    // reports a key "registered in both slow and slow tiers". That failure
-    // aborts `npm run docs:check` before it evaluates a single claim, which is
-    // how it went unnoticed: the gate looks broken rather than red.
+    // Drop `//` comments before scanning for quoted names. The quote matcher
+    // cannot tell a key from prose, so one apostrophe in a rationale comment
+    // ("the tab's list") opens a phantom string that swallows everything up to
+    // the next apostrophe and registers it as a duplicate key — reported as
+    // `key ", " is registered in both on-demand and on-demand tiers`, which
+    // names neither the real cause nor the offending line. These Sets hold bare
+    // string literals only, so there is no `//` inside a key to protect.
     const entries = block[1].replace(/\/\/[^\n]*/g, '');
     for (const m of entries.matchAll(/'([^']+)'/g)) {
       // Last-write-wins would make this parser disagree with the runtime in the
@@ -471,6 +471,24 @@ function computeStats() {
   const registryBlock = mld.slice(mld.indexOf('LAYER_REGISTRY'), mld.indexOf('VARIANT_LAYER_ORDER'));
   const layerDefinitions = (registryBlock.match(/^\s+\w+:\s+def\(/gm) || []).length;
 
+  // Web-locked premium layers: literal 'locked' in the def() call. Desktop-only
+  // locks use the `_desktop ? 'locked' : undefined` ternary and stay free on web,
+  // so they are excluded — plan copy describes the web product.
+  //
+  // Deliberately NOT derived here: a "free layer count". `layerDefinitions -
+  // lockedLayerKeys.length` overstates it, because a registry entry can also be
+  // unreachable for everyone (`isSunsetLayer` drops iranAttacks unless
+  // VITE_ENABLE_IRAN_ATTACKS=true; App.ts hides cyberThreats unless
+  // VITE_ENABLE_CYBER_LAYER=true) and VARIANT_LAYER_ORDER means no single site
+  // shows the whole registry. Plan copy therefore names the Pro-only layer
+  // instead of quoting a free total — see validatePlanLayerEntitlementCopy.
+  const lockedLayerKeys = registryBlock
+    .split('\n')
+    .filter((line) => line.includes("'locked'") && !line.includes("? 'locked'"))
+    .map((line) => line.match(/^\s+(\w+):/)?.[1])
+    .filter(Boolean);
+  const lockedLayerDefinitions = lockedLayerKeys.length;
+
   const variantBlock = mld.slice(mld.indexOf('VARIANT_LAYER_ORDER'), mld.indexOf('export function getLayersForVariant'));
   const variantLayers = {};
   for (const m of variantBlock.matchAll(/(\w+):\s*\[([^\]]*)\]/g)) {
@@ -524,6 +542,13 @@ function computeStats() {
   // ---- Feed definitions (src/config/feeds.ts) — floor metric ----
   const feedDefinitions = (read('src/config/feeds.ts').match(/name:\s*'/g) || []).length;
 
+  // ---- Source attribution inventory (scripts/server/api/src URL contracts) ----
+  // Keep this separate from the feed-label count: one provider can expose
+  // several feed URLs, while a structured endpoint may never appear in the
+  // curated-feed registry. The attribution checker owns manifest coverage;
+  // docs-stats pins the public count surfaces to the same live number.
+  const sourceAttribution = buildSourceAttributionStats({ rootDir: ROOT });
+
   // ---- Operational source counts used by data-source and methodology docs ----
   const airportCount = (read('src/config/airports.ts').match(/\biata:\s*'/g) || []).length;
 
@@ -563,6 +588,21 @@ function computeStats() {
   }
   const leaderNames = (leaderBlock[1].match(/'[^']+'/g) || []).length;
 
+  // ---- CII Tier-1 countries (src/config/countries.ts) ----
+  const countriesSource = read('src/config/countries.ts');
+  const tier1Match = countriesSource.match(/export const TIER1_COUNTRIES[^=]*=\s*\{([\s\S]*?)\n\};/);
+  if (!tier1Match) {
+    throw new Error('docs-stats: could not find TIER1_COUNTRIES in src/config/countries.ts');
+  }
+  const tier1Countries = (tier1Match[1].match(/^\s+[A-Z]{2}:/gm) || []).length;
+
+  // ---- CRI rankable universe (scripts/shared/sovereign-status.json) ----
+  const sovereignStatus = parseJson('scripts/shared/sovereign-status.json');
+  if (!Array.isArray(sovereignStatus?.entries) || sovereignStatus.entries.length === 0) {
+    throw new Error('docs-stats: could not read entries from scripts/shared/sovereign-status.json');
+  }
+  const rankableUniverseCountries = sovereignStatus.entries.length;
+
   // Table moved to the shared client/server core in #5696. Fail closed like
   // LEADER_NAMES above: the previous `: 0` fallback silently zeroed the
   // published claim when the file moved, turning a stale doc number into an
@@ -578,6 +618,10 @@ function computeStats() {
   return {
     _generated: 'scripts/docs-stats.mjs — do not edit by hand; run `npm run docs:stats`',
     layerDefinitions,
+    lockedLayerDefinitions,
+    lockedLayerKeys,
+    tier1Countries,
+    rankableUniverseCountries,
     variantLayers,
     variantCount,
     componentTopLevelTsFiles,
@@ -596,6 +640,8 @@ function computeStats() {
     freshnessSources,
     freshnessRequiredForRisk,
     feedDefinitions,
+    sourceAttribution,
+    sourceAttributionHosts: sourceAttribution.activeHosts,
     airportCount,
     stockExchangeCount,
     centralBankInstitutionCount,
@@ -627,9 +673,12 @@ function claims(s) {
     { file: 'README.md', re: /(\d+)\s+languages/, value: s.locales },
     { file: 'public/llms.txt', re: /(\d+)\s+languages with RTL support/, value: s.locales },
     { file: 'public/llms-full.txt', re: /(\d+)\s+languages with RTL support/, value: s.locales },
+    { file: 'public/llms-full.txt', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
     { file: 'README.md', re: /(\d+)\+\s+curated news feeds/, value: s.feedDefinitions, min: true },
+    { file: 'README.md', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
     { file: 'README.md', re: /(\d+)\s+stock exchanges/, value: s.stockExchangeCount },
     { file: 'docs/overview.mdx', re: /(\d+)\+\s+curated news feeds/, value: s.feedDefinitions, min: true },
+    { file: 'docs/overview.mdx', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
 
     // ---- Translated READMEs ----
     // Same claims as README.md, pinned in each language. Without these the
@@ -640,7 +689,9 @@ function claims(s) {
     { file: 'README.zh-CN.md', re: /(\d+)\s*项服务/, value: s.protoServices },
     { file: 'README.zh-CN.md', re: /(\d+)\s*种语言/, value: s.locales },
     { file: 'README.zh-CN.md', re: /(\d+)\+\s*精选新闻源/, value: s.feedDefinitions, min: true },
+    { file: 'README.zh-CN.md', re: /(\d+)\+\s*个外部上游主机/, value: s.sourceAttributionHosts, min: true },
     { file: 'README.zh-CN.md', re: /(\d+)\s*家证券交易所/, value: s.stockExchangeCount },
+    { file: 'README.ja-JP.md', re: /(\d+)\s*以上の外部プロバイダー/, value: s.sourceAttribution.providerCount, min: true },
     { file: 'README.ja-JP.md', re: /(\d+)\s*種類のマップレイヤー/, value: s.layerDefinitions },
     { file: 'README.ja-JP.md', re: /Protocol Buffers \((\d+)\s*proto/, value: s.protoFiles },
     { file: 'README.ja-JP.md', re: /(\d+)\s*サービス\)/, value: s.protoServices },
@@ -657,6 +708,7 @@ function claims(s) {
     { file: 'AGENTS.md', re: /requires buf \+ sebuf (v\d+\.\d+\.\d+) plugins/, value: s.sebufVersion },
 
     { file: 'ARCHITECTURE.md', re: /base class \((\d+)\s+classes\b/, value: s.panelClasses },
+    { file: 'ARCHITECTURE.md', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
     { file: 'CONTRIBUTING.md', re: /Service and message definitions across (\d+)\s+domains/, value: s.protoDomainFolders },
     { file: 'CONTRIBUTING.md', re: /produces (\d+)\s+app variants/, value: s.variantCount },
     { file: 'CONTRIBUTING.md', re: /UI components — (\d+)\s+top-level TypeScript component files/, value: s.componentTopLevelTsFiles },
@@ -666,6 +718,7 @@ function claims(s) {
     { file: 'CONTRIBUTING.md', re: /expand our (\d+)\+\s+feed collection/, value: s.feedDefinitions, min: true },
     { file: 'SECURITY.md', re: /All (\d+)\s+domain APIs are served through Sebuf/, value: s.serverDomains },
     { file: 'index.html', re: /"(\d+)\s+language support with RTL"/, value: s.locales },
+    { file: 'index.html', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
 
     { file: 'docs/architecture.mdx', re: /(\d+)\s+service domains, and (?:\d+)\s+map layers/, value: s.protoServices },
     { file: 'docs/architecture.mdx', re: /(\d+)\s+map layers\./, value: s.layerDefinitions },
@@ -687,12 +740,69 @@ function claims(s) {
     { file: 'docs/api-reference.mdx', re: /all (\d+)\s+generated services/, value: s.protoServices },
 
     { file: 'docs/mcp-overview.mdx', re: /same (\d+)\s+tools/, value: s.mcpToolCount },
+
+    // ---- MCP tool count on public agent-discovery and marketing surfaces (#5389) ----
+    { file: 'public/home.md', re: /(\d+)-tool MCP server/, value: s.mcpToolCount },
+    { file: 'public/agents.md', re: /Streamable HTTP, (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'public/developers.md', re: /Streamable HTTP, (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'public/llms.txt', re: /Streamable HTTP, (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'public/llms-full.txt', re: /Streamable HTTP, (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'public/llms-full.txt', re: /MCP server endpoint, (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'public/ai-search.md', re: /- (\d+)\s+MCP tools/, value: s.mcpToolCount },
+    { file: 'public/ai-search.md', re: /- (\d+)\s+supported languages/, value: s.locales },
+    // The rest of ai-search.md's Data Coverage bullets that have a generated
+    // source of truth. The locale line above is the one that had already
+    // drifted (24 vs 26) precisely because nothing pinned it; these siblings
+    // were one capability change away from the same fate.
+    { file: 'public/ai-search.md', re: /- (\d+)\s+map layer types/, value: s.layerDefinitions },
+    { file: 'public/ai-search.md', re: /- (\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
+    { file: 'public/ai-search.md', re: /- (\d+)\s+live Country Instability Index countries/, value: s.tier1Countries },
+    { file: 'public/ai-search.md', re: /- (\d+)-country resilience rankings/, value: s.rankableUniverseCountries },
+    { file: 'public/sdks.md', re: /every one of the (\d+)\s+\[MCP tools\]/, value: s.mcpToolCount },
+    { file: 'public/agent.txt', re: /(\d+)\s+tools; tools\/list for the live inventory/, value: s.mcpToolCount },
+    { file: 'public/pricing.md', re: /MCP access and (\d+)\s+tools under one key/, value: s.mcpToolCount },
+    { file: 'docs/pricing.mdx', re: /MCP access \((\d+)\s+tools under one key/, value: s.mcpToolCount },
+    { file: 'docs/cli.mdx', re: /any of the (\d+)\s+MCP tools/, value: s.mcpToolCount },
+    { file: 'docs/cli.mdx', re: /every one of the (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'docs/cli.mdx', re: /for all (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'docs/mcp-quickstart.mdx', re: /one of (\d+)\s+tools/, value: s.mcpToolCount },
+    { file: 'pro-test/src/locales/en.json', re: /(\d+)\s+MCP tools — risk scores/, value: s.mcpToolCount },
+    { file: 'pro-test/src/locales/en.json', re: /One key\. (\d+)\s+MCP tools/, value: s.mcpToolCount },
+    { file: 'pro-test/src/locales/en.json', re: /SDKs — (\d+)\s+tools under one key/, value: s.mcpToolCount },
+    { file: 'pro-test/src/locales/en.json', re: /"freeF2": "500\+ feeds, (\d+)\+ sources/, value: s.sourceAttributionHosts, min: true },
+    { file: 'pro-test/src/locales/en.json', re: /"s3v": "(\d+)\+"/, value: s.sourceAttribution.providerCount, min: true },
+    { file: 'pro-test/src/locales/en.json', re: /"a3": "(\d+)\+ providers/, value: s.sourceAttribution.providerCount, min: true },
+
+    // ---- Map layers in plan copy (#5387) ----
+    // Plan copy quotes the registry TOTAL and names the Pro-only layer; it never
+    // quotes a free total (see the lockedLayerKeys comment in computeStats).
+    // validatePlanLayerEntitlementCopy asserts the naming half.
+    { file: 'public/home.md', re: /(\d+)\s+data layers, \d+\+\s+observed upstream hosts, and \d+\+\s+curated news feeds/, value: s.layerDefinitions },
+    { file: 'public/home.md', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
+    { file: 'middleware.ts', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
+    { file: 'public/pricing.md', re: /Includes: (\d+)\s+map layers \(all free except Resilience/, value: s.layerDefinitions },
+    { file: 'public/pricing.md', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
+    { file: 'public/pricing.md', re: /"(\d+)\s+map layers \(Resilience is Pro\)"/, value: s.layerDefinitions },
+    { file: 'docs/pricing.mdx', re: /\*\*Free\*\* — (\d+)\s+map layers \(all free except Resilience/, value: s.layerDefinitions },
+    { file: 'docs/pricing.mdx', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
+    { file: 'docs/accounts.mdx', re: /(\d+)\s+map layers \(all but the Pro-only Resilience layer\)/, value: s.layerDefinitions },
+    { file: 'docs/zh/pricing.mdx', re: /\*\*Free\*\* — (\d+)\s*个地图图层/, value: s.layerDefinitions },
+    { file: 'docs/zh/accounts.mdx', re: /Free 套餐下列出的所有功能 — (\d+)\s*个地图图层/, value: s.layerDefinitions },
+
+    // ---- CII vs CRI country coverage (#5391) ----
+    { file: 'public/home.md', re: /CII v8 for (\d+)\s+Tier-1 countries/, value: s.tier1Countries },
+    { file: 'public/home.md', re: /(\d+)-country resilience scores/, value: s.rankableUniverseCountries },
+    { file: 'README.md', re: /CII v8 stress scoring for (\d+)\s+Tier-1 countries/, value: s.tier1Countries },
+    { file: 'docs/country-instability-index.mdx', re: /CII v8 stability scoring for (\d+)\s+Tier-1 countries/, value: s.tier1Countries },
+    { file: 'public/llms-full.txt', re: /resilience scores for the (\d+)-country public rankable universe/, value: s.rankableUniverseCountries },
+
     { file: 'docs/mcp-apps.mdx', re: /current fleet ships (\d+)\s+MCP Apps/, value: s.mcpAppCount },
     { file: 'docs/mcp-quickstart.mdx', re: /WorldMonitor exposes (\d+)\s+live tools/, value: s.mcpToolCount },
     { file: 'docs/mcp-quickstart.mdx', re: /receives (\d+)\s+compressed tool descriptions/, value: s.mcpToolCount },
     { file: 'public/mcp-server.md', re: /server ships \*\*(\d+)\s+tools\*\*/, value: s.mcpToolCount },
 
     { file: 'docs/data-sources.mdx', re: /monitors (\d+)\s+data sources/, value: s.freshnessSources },
+    { file: 'docs/data-sources.mdx', re: /\*\*(\d+) active upstream hosts\*\*/, value: s.sourceAttributionHosts },
     { file: 'docs/data-sources.mdx', re: /across (\d+)\s+monitored airports/, value: s.airportCount },
     { file: 'docs/data-sources.mdx', re: /^(\d+)\s+airports across 5 regions/m, value: s.airportCount },
     { file: 'docs/data-sources.mdx', re: /(\d+)\s+global stock exchanges/, value: s.stockExchangeCount },
@@ -725,8 +835,23 @@ function claims(s) {
     { file: 'blog-site/src/content/blog/build-on-worldmonitor-developer-api-open-source.md', re: /Protocol Buffers \((\d+)\s+files\)/, value: s.protoFiles },
     { file: 'blog-site/src/content/blog/build-on-worldmonitor-developer-api-open-source.md', re: /worldmonitor\)\. (\d+)\s+services, \d+\s+proto files, and a global/, value: s.protoServices },
     { file: 'blog-site/src/content/blog/build-on-worldmonitor-developer-api-open-source.md', re: /worldmonitor\)\. \d+\s+services, (\d+)\s+proto files, and a global/, value: s.protoFiles },
-    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /typed APIs \((\d+)\s+proto files, \d+\s+services\)/, value: s.protoFiles },
-    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /typed APIs \(\d+\s+proto files, (\d+)\s+services\)/, value: s.protoServices },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /generated from (\d+)\s+Protocol Buffer definitions into \d+\s+REST service specifications/, value: s.protoFiles },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /generated from \d+\s+Protocol Buffer definitions into (\d+)\s+REST service specifications/, value: s.protoServices },
+    // The explainer's remaining capability counts. These live here rather than
+    // in tests/blog-seo-contract.test.mjs because the `unit` job that runs it is
+    // gated on changes.code, whose filter drops every .md path — the contract
+    // guarding this markdown page skipped the markdown-only PRs most likely to
+    // break it. docs-stats is always-on. Shape assertions that a numeric pin
+    // cannot express live in validateCategoryExplainerCopy below.
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /(\d+)\+\s+curated news feeds/, value: s.feedDefinitions, min: true },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /(\d+)\s+map-layer types/, value: s.layerDefinitions },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /(\d+)\s+Tier-1 countries/, value: s.tier1Countries },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /\*\*(\d+)-country\*\* public Country Resilience Index universe/, value: s.rankableUniverseCountries },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /(\d+)\s+stock exchanges/, value: s.stockExchangeCount },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /(\d+)\s+central-bank or supranational institutions/, value: s.centralBankInstitutionCount },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /(\d+)\s+interface languages/, value: s.locales },
+    { file: 'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md', re: /Model Context Protocol server with (\d+)\s+live tools/, value: s.mcpToolCount },
     { file: 'blog-site/src/content/blog/ai-powered-intelligence-without-the-cloud.md', re: /architecture \((\d+)\s+proto files, \d+\s+typed services\)/, value: s.protoFiles },
     { file: 'blog-site/src/content/blog/ai-powered-intelligence-without-the-cloud.md', re: /architecture \(\d+\s+proto files, (\d+)\s+typed services\)/, value: s.protoServices },
     { file: 'blog-site/src/content/blog/worldmonitor-vs-traditional-intelligence-tools.md', re: /using the (\d+)\s+typed API services/, value: s.protoServices },
@@ -1010,6 +1135,169 @@ function validateBootstrapCacheDocs(stats, docs = null, keyTiers = parseBootstra
   return failures;
 }
 
+/**
+ * Plan copy names the Pro-only map layer rather than quoting a free-layer count
+ * (#5387). That phrasing is only true while `resilienceScore` is the ONLY
+ * web-locked entry in LAYER_REGISTRY: lock a second layer and every surface
+ * below silently starts over-promising again, exactly the way "all 56 map
+ * layers" did. A count pin cannot catch that — the total does not move when a
+ * layer flips to `premium: 'locked'` — so assert the identity of the locked set
+ * and re-point the author at the copy that names it.
+ */
+export const PLAN_LAYER_COPY_SURFACES = [
+  'public/pricing.md',
+  'docs/pricing.mdx',
+  'docs/accounts.mdx',
+  'docs/zh/pricing.mdx',
+  'docs/zh/accounts.mdx',
+  'pro-test/src/locales/en.json',
+  'pro-test/welcome.html',
+  // The category explainer names the free-tier layer boundary too ("Every
+  // layer except the Resilience layer is available on the free plan"), so it
+  // has to be re-pointed alongside the pricing surfaces when the lock set moves.
+  'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md',
+];
+
+/** The single web-locked layer the copy above is written around. */
+export const PLAN_LAYER_PRO_ONLY_KEY = 'resilienceScore';
+const PLAN_LAYER_PRO_ONLY_LABEL = 'Resilience';
+
+export function validatePlanLayerEntitlementCopy(stats, readFile = read) {
+  const failures = [];
+  const locked = stats.lockedLayerKeys ?? [];
+
+  if (locked.join(',') !== PLAN_LAYER_PRO_ONLY_KEY) {
+    failures.push(
+      `src/config/map-layer-definitions.ts: plan copy names ${PLAN_LAYER_PRO_ONLY_LABEL} as the only Pro-only map layer, but LAYER_REGISTRY web-locks [${locked.join(', ')}] — update the free-tier copy in ${PLAN_LAYER_COPY_SURFACES.join(', ')} before changing the lock set`,
+    );
+    return failures;
+  }
+
+  for (const file of PLAN_LAYER_COPY_SURFACES) {
+    let text;
+    try {
+      text = readFile(file);
+    } catch {
+      failures.push(`${file}: file not found`);
+      continue;
+    }
+    if (!text.includes(PLAN_LAYER_PRO_ONLY_LABEL)) {
+      failures.push(`${file}: free-tier copy must name the Pro-only "${PLAN_LAYER_PRO_ONLY_LABEL}" map layer (#5387)`);
+    }
+  }
+  return failures;
+}
+
+/**
+ * The category explainer's answer-first shape (#6217).
+ *
+ * The explainer is the site's primary "what is this product" page and is
+ * written to be quoted verbatim by answer engines, so its shape is a contract:
+ * a self-contained definition before any narrative, the variant count matching
+ * the generated registry, the methodology/pricing links a citation needs, and
+ * none of the stale claims the rewrite retired.
+ *
+ * This lives here rather than in tests/blog-seo-contract.test.mjs because that
+ * file only runs in the `unit` job, which is gated on `changes.code == 'true'`
+ * and whose filter drops every `.md` path — so the contract guarding a markdown
+ * page did not run on the markdown-only PRs most likely to break it. The
+ * docs-stats job is always-on for exactly this reason.
+ *
+ * Purely numeric facts belong in claims() above, not here; this covers only
+ * what a "doc says N, code says N" pin cannot express.
+ */
+export const CATEGORY_EXPLAINER_PATH =
+  'blog-site/src/content/blog/what-is-worldmonitor-real-time-global-intelligence.md';
+
+const CATEGORY_EXPLAINER_OPENING =
+  /^World Monitor is a \*\*free, open-source, real-time global intelligence dashboard\*\*/;
+// Wide enough that ordinary copy edits pass; narrow enough that the definition
+// cannot decay into a one-liner or swell back into the old narrative lede.
+const CATEGORY_EXPLAINER_OPENING_WORDS = { min: 35, max: 80 };
+const COUNT_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+const CATEGORY_EXPLAINER_REQUIRED_LINKS = [
+  'https://www.worldmonitor.app/docs/data-sources',
+  'https://www.worldmonitor.app/pricing.md',
+  '/blog/glossary/',
+];
+// The paid tiers must stay named. The page previously claimed there was no
+// tier above free at all, so silence here is the regression, not just an
+// omission — an answer engine quoting it would tell readers Pro does not exist.
+const CATEGORY_EXPLAINER_REQUIRED_COPY = [
+  [/paid Pro, API, and Enterprise plans/i, 'the paid Pro/API/Enterprise tiers'],
+];
+// Claims the rewrite retired because the code had moved on. A revert or a
+// copy-paste from an older post silently reintroduces them.
+const CATEGORY_EXPLAINER_RETIRED_COPY = [
+  [/Five Dashboards/, 'the retired five-variant count'],
+  [/no "enterprise tier"/, 'the retired "no enterprise tier" claim'],
+  [/React \+ TypeScript/, 'the retired React frontend stack (the web app uses Preact)'],
+  [/baseline risk \(40%\)[\s\S]*?unrest indicators \(20%\)/, 'the retired CII weight breakdown'],
+];
+
+export function validateCategoryExplainerCopy(stats, readFile = read) {
+  const file = CATEGORY_EXPLAINER_PATH;
+  let text;
+  try {
+    text = readFile(file);
+  } catch {
+    return [`${file}: file not found`];
+  }
+
+  const frontmatter = text.match(/^---\n[\s\S]*?\n---\n/);
+  if (!frontmatter) return [`${file}: missing frontmatter`];
+  const body = text.slice(frontmatter[0].length);
+  const failures = [];
+
+  // Locate the opening by its first H2 rather than a line count, and fail
+  // loudly when there is none — an indexOf(-1) slice would silently treat the
+  // whole page as the "opening" and the word-count check would read as noise.
+  const firstHeading = body.indexOf('\n## ');
+  if (firstHeading === -1) {
+    failures.push(`${file}: no H2 section, so the answer-first opening cannot be located`);
+  } else {
+    const opening = body.slice(0, firstHeading).trim();
+    if (!CATEGORY_EXPLAINER_OPENING.test(opening)) {
+      failures.push(`${file}: must open with the self-contained "World Monitor is a **free, open-source, real-time global intelligence dashboard**" definition`);
+    }
+    const words = opening.split(/\s+/).filter(Boolean).length;
+    const { min, max } = CATEGORY_EXPLAINER_OPENING_WORDS;
+    if (words < min || words > max) {
+      failures.push(`${file}: answer-first opening is ${words} words, expected ${min}-${max}`);
+    }
+  }
+
+  // The variant count is spelled out in the copy, so no numeric claims() regex
+  // can reach it. Derive the word from the registry anyway: with "Six" pinned
+  // as a literal, variantCount=7 left this the one capability claim in the
+  // contract that stayed green while every numeric sibling went red.
+  const variantWord = COUNT_WORDS[stats.variantCount];
+  if (!variantWord) {
+    failures.push(`${file}: no spelled-out word for variantCount ${stats.variantCount} — extend COUNT_WORDS`);
+  } else if (!new RegExp(`\\b${variantWord} dashboard variants\\b`, 'i').test(body)) {
+    failures.push(`${file}: copy must say "${variantWord} dashboard variants" to match variantCount ${stats.variantCount}`);
+  }
+  // The count word alone stays true if a variant is added to the enumeration
+  // without moving the count, or dropped out of it.
+  const variantList = body.match(/dashboard variants\*\*: (.+)/);
+  if (!variantList) {
+    failures.push(`${file}: missing the enumerated dashboard-variant list`);
+  } else if (variantList[1].split(',').length !== stats.variantCount) {
+    failures.push(`${file}: enumerates ${variantList[1].split(',').length} dashboard variants, code has ${stats.variantCount} — ${variantList[1]}`);
+  }
+
+  for (const link of CATEGORY_EXPLAINER_REQUIRED_LINKS) {
+    if (!body.includes(link)) failures.push(`${file}: citation surface must link ${link}`);
+  }
+  for (const [pattern, what] of CATEGORY_EXPLAINER_REQUIRED_COPY) {
+    if (!pattern.test(body)) failures.push(`${file}: must still name ${what}`);
+  }
+  for (const [pattern, what] of CATEGORY_EXPLAINER_RETIRED_COPY) {
+    if (pattern.test(body)) failures.push(`${file}: reintroduces ${what}`);
+  }
+  return failures;
+}
+
 // The --check validator set. Exported and iterated rather than called as four
 // separate lines in main() so the wiring is data a test can assert: every
 // validator here is unit-tested against its own fixtures, but nothing caught a
@@ -1020,6 +1308,8 @@ const DOC_VALIDATORS = [
   validateSupportedLanguagesRegistry,
   validateMcpAppsDocs,
   validateBootstrapCacheDocs,
+  validatePlanLayerEntitlementCopy,
+  validateCategoryExplainerCopy,
 ];
 
 function main() {

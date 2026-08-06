@@ -34,6 +34,7 @@ before(() => {
 });
 
 const { track, identifyUser, resetAnalyticsForTesting } = await import('../src/services/analytics.ts');
+const { COLLECTOR_QUEUE_LIMIT } = await import('../src/services/analytics-collector-transport.ts');
 
 type WinWithUmami = {
   umami?: { track: (...a: unknown[]) => unknown; identify: (...a: unknown[]) => unknown };
@@ -639,8 +640,11 @@ describe('Umami client retry policy (#5715)', () => {
     };
 
     try {
-      // Fill well past UMAMI_COLLECTOR_QUEUE_LIMIT (25) with non-critical events.
-      for (let index = 0; index < 30; index += 1) track('search-open');
+      // Fill past the queue bound with non-critical events. Sized from the real
+      // constant: this loop used to be a literal 30 against a bound of 25, so
+      // raising the bound to 50 left it filling only 60% of the queue — the
+      // eviction under test simply stopped happening.
+      for (let index = 0; index < COLLECTOR_QUEUE_LIMIT + 5; index += 1) track('search-open');
       await drainPromiseHandlers(
         () => warnings.some((w) => w.failureKind === 'queue-overflow'),
         'a queued non-critical write is dropped',
@@ -777,5 +781,288 @@ describe('Umami client retry policy (#5715)', () => {
         },
       },
     });
+  });
+});
+
+const {
+  inspectCollectorResponse,
+  isRetryableCollectorFailure,
+  isRetryableIdentityFailure,
+  isAlertWorthyCollectorFailure,
+  getCollectorHealthForTesting,
+  _setCollectorHealthReporterForTesting,
+} = await import('../src/services/analytics-collector-transport.ts');
+
+/**
+ * A bot-filtered write is a REAL delivery failure — Umami stored nothing — but
+ * it is not an incident. It is the collector doing its job on traffic we do not
+ * want counted. The distinction has to live in the alerting decision, never in
+ * the delivery classification, or a suppressed alert silently becomes a
+ * suppressed retry and a cleared conversion marker.
+ */
+describe('bot-filtered collector writes (#5964 alert-noise regression)', () => {
+  const botBody = '{"beep":"boop"}';
+
+  it('flags a bot-filtered 200 without changing its delivery classification', async () => {
+    const failure = await inspectCollectorResponse(collectorResponse(true, 200, botBody));
+    assert.equal(failure?.kind, 'missing-receipt', 'the write really was dropped');
+    assert.equal(failure?.status, 200);
+    assert.equal(failure?.botFiltered, true);
+  });
+
+  it('does not flag a genuine receipt or an ordinary receiptless 200', async () => {
+    assert.equal(await inspectCollectorResponse(collectorResponse(true, 200, RECEIPT_BODY)), null);
+
+    const odd = await inspectCollectorResponse(collectorResponse(true, 200, '{"cache":"only"}'));
+    assert.equal(odd?.kind, 'missing-receipt');
+    assert.ok(!odd?.botFiltered, 'a non-sentinel receiptless 200 is still unexplained and must stay reportable');
+  });
+
+  it('leaves retry and durable-marker policy identical to a plain missing receipt', async () => {
+    const bot = (await inspectCollectorResponse(collectorResponse(true, 200, botBody)))!;
+    const plain = (await inspectCollectorResponse(collectorResponse(true, 200, '{}')))!;
+
+    // Both must stay non-retryable (a retry is filtered identically) and both
+    // must stay kind:'missing-receipt' so isDurableMarkerResolved keeps the
+    // conversion marker armed for replay. Diverging here would turn an alerting
+    // change into a conversion-accounting change.
+    assert.equal(isRetryableCollectorFailure(bot), isRetryableCollectorFailure(plain));
+    assert.equal(isRetryableIdentityFailure(bot), isRetryableIdentityFailure(plain));
+    assert.equal(isRetryableCollectorFailure(bot), false);
+    assert.equal(bot.kind, plain.kind);
+  });
+
+  it('never alerts on a bot-filtered write, at any failure rate', () => {
+    const bot = { kind: 'missing-receipt' as const, status: 200, botFiltered: true };
+    assert.equal(isAlertWorthyCollectorFailure(bot, { writes: 1, failures: 1 }), false);
+    assert.equal(isAlertWorthyCollectorFailure(bot, { writes: 500, failures: 500 }), false);
+  });
+
+  it('gates an unexplained receiptless 200 behind the aggregate floors', () => {
+    // 2026-08-01 (WORLDMONITOR-Y3): receiptless-200 reports arrived at ~16/hour
+    // from diverse real browsers while the Umami DB was ingesting 15-23k
+    // events/hour and every probe shape returned a full receipt. From inside
+    // one page, privacy middleware faking a 200 — or a body that cannot be
+    // read — is indistinguishable from a discarding collector: the same
+    // epistemics as a blocked request, so it gets the same aggregate gate.
+    const plain = { kind: 'missing-receipt' as const, status: 200 };
+    assert.equal(isAlertWorthyCollectorFailure(plain, { writes: 1, failures: 1 }), false);
+    assert.equal(isAlertWorthyCollectorFailure(plain, { writes: 100, failures: 20 }), false);
+    assert.equal(isAlertWorthyCollectorFailure(plain, { writes: 5, failures: 5 }), true);
+    assert.equal(
+      isAlertWorthyCollectorFailure(plain, { writes: 5, failures: 5, noiseReported: true }),
+      false,
+      'shares the once-per-window cap with the other environment kinds',
+    );
+  });
+});
+
+describe('collector alert policy suppresses expected background conditions', () => {
+  const net = { kind: 'network' as const };
+  const timeout = { kind: 'timeout' as const };
+
+  it('stays silent for a lone blocked request — the ad-blocker baseline', () => {
+    // The overwhelmingly common shape: a page issues one or two writes and an
+    // extension blocks them. Nothing here indicates a collector problem.
+    assert.equal(isAlertWorthyCollectorFailure(net, { writes: 1, failures: 1 }), false);
+    assert.equal(isAlertWorthyCollectorFailure(net, { writes: 4, failures: 4 }), false);
+    assert.equal(isAlertWorthyCollectorFailure(timeout, { writes: 3, failures: 3 }), false);
+  });
+
+  it('reports once the window carries a real sample AND a real failure rate', () => {
+    assert.equal(isAlertWorthyCollectorFailure(net, { writes: 5, failures: 5 }), true);
+    assert.equal(isAlertWorthyCollectorFailure(timeout, { writes: 20, failures: 20 }), true);
+  });
+
+  it('stays silent when a big sample is mostly succeeding', () => {
+    // A collector that answers 80% of writes is not down; one flaky beacon in a
+    // healthy window must not page.
+    assert.equal(isAlertWorthyCollectorFailure(net, { writes: 100, failures: 20 }), false);
+    assert.equal(isAlertWorthyCollectorFailure(net, { writes: 10, failures: 4 }), false);
+    assert.equal(isAlertWorthyCollectorFailure(net, { writes: 10, failures: 5 }), true);
+  });
+
+  it('caps environment noise at one event per window', () => {
+    const saturated = { writes: 50, failures: 50 };
+    assert.equal(isAlertWorthyCollectorFailure(net, saturated), true);
+    assert.equal(
+      isAlertWorthyCollectorFailure(net, { ...saturated, noiseReported: true }),
+      false,
+      'a single ad-blocked page must not out-produce the outage it mimics',
+    );
+  });
+
+  it('always reports failures that are actionable, whatever the window', () => {
+    // These are never the client's environment: the origin answered non-2xx, or
+    // our own bounded queue dropped a write. One occurrence is worth knowing.
+    assert.equal(
+      isAlertWorthyCollectorFailure({ kind: 'http', status: 500 }, { writes: 1, failures: 1 }),
+      true,
+    );
+    assert.equal(
+      isAlertWorthyCollectorFailure({ kind: 'queue-overflow' }, { writes: 1, failures: 1 }),
+      true,
+    );
+    // ...and the cap never applies to them.
+    assert.equal(
+      isAlertWorthyCollectorFailure({ kind: 'http', status: 400 }, { writes: 50, failures: 50, noiseReported: true }),
+      true,
+    );
+  });
+
+  it('reports the known umami#4183 session_data race until the server is upgraded', () => {
+    assert.equal(
+      isAlertWorthyCollectorFailure(
+        { kind: 'http', status: 500, prismaCode: 'P2002', constraint: 'session_data_pkey' },
+        { writes: 1, failures: 1 },
+      ),
+      true,
+    );
+  });
+});
+
+describe('collector alert policy is wired into the reporting path', () => {
+  beforeEach(() => {
+    resetAnalyticsForTesting();
+  });
+
+  afterEach(() => {
+    delete (globalThis.window as WinWithUmami).umami;
+  });
+
+  it('sends low-volume environment failures to the cross-user aggregate', async () => {
+    const reports: unknown[] = [];
+    _setCollectorHealthReporterForTesting(async (report) => {
+      reports.push(report);
+      return true;
+    });
+    window.fetch = (() => Promise.resolve(collectorResponse(true, 200, '{}'))) as typeof window.fetch;
+    stubFailingUmami();
+
+    for (let i = 0; i < 4; i += 1) {
+      track('panel-open' as Parameters<typeof track>[0], { i });
+      await drainPromiseHandlers();
+    }
+
+    assert.equal(reports.length, 4, 'every environment failure contributes its delta before the local floor');
+    assert.deepEqual(reports[0], {
+      cohort: 'event',
+      writes: 1,
+      failures: 1,
+      failureKind: 'missing-receipt',
+    });
+    assert.equal(
+      getCollectorHealthForTesting().noiseReported,
+      false,
+      'an accepted aggregate report does not duplicate the server-side Sentry event locally',
+    );
+  });
+
+  it('keeps critical-event health separate from successful ordinary writes', async () => {
+    const reports: unknown[] = [];
+    _setCollectorHealthReporterForTesting(async (report) => {
+      reports.push(report);
+      return true;
+    });
+    let calls = 0;
+    window.fetch = (() => {
+      calls += 1;
+      return Promise.resolve(calls <= 10 ? collectorResponse(true, 200) : collectorResponse(true, 200, '{}'));
+    }) as typeof window.fetch;
+    (globalThis.window as WinWithUmami).umami = {
+      track: (event: unknown, data?: unknown) => nativeTrackerBeacon('event', {
+        ...(data as Record<string, unknown> | undefined),
+        name: event as string,
+      }),
+      identify: (data: unknown) => nativeTrackerBeacon('identify', data as Record<string, unknown>),
+    };
+
+    for (let i = 0; i < 10; i += 1) {
+      track('panel-open' as Parameters<typeof track>[0], { i });
+      await drainPromiseHandlers();
+    }
+    track('checkout-success');
+    await drainPromiseHandlers();
+
+    assert.deepEqual(reports.at(-1), {
+      cohort: 'critical-event',
+      writes: 1,
+      failures: 1,
+      failureKind: 'missing-receipt',
+    });
+  });
+
+  it('flips the once-per-window latch only after the sample floor is crossed', async () => {
+    // Drives REAL writes through the gate so this proves recordCollectorOutcome
+    // consults the predicate — a policy unit test alone would pass even if the
+    // reporting path ignored it entirely.
+    _setCollectorHealthReporterForTesting(async () => false);
+    window.fetch = (() => Promise.reject(new TypeError('Failed to fetch'))) as typeof window.fetch;
+    stubFailingUmami();
+
+    // 'panel-open' is not a CRITICAL_TRACK_EVENT, so a network failure does not
+    // schedule a retry and each call is exactly one write.
+    const fire = async (n: number) => {
+      for (let i = 0; i < n; i += 1) {
+        track('panel-open' as Parameters<typeof track>[0], { i });
+        await drainPromiseHandlers();
+      }
+    };
+
+    await fire(4);
+    const below = getCollectorHealthForTesting();
+    assert.equal(below.writes, 4);
+    assert.equal(below.failures, 4);
+    assert.equal(below.noiseReported, false, 'four blocked beacons must not alert');
+
+    await fire(1);
+    assert.equal(getCollectorHealthForTesting().noiseReported, true, 'the fifth crosses the floor');
+    assert.equal(getCollectorHealthForTesting().reportedFailureSignatures, 1, 'the window emits one event per signature');
+
+    await fire(10);
+    const after = getCollectorHealthForTesting();
+    assert.equal(after.writes, 15, 'writes keep accruing');
+    assert.equal(after.noiseReported, true, 'the latch stays set — no second event this window');
+    assert.equal(after.reportedFailureSignatures, 1, 'repeated failures stay latched');
+  });
+});
+
+/**
+ * An alarm has to be attacked for the case it exists to catch: can it stay
+ * SILENT while the collector is actually dead? #5565 ran for four days unseen.
+ */
+describe('collector alert policy still fires when the collector is dead', () => {
+  it('alerts on the first 5xx, with no sample or rate floor to clear', () => {
+    // The #5565 shape: Railway origin OOM-dead, Cloudflare answers 502. This is
+    // kind:'http', so it is never subject to the environment-noise gating.
+    for (const status of [500, 502, 503, 504]) {
+      assert.equal(
+        isAlertWorthyCollectorFailure({ kind: 'http', status }, { writes: 1, failures: 1 }),
+        true,
+        `HTTP ${status} must alert immediately`,
+      );
+    }
+  });
+
+  it('alerts on a sustained total network failure once the floor is crossed', () => {
+    assert.equal(isAlertWorthyCollectorFailure({ kind: 'network' }, { writes: 5, failures: 5 }), true);
+  });
+
+  it('alerts on a collector that discards every write once the floor is crossed', () => {
+    // The other way an outage can look green: Umami up and answering 200 but
+    // storing nothing (a deleted website row, an isbot update swallowing real
+    // browsers). Each affected page crosses the floor and reports once per
+    // window, so the cross-user step change stays visible in the aggregate.
+    const plain = { kind: 'missing-receipt' as const, status: 200 };
+    assert.equal(isAlertWorthyCollectorFailure(plain, { writes: 10, failures: 10 }), true);
+  });
+
+  it('cannot be muted by a non-2xx body that mimics the bot sentinel', async () => {
+    // The suppression must be reachable ONLY through a 2xx. A proxy or a dead
+    // origin echoing {"beep":"boop"} with an error status is still an outage.
+    const failure = await inspectCollectorResponse(collectorResponse(false, 502, '{"beep":"boop"}'));
+    assert.equal(failure?.kind, 'http');
+    assert.ok(!failure?.botFiltered, 'a non-2xx must never be classified as bot-filtered');
+    assert.equal(isAlertWorthyCollectorFailure(failure!, { writes: 1, failures: 1 }), true);
   });
 });

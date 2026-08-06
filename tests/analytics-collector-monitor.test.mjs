@@ -8,6 +8,7 @@ import {
   buildProbeRequest,
   evaluateProbeResult,
   extractCollectorFailureMetadata,
+  isBotFilteredBody,
   runCollectorChecks,
   summarizeProbeFailures,
   summarizeWriteCanaryResults,
@@ -138,14 +139,38 @@ describe('scheduled analytics collector monitor', () => {
 
   it('rejects bot-filtered and malformed write-canary receipts despite HTTP 200', () => {
     const writeCanary = probeByName('write-canary-event');
+    // A bot-filtered 200 must be NAMED as such. Reporting it as a generic
+    // missing receipt blames the write path for a drop Umami made on purpose,
+    // which sends the on-call reader looking for a database fault that is not
+    // there. The canary sends a browser User-Agent, so this firing at all means
+    // the bot heuristic now matches us and the probe has stopped measuring the
+    // write path it claims to measure.
     assert.match(
       evaluateProbeResult(writeCanary, { status: 200, body: '{"beep":"boop"}' }),
-      /receipt missing non-empty string cache/,
+      /bot-filtered/,
     );
     assert.match(
       evaluateProbeResult(writeCanary, { status: 200, body: '{not json' }),
       /receipt was not valid JSON/,
     );
+  });
+
+  it('detects the Umami bot-filter sentinel without matching a real receipt', () => {
+    assert.equal(isBotFilteredBody('{"beep":"boop"}'), true);
+    assert.equal(isBotFilteredBody('  {"beep":"boop"}  '), true);
+    // A genuine receipt is never the sentinel, even if a field value happens to
+    // spell one of the sentinel's words — this must key off the parsed `beep`
+    // property, not a substring scan an upstream value could forge.
+    assert.equal(isBotFilteredBody(receiptBody), false);
+    assert.equal(
+      isBotFilteredBody(JSON.stringify({ cache: 'beep', sessionId: 'boop', visitId: 'v' })),
+      false,
+    );
+    assert.equal(isBotFilteredBody('{"beep":"something-else"}'), false);
+    assert.equal(isBotFilteredBody('{not json'), false);
+    assert.equal(isBotFilteredBody(''), false);
+    assert.equal(isBotFilteredBody(undefined), false);
+    assert.equal(isBotFilteredBody(null), false);
   });
 
   it('surfaces Prisma failure metadata without retaining the analytics payload', () => {
@@ -241,6 +266,7 @@ describe('scheduled analytics collector monitor', () => {
 
     assert.ok(report.writeSummary.failed > 0, 'a failed attempt must survive a later success');
     assert.ok(report.writeSummary.failureRate > 0, 'the reported rate must not be 0.0%');
+    assert.equal(report.alerting, true, 'any failed write attempt is actionable after #5715 remediation');
     assert.match(report.writeSummary.failures[0].reason, /P2002/);
   });
 
@@ -258,10 +284,10 @@ describe('scheduled analytics collector monitor', () => {
     assert.equal(report.alerting, true, 'a dead write path must alert on its own');
   });
 
-  it('tolerates the known #4183 background rate without paging', async () => {
-    // One failing attempt out of a full run sits under the alert threshold: the
-    // upstream race is unfixed and alerting on it would train everyone to
-    // ignore this monitor.
+  it('alerts on any known #4183 conflict until the upstream race is remediated', async () => {
+    // A single collision is enough to fail the acceptance contract: every
+    // canary burst must be 4/4 successful, and two consecutive scheduled runs
+    // must remain clean after the upstream upsert fix is deployed.
     let seen = 0;
     const report = await runCollectorChecks({
       sleep: async () => {},
@@ -274,8 +300,8 @@ describe('scheduled analytics collector monitor', () => {
     });
 
     assert.ok(report.writeSummary.failureRate > 0, 'the rate is still reported');
-    assert.equal(report.writeRateBreached, false);
-    assert.equal(report.alerting, false, 'the known background race must not page');
+    assert.equal(report.hasWriteFailures, true);
+    assert.equal(report.alerting, true, 'the known race must remain visible until fixed');
   });
 
   it('reports every failing probe, in probe order, and nothing else', () => {

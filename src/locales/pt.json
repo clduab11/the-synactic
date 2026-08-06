@@ -105,7 +105,8 @@
     "consumerPrices": "Preços ao Consumidor",
     "fearGreed": "Medo e Ganância",
     "marketBreadth": "Amplitude de Mercado",
-    "climateNews": "Notícias Climáticas"
+    "climateNews": "Notícias Climáticas",
+    "fx": "Taxas de Câmbio"
   },
   "commands": {
     "prefixes": {
@@ -1280,7 +1281,8 @@
       "sources_many": "{{count}} fontes",
       "provenanceTitle": "Proveniência de cobertura: quantas histórias ingeridas e fontes distintas foram selecionadas para este resumo",
       "compiledFrom": "Compilado de {{stories}} histórias em {{sources}} fontes",
-      "briefFreshness": "Gerado há {{minutes}}m · fonte mais recente com {{hours}}h"
+      "briefFreshness": "Gerado há {{minutes}}m · fonte mais recente com {{hours}}h",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "techHubs": {
       "infoTooltip": "<strong>Atividade do Tech Hub</strong><br>Mostra os hubs de tecnologia com mais atividade de notícias.<br><br><em>Níveis de atividade:</em><br>• <span style=\"color: {{highColor}}\">Alto</span> — Notícias de última hora ou pontuação acima de 50<br>• <span style=\"color: {{elevatedColor}}\">Elevado</span> — Pontuação 20-49<br>• <span style=\"color: {{lowColor}}\">Baixo</span> — Pontuação abaixo de 20<br><br>Clique em um hub para ampliar sua localização."
@@ -2369,6 +2371,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>Taxas de Câmbio</strong> Stress cambial e taxas spot:<ul><li>FX Stress classifica 45 moedas pela pior queda máxima em 24 meses, juntamente com a variação de 12 meses</li><li>A cobertura inclui ARS, TRY, EGP, NGN, PKR e UAH — moedas omitidas dos conjuntos de referência do BIS e ECB</li><li>Spot lista as taxas em relação ao dólar americano e as taxas de referência do euro do ECB separadamente, porque os dois são cotados em bases diferentes</li></ul>Fontes: Yahoo Finance e Banco Central Europeu.",
+      "tabs": {
+        "stress": "FX Stress",
+        "spot": "Spot"
+      },
+      "currency": "Moeda",
+      "pair": "Par",
+      "rate": "Taxa",
+      "yoy": "12m",
+      "drawdown": "Queda em 24m",
+      "peakToTrough": "Pico → Vale",
+      "change1d": "1d",
+      "perUsd": "Por 1 USD",
+      "usdPerUnit": "USD por unidade",
+      "usdBase": "Contra o dólar americano",
+      "eurBase": "Taxas de referência do euro do ECB",
+      "stressedCount": "{{stressed}} de {{total}} moedas abaixo de {{threshold}}",
+      "sourceYahoo": "Fonte: Yahoo Finance",
+      "sourceEcb": "Fonte: ECB",
+      "degraded": "Indisponível no momento: {{sources}}. Tentando novamente em breve.",
+      "source": {
+        "stress": "Estresse cambial",
+        "usd": "Cotações do dólar americano",
+        "eur": "Cotações do euro do BCE"
+      }
     }
   },
   "popups": {
@@ -3451,5 +3480,31 @@
     "deleteTab": "Eliminar separador",
     "deleteTabAria": "Eliminar separador {{name}}",
     "tabNameAria": "Nome do separador"
+  },
+  "theaterPresets": {
+    "label": "Predefinições de cobertura",
+    "applied": "Predefinição {{preset}} aplicada: {{count}} fontes ativadas",
+    "alreadyApplied": "A predefinição {{preset}} já foi aplicada",
+    "ukraineWar": {
+      "label": "Guerra na Ucrânia",
+      "description": "Ativar os principais meios ucranianos, a imprensa russa independente e fontes de avaliação da frente"
+    },
+    "indoPacific": {
+      "label": "Indo-Pacífico / Taiwan",
+      "description": "Ativar fontes de segurança de Taiwan, Paquistão e Sudeste Asiático"
+    },
+    "sahelWestAfrica": {
+      "label": "Sahel e África Ocidental",
+      "description": "Ativar fontes locais do Sahel, Nigéria e África Ocidental"
+    },
+    "caucasusCentralAsia": {
+      "label": "Cáucaso e Ásia Central",
+      "description": "Ativar fontes regionais do Cáucaso do Sul e da Ásia Central"
+    },
+    "middleEastFlashpoints": {
+      "label": "Pontos de tensão no Oriente Médio",
+      "description": "Ativar fontes sobre Irã, Israel, Golfo e regiões curdas"
+    },
+    "unavailable": "A predefinição {{preset}} não está disponível com os painéis atuais"
   }
 }

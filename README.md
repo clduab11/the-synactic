@@ -29,11 +29,12 @@ being able to say where a number came from.
 
 163 autonomous collectors sweeping conflict events, sanctions programs,
 maritime chokepoints, energy flows, airspace, cyber threat feeds,
-macroeconomics, and climate anomalies — drawing on 568+ curated news feeds
+macroeconomics, and climate anomalies — drawing on 568+ curated news feeds backed by 531+ observed upstream hosts
 and 29 stock exchanges. 70 typed MCP tools any agent can
-call — composite country-risk scoring, conflict-event retrieval,
+call — composite country-risk scoring (server-authoritative
+CII v8 stress scoring for 31 Tier-1 countries), conflict-event retrieval,
 LLM-grounded country briefs, chokepoint status — with server-side projection
-keeping context windows lean. 56 map layer types render it, in 25 languages.
+keeping context windows lean. 56 map layer types render it, in 26 languages.
 190+ routed model endpoints behind one
 gateway, budget-enveloped per route. 400+ tests in the clean-room
 orchestration core alone, with mutation-tested guards on the paths that
@@ -90,7 +91,7 @@ A real-time TypeScript intelligence dashboard and its 150-strong collection
 fleet, hardened for sovereign self-hosting — one compose stack: app, relay,
 cache, vector store, verification tooling. An MCP-native tool surface with
 adversarially reviewed, contract-truthed schemas, typed end to end by
-Protocol Buffers (290 protos across 35 services). A clean-room orchestration
+Protocol Buffers (295 protos across 36 services). A clean-room orchestration
 core — original contracts, provenance envelopes, and a default-deny
 tool-policy engine — built to put an agent council on rails rather than on
 vibes. A vector-indexed semantic memory layer for similar-event recall and

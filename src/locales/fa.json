@@ -437,7 +437,8 @@
     "consumerPrices": "Consumer Prices",
     "fearGreed": "Fear & Greed",
     "marketBreadth": "Market Breadth",
-    "climateNews": "Climate News"
+    "climateNews": "Climate News",
+    "fx": "نرخ‌های ارز"
   },
   "commands": {
     "prefixes": {
@@ -1496,7 +1497,8 @@
       "newsSignals": "{{news}} news • {{signals}} signals",
       "compiledFrom": "گردآوری‌شده از {{stories}} خبر از {{sources}} منبع",
       "provenanceTitle": "شفافیت پوشش: این گزیده از چه تعداد خبر دریافتی و چند منبع مجزا انتخاب شده است",
-      "briefFreshness": "تولید شده {{minutes}}m پیش · جدیدترین منبع {{hours}}h قدیمی"
+      "briefFreshness": "تولید شده {{minutes}}m پیش · جدیدترین منبع {{hours}}h قدیمی",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "settings": {
       "exportSettings": "Export Settings",
@@ -2685,6 +2687,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>نرخ‌های ارز</strong> تنش ارزی و نرخ‌های پایه:<ul><li>تنش ارزی (FX Stress) ۴۵ ارز را بر اساس بدترین کاهش قله‌به‌دره در ۲۴ ماه گذشته، همراه با تغییر ۱۲ ماهه رتبه‌بندی می‌کند</li><li>پوشش شامل ARS، TRY، EGP، NGN، PKR و UAH است — ارزهایی که مجموعه‌های ارجاعی BIS و ECB حذف کرده‌اند</li><li>نرخ‌های پایه نرخ‌ها را در برابر دلار آمریکایی و نرخ‌های ارجاعی یورو ECB به‌طور جداگانه فهرست می‌کند، زیرا این دو از مبانی مختلفی نقل قول می‌شوند</li></ul>منابع: Yahoo Finance و بانک مرکزی اروپا.",
+      "tabs": {
+        "stress": "تنش ارزی",
+        "spot": "نرخ پایه"
+      },
+      "currency": "ارز",
+      "pair": "جفت ارزی",
+      "rate": "نرخ",
+      "yoy": "۱۲ ماه",
+      "drawdown": "کاهش ۲۴ ماهه",
+      "peakToTrough": "قله → دره",
+      "change1d": "۱ روز",
+      "perUsd": "به ازای ۱ دلار آمریکایی",
+      "usdPerUnit": "دلار آمریکایی به ازای هر واحد",
+      "usdBase": "در برابر دلار آمریکایی",
+      "eurBase": "نرخ‌های ارجاعی یورو ECB",
+      "stressedCount": "{{stressed}} از {{total}} ارز زیر {{threshold}}",
+      "sourceYahoo": "منبع: Yahoo Finance",
+      "sourceEcb": "منبع: ECB",
+      "degraded": "در حال حاضر در دسترس نیست: {{sources}}. به زودی دوباره تلاش می‌شود.",
+      "source": {
+        "stress": "تنش ارز",
+        "usd": "نرخ دلار آمریکا",
+        "eur": "نرخ یورو بانک مرکزی اروپا"
+      }
     }
   },
   "popups": {
@@ -3433,5 +3462,31 @@
     "deleteTab": "حذف برگه",
     "deleteTabAria": "حذف برگه {{name}}",
     "tabNameAria": "نام برگه"
+  },
+  "theaterPresets": {
+    "label": "پیش‌تنظیم‌های پوشش",
+    "applied": "پیش‌تنظیم {{preset}} اعمال شد: {{count}} منبع فعال شد",
+    "alreadyApplied": "پیش‌تنظیم {{preset}} قبلاً اعمال شده است",
+    "ukraineWar": {
+      "label": "جنگ اوکراین",
+      "description": "رسانه‌های اصلی اوکراین، مطبوعات مستقل روسیه و منابع ارزیابی خط مقدم را فعال کنید"
+    },
+    "indoPacific": {
+      "label": "هندو-اقیانوس آرام / تایوان",
+      "description": "منابع امنیتی تایوان، پاکستان و جنوب‌شرق آسیا را فعال کنید"
+    },
+    "sahelWestAfrica": {
+      "label": "ساحل و غرب آفریقا",
+      "description": "منابع محلی ساحل، نیجریه و غرب آفریقا را فعال کنید"
+    },
+    "caucasusCentralAsia": {
+      "label": "قفقاز و آسیای مرکزی",
+      "description": "منابع منطقه‌ای قفقاز جنوبی و آسیای مرکزی را فعال کنید"
+    },
+    "middleEastFlashpoints": {
+      "label": "نقاط بحرانی خاورمیانه",
+      "description": "منابع ایران، اسرائیل، خلیج و مناطق کردنشین را فعال کنید"
+    },
+    "unavailable": "پیش‌تنظیم {{preset}} با پنل‌های فعلی شما در دسترس نیست"
   }
 }

@@ -366,7 +366,8 @@
     "consumerPrices": "消費者物価",
     "fearGreed": "恐怖と貪欲",
     "marketBreadth": "市場の広がり",
-    "climateNews": "気候ニュース"
+    "climateNews": "気候ニュース",
+    "fx": "為替レート"
   },
   "commands": {
     "prefixes": {
@@ -1353,7 +1354,8 @@
       "newsSignals": "{{news}} ニュース • {{signals}} シグナル",
       "provenanceTitle": "カバレッジプロヴェナンス: このブリーフが選択された取り込まれたストーリーと個別ソースの数",
       "compiledFrom": "{{stories}}件のストーリーから{{sources}}個のソースをコンパイル",
-      "briefFreshness": "{{minutes}}m前に生成 · 最新ソース{{hours}}h前"
+      "briefFreshness": "{{minutes}}m前に生成 · 最新ソース{{hours}}h前",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "settings": {
       "exportSettings": "設定をエクスポート",
@@ -2614,6 +2616,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>為替レート</strong> 通貨ストレスとスポットレート:<ul><li>FX Stressは45通貨をこの24ヶ月間の最悪のピークからの落ち込み幅でランク付けし、12ヶ月の変化を表示します</li><li>カバレッジにはARS、TRY、EGP、NGN、PKR、UAHが含まれます — BISとECBの参照セットでは省略されている通貨です</li><li>スポットはUSドルおよびECBユーロ参照レートのレートを別々に表示します。異なるベースから引用されているためです</li></ul>出典: Yahoo FinanceおよびEuropean Central Bank",
+      "tabs": {
+        "stress": "FX Stress",
+        "spot": "スポット"
+      },
+      "currency": "通貨",
+      "pair": "通貨ペア",
+      "rate": "レート",
+      "yoy": "12ヶ月",
+      "drawdown": "24ヶ月 落ち込み幅",
+      "peakToTrough": "ピーク → ボトム",
+      "change1d": "1日",
+      "perUsd": "1 USD当たり",
+      "usdPerUnit": "単位当たりUSD",
+      "usdBase": "USドル建て",
+      "eurBase": "ECBユーロ参照レート",
+      "stressedCount": "{{stressed}}/{{total}}通貨が{{threshold}}を下回る",
+      "sourceYahoo": "出典: Yahoo Finance",
+      "sourceEcb": "出典: ECB",
+      "degraded": "現在利用できません: {{sources}}。間もなく再試行します。",
+      "source": {
+        "stress": "FX ストレス",
+        "usd": "米ドルレート",
+        "eur": "ECB ユーロレート"
+      }
     }
   },
   "popups": {
@@ -3433,5 +3462,31 @@
     "deleteTab": "タブを削除",
     "deleteTabAria": "タブ {{name}} を削除",
     "tabNameAria": "タブ名"
+  },
+  "theaterPresets": {
+    "label": "カバレッジプリセット",
+    "applied": "{{preset}}プリセットを適用しました: {{count}}件のソースを有効化",
+    "alreadyApplied": "{{preset}}プリセットはすでに適用されています",
+    "ukraineWar": {
+      "label": "ウクライナ戦争",
+      "description": "ウクライナの主要メディア、独立系ロシア報道、前線評価ソースを有効にします"
+    },
+    "indoPacific": {
+      "label": "インド太平洋 / 台湾",
+      "description": "台湾、パキスタン、東南アジアの安全保障ソースを有効にします"
+    },
+    "sahelWestAfrica": {
+      "label": "サヘル・西アフリカ",
+      "description": "サヘル、ナイジェリア、西アフリカの現地ソースを有効にします"
+    },
+    "caucasusCentralAsia": {
+      "label": "コーカサス・中央アジア",
+      "description": "南コーカサスと中央アジアの地域ソースを有効にします"
+    },
+    "middleEastFlashpoints": {
+      "label": "中東の緊張地域",
+      "description": "イラン、イスラエル、湾岸、クルド地域のソースを有効にします"
+    },
+    "unavailable": "{{preset}}プリセットは現在のパネルでは利用できません"
   }
 }

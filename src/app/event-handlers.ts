@@ -7,7 +7,12 @@ import type {
 import type { UnifiedSettingsConfig } from '@/components/UnifiedSettings';
 import type { AirlineIntelPanel } from '@/components/AirlineIntelPanel';
 import type { CustomWidgetPanel } from '@/components/CustomWidgetPanel';
-import { deleteWidget, getWidget, saveWidget, isProUser } from '@/services/widget-store';
+import { deleteWidget, getWidget, saveWidget, isProUser, isProTierResolved } from '@/services/widget-store';
+import { hasPremiumAccess } from '@/services/panel-gating';
+import {
+  sanitizeLockedLayers,
+  shouldSanitizeLockedLayers,
+} from '@/config/map-layer-definitions';
 import {
   FREE_MAX_PANELS,
   FREE_MAX_SOURCES,
@@ -79,7 +84,7 @@ import {
 } from '@/services/analytics';
 import { detectPlatform, allButtons, buttonsForPlatform } from '@/components/DownloadBanner';
 import type { Platform } from '@/components/DownloadBanner';
-import { invokeTauri } from '@/services/tauri-bridge';
+import { isOpenableExternalUrl, openExternalUrl } from '@/services/external-navigation';
 import { getCachedGpsInterference } from '@/services/gps-interference';
 import { dataFreshness } from '@/services/data-freshness';
 import { mlWorker } from '@/services/ml-worker';
@@ -233,6 +238,7 @@ export interface EventHandlerCallbacks {
   refreshCiiAfterFocalPointsReady?: () => void;
   stopLayerActivity?: (layer: keyof MapLayers) => void;
   mountLiveNewsIfReady?: () => void;
+  isFreeTierFallbackActive?: () => boolean;
 }
 
 export class EventHandlerManager implements AppModule {
@@ -799,12 +805,16 @@ export class EventHandlerManager implements AppModule {
           return;
         }
         if (url.origin === window.location.origin) return;
-        if (!/^https?:$/.test(url.protocol)) return; // Only allow http(s) links
+        // Gate on the SAME predicate the router uses, not a looser one. The
+        // native opener takes https anywhere but http only for localhost, so
+        // a plain-http link matched by `/^https?:$/` was cancelled here and
+        // then refused there — a guaranteed dead click plus a misleading
+        // `rejected-scheme` report. Anything the router will not take is left
+        // to the WebView's own `target="_blank"` handling instead.
+        if (!isOpenableExternalUrl(url.href)) return;
         e.preventDefault();
         e.stopPropagation();
-        void invokeTauri<void>('open_url', { url: url.toString() }).catch(() => {
-          window.open(url.toString(), '_blank', 'noopener,noreferrer');
-        });
+        void openExternalUrl(url);
       };
       document.addEventListener('click', this.boundDesktopExternalLinkHandler, true);
     }
@@ -999,9 +1009,19 @@ export class EventHandlerManager implements AppModule {
   private filterMissionLayersForCurrentRenderer(layers: MapLayers): MapLayers {
     const renderer = this.ctx.map?.isGlobeMode?.() ? 'globe' : 'flat';
     const isDeckGLActive = this.ctx.map?.isDeckGLActive?.() ?? !this.ctx.isMobile;
-    return this.filterMissionLayersForAvailableServices(
+    let filtered = this.filterMissionLayersForAvailableServices(
       filterMissionLayersForRenderer(layers, renderer, isDeckGLActive, this.getMissionDefaultLayers()),
     );
+    // #6045 — mission presets (e.g. Supply-Chain Risk) include resilienceScore.
+    // Free users must not persist or apply locked layers through this path.
+    if (shouldSanitizeLockedLayers(
+      hasPremiumAccess(),
+      isProTierResolved(),
+      this.callbacks.isFreeTierFallbackActive?.() === true,
+    )) {
+      filtered = sanitizeLockedLayers(filtered, false);
+    }
+    return filtered;
   }
 
   private filterMissionLayersForAvailableServices(layers: MapLayers): MapLayers {

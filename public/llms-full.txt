@@ -174,6 +174,8 @@ Unique layers: 29 stock exchanges, 19 financial centers, 14 central-bank and sup
 
 ## Data Sources
 
+The live inventory currently covers 531+ observed upstream hosts. The [data-source catalog](https://www.worldmonitor.app/docs/data-sources) records each host's observed surface, license posture, required attribution, and review status.
+
 - ACLED (Armed Conflict Location & Event Data): Protests, riots, conflicts — 30-day window, tokenized API
 - GDELT (Global Database of Events, Language, and Tone): Geo-events, protest keywords, topic feeds
 - UCDP (Uppsala Conflict Data Program): Conflict zone classification
@@ -271,7 +273,7 @@ Native desktop app built with Tauri (Rust + Node.js sidecar). The sidecar mirror
 - 8 live news streams and 19 live webcams from geopolitical hotspots
 - 7-signal macro market radar with BUY/CASH verdict
 - Country brief pages with exportable intelligence dossiers (JSON, CSV, PNG)
-- Multilingual UI in 25 languages with RTL support
+- Multilingual UI in 26 languages with RTL support
 - Prediction market integration (Polymarket) with 3-tier JA3 bypass
 - Temporal baseline anomaly detection using Welford's algorithm
 - Dual-source protest tracking (ACLED + GDELT) with regime-aware scoring

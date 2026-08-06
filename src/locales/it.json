@@ -368,7 +368,8 @@
     "consumerPrices": "Prezzi al Consumo",
     "fearGreed": "Paura e Avidità",
     "marketBreadth": "Ampiezza di Mercato",
-    "climateNews": "Notizie Clima"
+    "climateNews": "Notizie Clima",
+    "fx": "Tassi di cambio"
   },
   "commands": {
     "prefixes": {
@@ -1677,7 +1678,8 @@
       "sources_many": "{{count}} fonti",
       "provenanceTitle": "Provenienza della copertura: quante storie acquisite e quante fonti distinte sono state utilizzate per selezionare questo briefing",
       "compiledFrom": "Compilato da {{stories}} storie provenienti da {{sources}} fonti",
-      "briefFreshness": "Generato {{minutes}}m fa · fonte più recente {{hours}}h fa"
+      "briefFreshness": "Generato {{minutes}}m fa · fonte più recente {{hours}}h fa",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "etfFlows": {
       "unavailable": "Dati ETF temporaneamente non disponibili",
@@ -2632,6 +2634,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>Tassi di cambio</strong> Stress valutario e tassi spot:<ul><li>FX Stress classifica 45 valute in base al peggior drawdown da picco a minimo negli ultimi 24 mesi, insieme alla variazione a 12 mesi</li><li>La copertura include ARS, TRY, EGP, NGN, PKR e UAH — valute omesse dai set di riferimento della BIS e della BCE</li><li>Spot elenca i tassi rispetto al dollaro USA e i tassi di riferimento dell'euro della BCE separatamente, poiché i due sono quotati su basi diverse</li></ul>Fonti: Yahoo Finance e Banca centrale europea.",
+      "tabs": {
+        "stress": "Stress valutario",
+        "spot": "Spot"
+      },
+      "currency": "Valuta",
+      "pair": "Coppia",
+      "rate": "Tasso",
+      "yoy": "12m",
+      "drawdown": "Drawdown 24m",
+      "peakToTrough": "Picco → Minimo",
+      "change1d": "1d",
+      "perUsd": "Per 1 USD",
+      "usdPerUnit": "USD per unità",
+      "usdBase": "Rispetto al dollaro USA",
+      "eurBase": "Tassi di riferimento euro della BCE",
+      "stressedCount": "{{stressed}} di {{total}} valute sotto il {{threshold}}",
+      "sourceYahoo": "Fonte: Yahoo Finance",
+      "sourceEcb": "Fonte: BCE",
+      "degraded": "Al momento non disponibile: {{sources}}. Nuovo tentativo tra poco.",
+      "source": {
+        "stress": "Stress FX",
+        "usd": "Tassi del dollaro USA",
+        "eur": "Tassi euro BCE"
+      }
     }
   },
   "popups": {
@@ -3451,5 +3480,31 @@
     "deleteTab": "Elimina scheda",
     "deleteTabAria": "Elimina scheda {{name}}",
     "tabNameAria": "Nome scheda"
+  },
+  "theaterPresets": {
+    "label": "Preset di copertura",
+    "applied": "Preset {{preset}} applicato: {{count}} fonti attivate",
+    "alreadyApplied": "Il preset {{preset}} è già applicato",
+    "ukraineWar": {
+      "label": "Guerra in Ucraina",
+      "description": "Attiva i principali media ucraini, la stampa russa indipendente e le fonti di valutazione del fronte"
+    },
+    "indoPacific": {
+      "label": "Indo-Pacifico / Taiwan",
+      "description": "Attiva le fonti di sicurezza su Taiwan, Pakistan e Sud-est asiatico"
+    },
+    "sahelWestAfrica": {
+      "label": "Sahel e Africa occidentale",
+      "description": "Attiva le fonti locali del Sahel, della Nigeria e dell'Africa occidentale"
+    },
+    "caucasusCentralAsia": {
+      "label": "Caucaso e Asia centrale",
+      "description": "Attiva le fonti regionali del Caucaso meridionale e dell'Asia centrale"
+    },
+    "middleEastFlashpoints": {
+      "label": "Focolai di tensione in Medio Oriente",
+      "description": "Attiva le fonti su Iran, Israele, Golfo e regioni curde"
+    },
+    "unavailable": "Il preset {{preset}} non è disponibile con i pannelli attuali"
   }
 }

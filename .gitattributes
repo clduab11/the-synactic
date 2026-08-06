@@ -4,3 +4,6 @@
 # image ("exec: /app/entrypoint.sh: not found" — the kernel resolves
 # "/bin/sh\r") and breaks bash on the host. Force LF regardless of autocrlf.
 *.sh text eol=lf
+
+# Preserve the byte-identical upstream Umami patch, including its indented blank lines.
+docker/umami/session-data-upsert.patch -whitespace

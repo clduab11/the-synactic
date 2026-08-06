@@ -25,6 +25,7 @@
 import { enqueueSentryCall } from '@/bootstrap/sentry-defer';
 import {
   extractCollectorFailureMetadata,
+  isBotFilteredBody,
   isSessionDataConflict,
 } from '../../shared/collector-failure-metadata';
 
@@ -33,6 +34,17 @@ export type CollectorFailure = {
   status?: number;
   prismaCode?: string;
   constraint?: string;
+  /**
+   * The collector answered 200 with its bot-filter sentinel and stored nothing.
+   *
+   * This is a MARKER, not a `kind`, on purpose. The write really was dropped,
+   * so every delivery policy — retry, and the durable checkout marker — must
+   * keep treating it exactly like any other receiptless 200. Only the alerting
+   * decision reads this flag. Promoting it to its own `kind` would silently
+   * change `isRetryableCollectorFailure` and `isDurableMarkerResolved`, turning
+   * an alert-noise fix into a conversion-accounting change.
+   */
+  botFiltered?: boolean;
 };
 
 export type CollectorRequestType = 'event' | 'identify';
@@ -42,6 +54,17 @@ export type CollectorRequestClassification = {
   eventName?: string;
   critical: boolean;
 };
+
+export type CollectorHealthCohort = 'event' | 'critical-event' | 'identify';
+
+export type CollectorHealthReport = {
+  cohort: CollectorHealthCohort;
+  writes: number;
+  failures: number;
+  failureKind: 'network' | 'timeout' | 'missing-receipt';
+};
+
+type CollectorHealthReporter = (report: CollectorHealthReport) => Promise<boolean>;
 
 export type CollectorOutcome = {
   requestType: CollectorRequestType;
@@ -60,7 +83,26 @@ export class CollectorDeliveryError extends Error {
   }
 }
 
-const COLLECTOR_QUEUE_LIMIT = 25;
+/**
+ * Depth of the serialization queue in front of the single in-flight slot.
+ *
+ * MUST stay >= `UMAMI_QUEUE_LIMIT` in `src/services/analytics.ts`. That buffer
+ * holds calls made before the tracker script loads, and `flushPendingUmamiCalls`
+ * splices and dispatches ALL of them in one synchronous loop — so the deferred
+ * buffer's capacity is delivered to this queue as a single burst. While this was
+ * 25 against a 50-deep buffer, a full flush shed ~half its events as
+ * `queue-overflow` before they ever reached the network: not backpressure
+ * against a slow collector, but a self-inflicted drop from two limits that were
+ * never reconciled (WORLDMONITOR-Y3, 2230 events / 1747 users). Raising the
+ * queue depth does NOT raise concurrency — writes still drain one at a time,
+ * which is what keeps umami#4183 contention off the collector.
+ * `tests/analytics-queue-capacity.test.mjs` fails if the two drift apart again.
+ *
+ * Exported so overflow tests can size their input from the real bound instead
+ * of a literal — a hardcoded "fill past 25" silently stops overflowing the
+ * moment this changes, and the test then passes while asserting nothing.
+ */
+export const COLLECTOR_QUEUE_LIMIT = 50;
 const HEALTH_WINDOW_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 20_000;
 
@@ -110,6 +152,35 @@ type ObservationSlot = {
 let collectorEndpoint = '';
 let isCriticalEventName: (name: string) => boolean = () => false;
 let onCollectorOutcome: (outcome: CollectorOutcome) => void = () => {};
+const DEFAULT_COLLECTOR_HEALTH_ENDPOINT = '/api/analytics-health';
+const COLLECTOR_HEALTH_REPORT_TIMEOUT_MS = 2_000;
+let collectorHealthEndpoint = DEFAULT_COLLECTOR_HEALTH_ENDPOINT;
+
+async function sendCollectorHealthReport(
+  endpoint: string,
+  report: CollectorHealthReport,
+): Promise<boolean> {
+  if (typeof globalThis.fetch !== 'function') return false;
+  try {
+    const init: RequestInit = {
+      method: 'POST',
+      credentials: 'omit',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report),
+    };
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      init.signal = AbortSignal.timeout(COLLECTOR_HEALTH_REPORT_TIMEOUT_MS);
+    }
+    const response = await globalThis.fetch(endpoint, init);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+let collectorHealthReporter: CollectorHealthReporter = (report) =>
+  sendCollectorHealthReport(collectorHealthEndpoint, report);
 
 const collectorRequestQueue: CollectorRequest[] = [];
 let collectorRequestInFlight = false;
@@ -118,7 +189,51 @@ let collectorFetchWrapper: typeof window.fetch | null = null;
 let collectorUnloadFlush: (() => void) | null = null;
 let collectorVisibilityFlush: (() => void) | null = null;
 let collectorTransportGeneration = 0;
-let collectorHealthWindow = { startedAt: 0, writes: 0, failures: 0 };
+type CollectorHealthCounters = {
+  writes: number;
+  failures: number;
+  environmentFailures: number;
+  noiseReported: boolean;
+};
+
+type CollectorHealthWindow = {
+  startedAt: number;
+  writes: number;
+  failures: number;
+  noiseReported: boolean;
+  reportedFailureSignatures: Set<string>;
+  cohorts: Record<CollectorHealthCohort, CollectorHealthCounters>;
+};
+
+function emptyCollectorHealthCounters(): CollectorHealthCounters {
+  return { writes: 0, failures: 0, environmentFailures: 0, noiseReported: false };
+}
+
+function createCollectorHealthWindow(startedAt = 0): CollectorHealthWindow {
+  return {
+    startedAt,
+    writes: 0,
+    failures: 0,
+    noiseReported: false,
+    reportedFailureSignatures: new Set(),
+    cohorts: {
+      event: emptyCollectorHealthCounters(),
+      'critical-event': emptyCollectorHealthCounters(),
+      identify: emptyCollectorHealthCounters(),
+    },
+  };
+}
+
+function collectorFailureSignature(failure: CollectorFailure): string {
+  return [failure.kind, failure.status ?? 'none', failure.prismaCode ?? 'none', failure.constraint ?? 'none'].join('|');
+}
+
+let collectorHealthWindow = createCollectorHealthWindow();
+let collectorHealthReportCursor: Record<CollectorHealthCohort, { writes: number; failures: number }> = {
+  event: { writes: 0, failures: 0 },
+  'critical-event': { writes: 0, failures: 0 },
+  identify: { writes: 0, failures: 0 },
+};
 let pendingObservation: ObservationSlot | null = null;
 /**
  * Non-zero while this module is dispatching. If a foreign wrapper installed on
@@ -132,10 +247,24 @@ export function configureCollectorTransport(options: {
   endpoint: string;
   isCriticalEvent: (name: string) => boolean;
   onOutcome: (outcome: CollectorOutcome) => void;
+  healthEndpoint?: string;
+  reportEnvironmentHealth?: CollectorHealthReporter;
 }): void {
   collectorEndpoint = options.endpoint;
   isCriticalEventName = options.isCriticalEvent;
   onCollectorOutcome = options.onOutcome;
+  collectorHealthEndpoint = options.healthEndpoint ?? DEFAULT_COLLECTOR_HEALTH_ENDPOINT;
+  collectorHealthReporter = options.reportEnvironmentHealth
+    ?? ((report) => sendCollectorHealthReport(collectorHealthEndpoint, report));
+}
+
+export function _setCollectorHealthReporterForTesting(reporter: CollectorHealthReporter): void {
+  collectorHealthReporter = reporter;
+}
+
+function getCollectorHealthCohort(request: CollectorRequest): CollectorHealthCohort {
+  if (request.requestType === 'identify') return 'identify';
+  return request.critical ? 'critical-event' : 'event';
 }
 
 export function classifyCollectorRequest(
@@ -200,7 +329,13 @@ export async function inspectCollectorResponse(response: Response): Promise<Coll
   const hasReceipt = receipt !== null && WRITE_RECEIPT_FIELDS.every(
     (field) => typeof receipt?.[field] === 'string' && (receipt[field] as string).trim() !== '',
   );
-  if (!hasReceipt) return { kind: 'missing-receipt', status: response.status };
+  if (!hasReceipt) {
+    return {
+      kind: 'missing-receipt',
+      status: response.status,
+      ...(isBotFilteredBody(body) ? { botFiltered: true } : {}),
+    };
+  }
 
   return null;
 }
@@ -244,12 +379,168 @@ export function isRetryableIdentityFailure(failure: CollectorFailure): boolean {
   return failure.status !== undefined && RETRYABLE_IDENTITY_STATUSES.has(failure.status);
 }
 
+/**
+ * Failure kinds produced by the CLIENT's environment rather than the collector.
+ *
+ * A blocked request (uBlock/Brave/Pi-hole all block `abacus.`) and a dead
+ * collector are indistinguishable from inside one browser: both fail 100% of
+ * writes. The same holds for a non-bot-filtered receiptless 200: privacy
+ * middleware that answers a faked 200 for a tracker endpoint, and a response
+ * whose body cannot be read, both look exactly like a collector that accepted
+ * and discarded the write. Verified in production 2026-08-01 (WORLDMONITOR-Y3):
+ * receiptless-200 reports arrived at ~16/hour from diverse real browsers while
+ * the Umami DB was ingesting 15-23k events/hour and every probe shape returned
+ * a full receipt. Nothing computed on this page can separate them, so the
+ * outage signal is the AGGREGATE volume of these events across users, not any
+ * single one. The browser sends bounded deltas to the aggregate endpoint, with
+ * a per-page floor retained as a fallback when that endpoint is unavailable.
+ * (A bot-filtered 200 never reaches this set — it is suppressed outright
+ * before the gate.)
+ */
+type EnvironmentNoiseKind = 'network' | 'timeout' | 'missing-receipt';
+type EnvironmentNoiseFailure = CollectorFailure & { kind: EnvironmentNoiseKind };
+const ENVIRONMENT_NOISE_KINDS = new Set<EnvironmentNoiseKind>(['network', 'timeout', 'missing-receipt']);
+
+function isEnvironmentNoiseFailure(failure: CollectorFailure): failure is EnvironmentNoiseFailure {
+  return ENVIRONMENT_NOISE_KINDS.has(failure.kind as EnvironmentNoiseKind) && !failure.botFiltered;
+}
+
+/**
+ * Minimum writes in the health window before an environment failure can alert.
+ *
+ * A page that has issued one or two writes and failed them says nothing — a
+ * single blocked beacon is the overwhelmingly common case. Requiring a real
+ * sample is what removes the ad-blocker baseline.
+ */
+const ENVIRONMENT_NOISE_MIN_WRITES = 5;
+
+/** Minimum in-window failure rate before an environment failure can alert. */
+const ENVIRONMENT_NOISE_MIN_FAILURE_RATE = 0.5;
+
+/**
+ * As much of the rolling health window as the alert policy reads.
+ *
+ * `noiseReported` is optional so a caller reasoning about a hypothetical window
+ * — every test in the policy suite — can omit the latch and get the
+ * first-occurrence answer.
+ */
+type CollectorHealthSnapshot = {
+  writes: number;
+  failures: number;
+  noiseReported?: boolean;
+};
+
+/**
+ * Whether a failure is worth a Sentry event, as opposed to merely worth a
+ * console warning.
+ *
+ * Extracted as a pure function of (failure, window) so the policy is testable
+ * without standing up the fetch gate, the deferred Sentry queue, and a real
+ * tracker — the wiring test then only has to prove this is the predicate the
+ * reporting path consults.
+ */
+export function isAlertWorthyCollectorFailure(
+  failure: CollectorFailure,
+  window: CollectorHealthSnapshot,
+): boolean {
+  // The collector deliberately discarded a bot's write. Working as designed.
+  if (failure.botFiltered) return false;
+  if (ENVIRONMENT_NOISE_KINDS.has(failure.kind as EnvironmentNoiseKind)) {
+    // The fallback emits at most one environment event per page per window.
+    // Without this, crossing the rate floor makes EVERY remaining failure in the
+    // window report, so one ad-blocked power user out-produces the incident the
+    // floor exists to show.
+    if (window.noiseReported) return false;
+    if (window.writes < ENVIRONMENT_NOISE_MIN_WRITES) return false;
+    return window.failures / window.writes >= ENVIRONMENT_NOISE_MIN_FAILURE_RATE;
+  }
+  // Everything left is actionable: a non-2xx from the origin, or a
+  // queue-overflow drop that is our own bug.
+  return true;
+}
+
+function resetCollectorHealthWindow(startedAt: number): void {
+  collectorHealthWindow = createCollectorHealthWindow(startedAt);
+  collectorHealthReportCursor = {
+    event: { writes: 0, failures: 0 },
+    'critical-event': { writes: 0, failures: 0 },
+    identify: { writes: 0, failures: 0 },
+  };
+}
+
+function buildCollectorHealthReport(
+  cohort: CollectorHealthCohort,
+  failure: EnvironmentNoiseFailure,
+): CollectorHealthReport | null {
+  const current = collectorHealthWindow.cohorts[cohort];
+  const previous = collectorHealthReportCursor[cohort];
+  const writes = Math.max(0, current.writes - previous.writes);
+  const failures = Math.max(0, current.environmentFailures - previous.failures);
+  collectorHealthReportCursor[cohort] = {
+    writes: current.writes,
+    failures: current.environmentFailures,
+  };
+  if (writes < 1 || failures < 1) return null;
+  return { cohort, writes, failures, failureKind: failure.kind };
+}
+
+function emitCollectorFailureToSentry(
+  request: CollectorRequest,
+  failure: CollectorFailure,
+  cohort: CollectorHealthCohort,
+  diagnostics: Record<string, unknown>,
+): void {
+  if (isEnvironmentNoiseFailure(failure)) {
+    const cohortWindow = collectorHealthWindow.cohorts[cohort];
+    if (cohortWindow.noiseReported) return;
+    cohortWindow.noiseReported = true;
+    collectorHealthWindow.noiseReported = true;
+  }
+
+  // Keep every failure observable through the aggregate counters and console,
+  // but emit at most one Sentry event per redacted failure signature per
+  // minute. The upstream race can affect every concurrent write; one event
+  // with the live rate and Prisma identifiers is enough to page on it.
+  const signature = collectorFailureSignature(failure);
+  if (collectorHealthWindow.reportedFailureSignatures.has(signature)) return;
+  collectorHealthWindow.reportedFailureSignatures.add(signature);
+
+  try {
+    enqueueSentryCall((s) => s.captureMessage('Umami collector write failed', {
+      level: 'warning',
+      // Tags do not split issues — without a fingerprint, Sentry groups on the
+      // fixed message and folds all five `kind`s into one. That is how the
+      // ad-blocker population (`network`, unactionable by design) buried a
+      // `queue-overflow` count that was our own dropped writes, in a single
+      // 2230-event issue nobody could read a cause out of (WORLDMONITOR-Y3).
+      // Cardinality stays bounded: 5 kinds x the small status set.
+      fingerprint: [
+        'analytics-collector',
+        'write-failed',
+        failure.kind,
+        String(failure.status ?? 'none'),
+      ],
+      tags: {
+        kind: 'analytics_collector_write_failed',
+        failureKind: failure.kind,
+        status: String(failure.status ?? 'none'),
+        requestType: request.requestType,
+        healthCohort: cohort,
+      },
+      extra: diagnostics,
+    }));
+  } catch { /* best-effort telemetry */ }
+}
+
 function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFailure | null): void {
   const now = Date.now();
   if (collectorHealthWindow.startedAt === 0 || now - collectorHealthWindow.startedAt >= HEALTH_WINDOW_MS) {
-    collectorHealthWindow = { startedAt: now, writes: 0, failures: 0 };
+    resetCollectorHealthWindow(now);
   }
   collectorHealthWindow.writes += 1;
+  const cohort = getCollectorHealthCohort(request);
+  const cohortWindow = collectorHealthWindow.cohorts[cohort];
+  cohortWindow.writes += 1;
 
   const outcome: CollectorOutcome = {
     requestType: request.requestType,
@@ -261,37 +552,81 @@ function recordCollectorOutcome(request: CollectorRequest, failure: CollectorFai
   if (!failure) return;
 
   collectorHealthWindow.failures += 1;
+  cohortWindow.failures += 1;
+  if (isEnvironmentNoiseFailure(failure)) cohortWindow.environmentFailures += 1;
+  if (failure.botFiltered) {
+    // Bot-filtered writes are expected drops, not evidence about the collector.
+    cohortWindow.writes -= 1;
+    cohortWindow.failures -= 1;
+  }
   // Deliberately reports only delivery metadata. The event payload can contain
   // billing or identity data and must never be copied into diagnostics.
+  const cohortFailureRate = cohortWindow.writes > 0
+    ? cohortWindow.failures / cohortWindow.writes
+    : 0;
+  const environmentFailureRate = cohortWindow.writes > 0
+    ? cohortWindow.environmentFailures / cohortWindow.writes
+    : 0;
   const diagnostics = {
     requestType: request.requestType,
+    healthCohort: cohort,
     status: failure.status ?? null,
     failureKind: failure.kind,
-    failureRate: collectorHealthWindow.failures / collectorHealthWindow.writes,
+    failureRate: cohortFailureRate,
+    environmentFailureRate,
     failureCount: collectorHealthWindow.failures,
     writeCount: collectorHealthWindow.writes,
+    cohortFailureCount: cohortWindow.failures,
+    cohortWriteCount: cohortWindow.writes,
     prismaCode: failure.prismaCode ?? null,
     constraint: failure.constraint ?? null,
+    // The console warning fires for suppressed failures too, so it has to say
+    // WHY a receiptless 200 happened — otherwise a developer reading devtools
+    // during a bot-filtered write starts debugging a write path that is fine.
+    botFiltered: failure.botFiltered ?? false,
   };
   console.warn('[Analytics] Umami collector write failed', diagnostics);
 
-  // A console warning in a user's devtools is not observable. The known #4183
-  // race is expected and would only add noise, but anything else is the signal
-  // this monitoring work exists to surface — route it the same way wm-session
-  // and checkout report their degraded writes so it aggregates on a dashboard.
-  if (isKnownSessionDataConflict(failure)) return;
-  try {
-    enqueueSentryCall((s) => s.captureMessage('Umami collector write failed', {
-      level: 'warning',
-      tags: {
-        kind: 'analytics_collector_write_failed',
-        failureKind: failure.kind,
-        status: String(failure.status ?? 'none'),
-        requestType: request.requestType,
-      },
-      extra: diagnostics,
-    }));
-  } catch { /* best-effort telemetry */ }
+  // A console warning in a user's devtools is not observable, so genuine
+  // failures are routed to Sentry the same way wm-session and checkout report
+  // their degraded writes. But an alarm that fires on expected background
+  // conditions trains everyone to ignore it — the alert-fatigue path straight
+  // back to #5565, where a dead collector went unnoticed for four days. Only
+  // actionable failures get an event. Environment failures first go through
+  // the cross-user aggregate. If that path is unavailable, the original
+  // per-page floor remains as a bounded fallback.
+  if (isEnvironmentNoiseFailure(failure)) {
+    const localSnapshot: CollectorHealthSnapshot = {
+      writes: cohortWindow.writes,
+      failures: cohortWindow.environmentFailures,
+      noiseReported: cohortWindow.noiseReported,
+    };
+    const report = buildCollectorHealthReport(cohort, failure);
+    if (!report) return;
+
+    let reportPromise: Promise<boolean>;
+    try {
+      reportPromise = collectorHealthReporter(report);
+    } catch {
+      reportPromise = Promise.resolve(false);
+    }
+    void reportPromise.then((accepted) => {
+      if (accepted || !isAlertWorthyCollectorFailure(failure, localSnapshot)) return;
+      emitCollectorFailureToSentry(request, failure, cohort, diagnostics);
+    }, () => {
+      if (isAlertWorthyCollectorFailure(failure, localSnapshot)) {
+        emitCollectorFailureToSentry(request, failure, cohort, diagnostics);
+      }
+    });
+    return;
+  }
+
+  if (!isAlertWorthyCollectorFailure(failure, {
+    writes: cohortWindow.writes,
+    failures: cohortWindow.failures,
+    noiseReported: cohortWindow.noiseReported,
+  })) return;
+  emitCollectorFailureToSentry(request, failure, cohort, diagnostics);
 }
 
 function withTimeout(init: RequestInit | undefined): RequestInit {
@@ -558,10 +893,28 @@ export function resetCollectorTransportForTesting(): void {
   collectorVisibilityFlush = null;
   collectorFetchOriginal = null;
   collectorFetchWrapper = null;
-  collectorHealthWindow = { startedAt: 0, writes: 0, failures: 0 };
+  collectorHealthEndpoint = DEFAULT_COLLECTOR_HEALTH_ENDPOINT;
+  collectorHealthReporter = (report) => sendCollectorHealthReport(collectorHealthEndpoint, report);
+  resetCollectorHealthWindow(0);
 }
 
 /** Test-only: current rolling health window. */
-export function getCollectorHealthForTesting(): { writes: number; failures: number } {
-  return { writes: collectorHealthWindow.writes, failures: collectorHealthWindow.failures };
+export function getCollectorHealthForTesting(): {
+  writes: number;
+  failures: number;
+  noiseReported: boolean;
+  reportedFailureSignatures: number;
+  cohorts: Record<CollectorHealthCohort, CollectorHealthCounters>;
+} {
+  return {
+    writes: collectorHealthWindow.writes,
+    failures: collectorHealthWindow.failures,
+    noiseReported: collectorHealthWindow.noiseReported,
+    reportedFailureSignatures: collectorHealthWindow.reportedFailureSignatures.size,
+    cohorts: {
+      event: { ...collectorHealthWindow.cohorts.event },
+      'critical-event': { ...collectorHealthWindow.cohorts['critical-event'] },
+      identify: { ...collectorHealthWindow.cohorts.identify },
+    },
+  };
 }

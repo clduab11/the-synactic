@@ -366,7 +366,8 @@
     "consumerPrices": "ราคาผู้บริโภค",
     "fearGreed": "ความกลัวและความโลภ",
     "marketBreadth": "ความกว้างของตลาด",
-    "climateNews": "ข่าวสภาพอากาศ"
+    "climateNews": "ข่าวสภาพอากาศ",
+    "fx": "อัตราแลกเปลี่ยน"
   },
   "commands": {
     "prefixes": {
@@ -1353,7 +1354,8 @@
       "newsSignals": "{{news}} ข่าว • {{signals}} สัญญาณ",
       "provenanceTitle": "ความมาของการครอบคลุม: จำนวนเรื่องข่าวที่นำเข้าและแหล่งข่าวที่แตกต่างกันที่ใช้สำหรับสรุปนี้",
       "compiledFrom": "รวบรวมจาก {{stories}} เรื่องราวจาก {{sources}} แหล่งที่มา",
-      "briefFreshness": "สร้างเมื่อ {{minutes}}m ที่แล้ว · แหล่งข้อมูลล่าสุด {{hours}}h เก่า"
+      "briefFreshness": "สร้างเมื่อ {{minutes}}m ที่แล้ว · แหล่งข้อมูลล่าสุด {{hours}}h เก่า",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "settings": {
       "exportSettings": "ส่งออกการตั้งค่า",
@@ -2614,6 +2616,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>อัตราแลกเปลี่ยน</strong> ความเครียดของ通货 และอัตราสปอต:<ul><li>FX Stress จัดอันดับ 45 สกุลเงินตามการลดลงแบบ peak-to-trough ที่เลวร้ายที่สุดในช่วง 24 เดือนที่ผ่านมา พร้อมกับการเปลี่ยนแปลงใน 12 เดือน</li><li>ครอบคลุม ARS, TRY, EGP, NGN, PKR และ UAH — สกุลเงินที่ชุดอ้างอิงของ BIS และ ECB ไม่รวม</li><li>Spot แสดงอัตราต่อดอลลาร์สหรัฐและอัตราอ้างอิงยูโรของ ECB แยกกัน เพราะทั้งสองมาจากฐานต่างกัน</li></ul>แหล่งที่มา: Yahoo Finance และธนาคารกลางยุโรป",
+      "tabs": {
+        "stress": "FX Stress",
+        "spot": "Spot"
+      },
+      "currency": "สกุลเงิน",
+      "pair": "คู่สกุลเงิน",
+      "rate": "อัตรา",
+      "yoy": "12 เดือน",
+      "drawdown": "การลดลง 24 เดือน",
+      "peakToTrough": "จากสูงสุดถึงต่ำสุด",
+      "change1d": "1 วัน",
+      "perUsd": "ต่อ 1 ดอลลาร์สหรัฐ",
+      "usdPerUnit": "ดอลลาร์สหรัฐต่อหน่วย",
+      "usdBase": "เทียบกับดอลลาร์สหรัฐ",
+      "eurBase": "อัตราอ้างอิงยูโรของ ECB",
+      "stressedCount": "{{stressed}} จาก {{total}} สกุลเงินลดลงต่ำกว่า {{threshold}}",
+      "sourceYahoo": "แหล่งที่มา: Yahoo Finance",
+      "sourceEcb": "แหล่งที่มา: ECB",
+      "degraded": "ไม่พร้อมใช้งานในขณะนี้: {{sources}} จะลองใหม่ในไม่ช้า",
+      "source": {
+        "stress": "ความเครียด FX",
+        "usd": "อัตราดอลลาร์สหรัฐ",
+        "eur": "อัตราユーโรของ ECB"
+      }
     }
   },
   "popups": {
@@ -3433,5 +3462,31 @@
     "deleteTab": "ลบแท็บ",
     "deleteTabAria": "ลบแท็บ {{name}}",
     "tabNameAria": "ชื่อแท็บ"
+  },
+  "theaterPresets": {
+    "label": "พรีเซ็ตการครอบคลุม",
+    "applied": "ใช้พรีเซ็ต {{preset}} แล้ว: เปิดใช้แหล่งข้อมูล {{count}} แหล่ง",
+    "alreadyApplied": "ใช้พรีเซ็ต {{preset}} อยู่แล้ว",
+    "ukraineWar": {
+      "label": "สงครามยูเครน",
+      "description": "เปิดใช้สื่อหลักของยูเครน สื่อรัสเซียอิสระ และแหล่งประเมินสถานการณ์แนวหน้า"
+    },
+    "indoPacific": {
+      "label": "อินโดแปซิฟิก / ไต้หวัน",
+      "description": "เปิดใช้แหล่งข่าวความมั่นคงจากไต้หวัน ปากีสถาน และเอเชียตะวันออกเฉียงใต้"
+    },
+    "sahelWestAfrica": {
+      "label": "ซาเฮลและแอฟริกาตะวันตก",
+      "description": "เปิดใช้แหล่งข่าวท้องถิ่นจากซาเฮล ไนจีเรีย และแอฟริกาตะวันตก"
+    },
+    "caucasusCentralAsia": {
+      "label": "คอเคซัสและเอเชียกลาง",
+      "description": "เปิดใช้แหล่งข่าวภูมิภาคจากคอเคซัสใต้และเอเชียกลาง"
+    },
+    "middleEastFlashpoints": {
+      "label": "จุดตึงเครียดในตะวันออกกลาง",
+      "description": "เปิดใช้แหล่งข่าวจากอิหร่าน อิสราเอล อ่าวอาหรับ และภูมิภาคเคิร์ด"
+    },
+    "unavailable": "พรีเซ็ต {{preset}} ไม่พร้อมใช้งานกับแผงปัจจุบันของคุณ"
   }
 }

@@ -370,7 +370,8 @@
     "consumerPrices": "Ceny Konsumenckie",
     "fearGreed": "Strach i Chciwość",
     "marketBreadth": "Szerokość Rynku",
-    "climateNews": "Wiadomości Klimatyczne"
+    "climateNews": "Wiadomości Klimatyczne",
+    "fx": "Kursy walut"
   },
   "commands": {
     "prefixes": {
@@ -1597,7 +1598,8 @@
       "sources_many": "{{count}} źródeł",
       "provenanceTitle": "Pochodzenie zasięgu: ile pozyskanych artykułów i odrębnych źródeł wybrano dla tego briefu",
       "compiledFrom": "Zebrane z {{stories}} artykułów z {{sources}} źródeł",
-      "briefFreshness": "Wygenerowano {{minutes}}m temu · najnowsze źródło sprzed {{hours}}h"
+      "briefFreshness": "Wygenerowano {{minutes}}m temu · najnowsze źródło sprzed {{hours}}h",
+      "briefStoryDetails": "Story details ({{count}})"
     },
     "etfFlows": {
       "unavailable": "Dane ETF tymczasowo niedostępne",
@@ -2650,6 +2652,33 @@
         "4": "Increased intelligence watch and strengthened security",
         "5": "Lowest state of readiness — normal peacetime posture"
       }
+    },
+    "fx": {
+      "infoTooltip": "<strong>Kursy walut</strong> Stres walutowy i kursy spot:<ul><li>FX Stress klasyfikuje 45 walut według ich największego spadku od szczytu do dołu w ostatnich 24 miesiącach, wraz ze zmianą 12-miesięczną</li><li>Zasięg obejmuje ARS, TRY, EGP, NGN, PKR i UAH — waluty pominięte w zestawach odniesienia BIS i EBC</li><li>Spot wyświetla kursy względem dolara amerykańskiego i referencyjnych kursów euro EBC osobno, ponieważ są notowane na podstawie różnych źródeł</li></ul>Źródła: Yahoo Finance i Europejski Bank Centralny.",
+      "tabs": {
+        "stress": "Stres walutowy",
+        "spot": "Spot"
+      },
+      "currency": "Waluta",
+      "pair": "Para",
+      "rate": "Kurs",
+      "yoy": "12m",
+      "drawdown": "Spadek 24m",
+      "peakToTrough": "Szczyt → Dół",
+      "change1d": "1d",
+      "perUsd": "Za 1 USD",
+      "usdPerUnit": "USD za jednostkę",
+      "usdBase": "Względem dolara amerykańskiego",
+      "eurBase": "Referencyjne kursy euro EBC",
+      "stressedCount": "{{stressed}} z {{total}} walut poniżej {{threshold}}",
+      "sourceYahoo": "Źródło: Yahoo Finance",
+      "sourceEcb": "Źródło: EBC",
+      "degraded": "Niedostępne teraz: {{sources}}. Ponowna próba za chwilę.",
+      "source": {
+        "stress": "Stres walutowy",
+        "usd": "Kursy dolara USD",
+        "eur": "Kursy euro ECB"
+      }
     }
   },
   "popups": {
@@ -3469,5 +3498,31 @@
     "deleteTab": "Usuń kartę",
     "deleteTabAria": "Usuń kartę {{name}}",
     "tabNameAria": "Nazwa karty"
+  },
+  "theaterPresets": {
+    "label": "Presety zasięgu",
+    "applied": "Zastosowano preset {{preset}}: włączono {{count}} źródeł",
+    "alreadyApplied": "Preset {{preset}} jest już zastosowany",
+    "ukraineWar": {
+      "label": "Wojna w Ukrainie",
+      "description": "Włącz ukraińskie media głównego nurtu, niezależną prasę rosyjską i źródła oceny sytuacji na froncie"
+    },
+    "indoPacific": {
+      "label": "Indo-Pacyfik / Tajwan",
+      "description": "Włącz źródła bezpieczeństwa dotyczące Tajwanu, Pakistanu i Azji Południowo-Wschodniej"
+    },
+    "sahelWestAfrica": {
+      "label": "Sahel i Afryka Zachodnia",
+      "description": "Włącz lokalne źródła z Sahelu, Nigerii i Afryki Zachodniej"
+    },
+    "caucasusCentralAsia": {
+      "label": "Kaukaz i Azja Centralna",
+      "description": "Włącz źródła regionalne z Kaukazu Południowego i Azji Centralnej"
+    },
+    "middleEastFlashpoints": {
+      "label": "Punkty zapalne na Bliskim Wschodzie",
+      "description": "Włącz źródła dotyczące Iranu, Izraela, Zatoki i regionów kurdyjskich"
+    },
+    "unavailable": "Preset {{preset}} nie jest dostępny przy obecnych panelach"
   }
 }
