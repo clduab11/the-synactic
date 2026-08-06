@@ -13,7 +13,10 @@ export interface VariantMeta {
 
 export const VARIANT_META: { full: VariantMeta; [k: string]: VariantMeta } = {
   full: {
-    title: 'the-synactic - Real-Time Global Intelligence Dashboard',
+    // Product name plus legal entity — by construction untranslatable, so the
+    // shell title lives here (single source for document.title, the built
+    // <title>, and the PWA manifest name), NOT in the locale files.
+    title: 'the-synactic: Praxen Development & Engineering',
     description: 'Real-time global intelligence platform tracking conflicts, markets, military activity, and OSINT signals across 190+ countries, with live context in one view.',
     keywords: 'AI intelligence, AI-powered dashboard, global intelligence, geopolitical dashboard, world news, market data, military bases, nuclear facilities, undersea cables, conflict zones, real-time monitoring, situation awareness, OSINT, flight tracking, AIS ships, earthquake monitor, protest tracker, power outages, oil prices, government spending, polymarket predictions',
     url: 'https://www.worldmonitor.app/dashboard',

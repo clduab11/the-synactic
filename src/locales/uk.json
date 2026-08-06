@@ -1,6 +1,5 @@
 {
   "shell": {
-    "documentTitle": "World Monitor — Real-Time Global Intelligence Dashboard",
     "metaDescription": "Real-time global intelligence platform. Featured in WIRED. Used by 2M+ people across 190 countries. Conflicts, markets, military, OSINT in one view.",
     "offlineTitle": "You're Offline",
     "offlineMessage": "World Monitor requires an internet connection for real-time intelligence data.",
@@ -66,7 +65,9 @@
       "sortableTable": "Sortable crypto price table with search filter",
       "animatedCounters": "Animated counters for key economic indicators",
       "tabbedComparison": "Tabbed comparison of conflict events by region"
-    }
+    },
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again.",
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}"
   },
   "countryBrief": {
     "identifying": "Identifying country...",
@@ -326,7 +327,8 @@
     "panelCatMining": "Mining & Supply Chain",
     "panelCatCommodityEcon": "Economy & Trade",
     "panelCatHappyNews": "Good News",
-    "panelCatHappyPlanet": "Planet & Giving"
+    "panelCatHappyPlanet": "Planet & Giving",
+    "trader": "TRADER"
   },
   "panels": {
     "liveNews": "Live News",
@@ -1996,7 +1998,8 @@
       "closePanel": "Close panel",
       "collapsePanel": "Collapse panel",
       "expandPanel": "Expand panel",
-      "addPanel": "Add Panel"
+      "addPanel": "Add Panel",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "Map labels currently fall back to English for Vietnamese."
@@ -2619,6 +2622,97 @@
         "usd": "Курси US долара",
         "eur": "Курси євро ECB"
       }
+    },
+    "defcon": {
+      "title": "DEFCON Readiness Estimate",
+      "close": "Close DEFCON panel",
+      "badge": "DEFCON {{level}}",
+      "estMarker": "EST",
+      "disclaimer": "OSINT estimate, not an official status. The U.S. does not publish the current DEFCON level — the real one is classified.",
+      "commandsTitle": "Unified Combatant Commands",
+      "syntheticTitle": "Additional trackers",
+      "syntheticNote": "Publisher's own thematic trackers — not U.S. combatant commands.",
+      "diverging": "{{count}} of {{total}} commands assessed more severe than the headline level",
+      "source": "Source:",
+      "updated": "Source updated {{source}} · collected {{fetched}}",
+      "unknownTime": "unknown",
+      "justNow": "just now",
+      "minutesAgo": "{{m}}m ago",
+      "hoursAgo": "{{h}}h ago",
+      "daysAgo": "{{d}}d ago",
+      "levelNames": {
+        "1": "COCKED PISTOL",
+        "2": "FAST PACE",
+        "3": "ROUND HOUSE",
+        "4": "DOUBLE TAKE",
+        "5": "FADE OUT"
+      },
+      "levelDescs": {
+        "1": "Maximum readiness — nuclear war imminent or underway",
+        "2": "Armed forces ready to deploy and engage in under six hours",
+        "3": "Increased force readiness above normal",
+        "4": "Increased intelligence watch and strengthened security",
+        "5": "Lowest state of readiness — normal peacetime posture"
+      }
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
+    },
+    "predictionFocus": {
+      "poolGeopolitical": "Geopolitical",
+      "poolTech": "Technology",
+      "poolFinance": "Finance",
+      "shownInPanel": "shown in panel",
+      "marketsAcross": "markets across",
+      "pools": "pools",
+      "basisQuote": "live quote",
+      "basisLastTrade": "last trade",
+      "basisEventTotal": "event total",
+      "basisContract": "contract",
+      "volumeMissing": "volume not published",
+      "horizonUnknown": "no close date",
+      "longHorizon": "long horizon",
+      "closed": "closed",
+      "noTags": "no tags published",
+      "basisNote": "Volume and price are not comparable across venues: Polymarket reports an event-level volume with a live quote, Kalshi reports the selected contract volume with its last traded price.",
+      "liquidityNote": "Neither venue publishes a full order book. Kalshi publishes size at the best bid and ask only; Polymarket publishes no size at all, just a venue-computed score. Quoted spread is the cost to cross, not depth.",
+      "spread": "spread",
+      "spreadMissing": "no quote",
+      "topOfBook": "top of book",
+      "venueScore": "venue score",
+      "sizeMissing": "no size published",
+      "loading": "Loading market data…"
+    },
+    "stockBacktestFocus": {
+      "symbolsAvailable": "symbols with a completed backtest",
+      "winRate": "win rate",
+      "avgReturn": "avg return",
+      "sumReturn": "sum of returns",
+      "actionable": "actionable / run",
+      "window": "forward window",
+      "barsSuffix": " bars",
+      "latestSignal": "latest scored signal",
+      "engineNote": "Technical indicators only — no fundamentals, news or intelligence signals feed this engine. Returns are gross: no slippage, commission, dividends or position sizing, and the sum of returns is not a compounded equity curve.",
+      "sameMetricNote": "Win rate and direction accuracy are the same computation and will always match.",
+      "staleSignalNote": "The latest scored signal is at least one full forward window old — an evaluation only exists once its window has completed. It is not a call on today.",
+      "truncationNote": "Aggregates above cover every evaluation; the table shows only the most recent",
+      "unavailable": "No completed backtest for this symbol.",
+      "noTrades": "No simulated trades in range.",
+      "colDate": "Analysed",
+      "colSignal": "Signal",
+      "colEntry": "Entry",
+      "colExit": "Exit",
+      "colStop": "Stop",
+      "colTarget": "Target",
+      "colReturn": "Return",
+      "colOutcome": "Exit reason",
+      "colDir": "Dir",
+      "outcome_stop_loss": "stop",
+      "outcome_take_profit": "target",
+      "outcome_window_close": "window close"
     }
   },
   "popups": {
@@ -3350,7 +3444,10 @@
     "quickConnect": "Quick Connect",
     "or": "or enter a custom server",
     "generatingVisualization": "Building visualization...",
-    "visualizationFailed": "Visualization failed"
+    "visualizationFailed": "Visualization failed",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "Dashboard tabs",

@@ -26,6 +26,7 @@ import {
   shouldSanitizeLockedLayers,
 } from '@/config/map-layer-definitions';
 import type { MapVariant } from '@/config/map-layer-definitions';
+import { VARIANT_META } from '@/config/variant-meta';
 import { getStoredMapModePreference } from '@/services/map-mode-preference';
 import {
   initDB,
@@ -1577,18 +1578,21 @@ export class App {
     await initI18n();
     markLcpDebug('wm:boot:i18n-ready');
     initDeferredDashboardFonts();
-    // Localize the static index.html shell — <title>, meta description, and
-    // the accessible <h1> are baked in English before the app boots; once i18n
-    // is ready we swap them to the user's locale.
-    document.title = t('shell.documentTitle');
+    // Localize the static index.html shell — the meta descriptions swap to
+    // the user's locale once i18n is ready. The TITLE does not: it is the
+    // product name plus a legal entity name, untranslatable by construction,
+    // and comes from variant-meta so document.title, the built <title>, and
+    // the PWA manifest can never disagree.
+    const shellTitle = (VARIANT_META[SITE_VARIANT] ?? VARIANT_META.full).title;
+    document.title = shellTitle;
     const setMeta = (sel: string, val: string) => {
       const el = document.querySelector(sel);
       if (el) el.setAttribute('content', val);
     };
     setMeta('meta[name="description"]', t('shell.metaDescription'));
-    setMeta('meta[property="og:title"]', t('shell.documentTitle'));
+    setMeta('meta[property="og:title"]', shellTitle);
     setMeta('meta[property="og:description"]', t('shell.metaDescription'));
-    setMeta('meta[name="twitter:title"]', t('shell.documentTitle'));
+    setMeta('meta[name="twitter:title"]', shellTitle);
     setMeta('meta[name="twitter:description"]', t('shell.metaDescription'));
     // Mirror of OG_LOCALE in pro-test/src/i18n.ts. The two packages have
     // separate Vite roots and bundlers and can't share an import — keep the
@@ -1603,7 +1607,7 @@ export class App {
     const baseLang = (document.documentElement.lang || 'en').split('-')[0] || 'en';
     setMeta('meta[property="og:locale"]', ogLocaleMap[baseLang] || `${baseLang}_${baseLang.toUpperCase()}`);
     const srH1 = document.querySelector('body > h1');
-    if (srH1) srH1.textContent = t('shell.documentTitle');
+    if (srH1) srH1.textContent = shellTitle;
     const aiFlow = getAiFlowSettings();
     if (aiFlow.browserModel || isDesktopRuntime()) {
       await mlWorker.init();

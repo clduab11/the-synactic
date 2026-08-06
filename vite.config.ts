@@ -934,7 +934,10 @@ export default defineConfig(({ mode }) => {
         includeManifestIcons: false,
 
         manifest: {
-          name: `${activeMeta.siteName} - ${activeMeta.subject}`,
+          // Install identity matches the page title exactly. Chrome caches
+          // this at install time — an already-installed PWA needs a
+          // reinstall to pick up a rename.
+          name: activeMeta.title,
           short_name: activeMeta.shortName,
           description: activeMeta.description,
           start_url: '/dashboard',
