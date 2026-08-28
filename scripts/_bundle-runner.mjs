@@ -127,6 +127,49 @@ async function writeBundleHeartbeat(label) {
 }
 
 /**
+ * Durable proof that a producer has published on THIS deployment.
+ *
+ * Health softens a probe whose producer may never have run here
+ * (ON_DEMAND_KEYS); the marker REVOKES that softening, so a missing or stale
+ * key after activation is a real fault rather than a deploy window. Written
+ * without a TTL: first publication is one-way. Best-effort — a failed write
+ * costs nothing but a retry on the next successful run, and must never fail
+ * the tick that earned it.
+ */
+async function writeActivationMarker(markerKey, label) {
+  if (!REDIS_URL || !REDIS_TOKEN) return false;
+  try {
+    const resp = await fetch(REDIS_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${REDIS_TOKEN}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'worldmonitor-bundle-runner/1.0',
+      },
+      body: JSON.stringify(['SET', markerKey, '1']),
+      signal: AbortSignal.timeout(REDIS_READ_TIMEOUT_MS),
+    });
+    const body = resp.ok ? await resp.json().catch(() => null) : null;
+    if (body?.result === 'OK') return true;
+    console.warn(`[Bundle:${label}] activation marker ${markerKey} write failed`);
+    return false;
+  } catch (err) {
+    console.warn(`[Bundle:${label}] activation marker ${markerKey} write failed: ${err instanceof Error ? err.message : err}`);
+    return false;
+  }
+}
+
+/**
+ * The marker a section's own health probe consults. Sections declare
+ * `seedMetaKey` in both the legacy bare form and the prefixed form, so strip
+ * the prefix before rebuilding — health keys the marker off the bare domain.
+ */
+function sectionActivationKey(section) {
+  if (!section?.seedMetaKey) return null;
+  return `seed-activated:${String(section.seedMetaKey).replace(/^seed-meta:/, '')}`;
+}
+
+/**
  * Read section freshness for the interval gate.
  *
  * Returns `{ fetchedAt }` or null. A declared `freshnessMetaKey` is authoritative
@@ -553,6 +596,10 @@ export async function runBundle(label, sections, opts = {}) {
   const wroteHeartbeat = await writeBundleHeartbeat(label);
   if (wroteHeartbeat) {
     console.log(`[Bundle:${label}] tick heartbeat ${bundleHeartbeatKey(label)}`);
+    // The heartbeat is the tick probe's data; this marker is the durable proof
+    // that the scheduler runs this bundle on this deployment at all. Lowercased
+    // because health's marker vocabulary is lowercase (`seed-activated:*`).
+    await writeActivationMarker(`seed-activated:bundle:${label.toLowerCase()}`, label);
   }
 
   // Bundles with a simultaneous-fit invariant can opt into a bounded preflight:
@@ -653,6 +700,10 @@ export async function runBundle(label, sections, opts = {}) {
         // the child's event line was dropped before parsing).
         console.log(`[Bundle:${label}] section=${section.label} status=OK elapsed=${result.elapsed}s`);
       }
+      // Per-section, not per-bundle: a tick where this member was deferred must
+      // not arm strictness for a key it did not publish.
+      const sectionMarker = sectionActivationKey(section);
+      if (sectionMarker) await writeActivationMarker(sectionMarker, label);
       ran++;
     } else {
       if (!result.alreadyLogged) {

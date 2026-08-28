@@ -196,6 +196,24 @@ export const CAPTURED_KEY_DECODED_BYTES = Object.freeze({
   breadthHistory: 8_059,
 });
 
+/**
+ * Fork-added bootstrap keys, absent from the frozen 2026-08-21 capture. Exact
+ * UTF-8 bytes of JSON.stringify(unwrapEnvelope(GET <key>).data), measured
+ * 2026-08-28 from the self-host stack's live seeds — the same value
+ * publish-bootstrap-tiers.mjs embeds. Kept out of CAPTURED_KEY_DECODED_BYTES
+ * so the frozen table still reconstructs the captured body shas byte-for-byte.
+ */
+export const FORK_KEY_DECODED_BYTES = Object.freeze({
+  defconLevel: 3_091,
+  krakenMarkets: 2_261,
+});
+
+/** Evidence for every head key: the frozen capture plus fork additions. */
+const KEY_DECODED_BYTES = Object.freeze({
+  ...CAPTURED_KEY_DECODED_BYTES,
+  ...FORK_KEY_DECODED_BYTES,
+});
+
 // Absolute final ceilings are the required reductions applied to the complete
 // capture, not to a hand-picked subset: FAST <= 80%, SLOW <= 75% of base.
 export const FINAL_TIER_DECODED_BYTE_CEILINGS = Object.freeze({
@@ -367,7 +385,7 @@ export function bootstrapPayloadBudgetViolations(tier, ledger) {
   }
 
   for (const [key, bytes] of Object.entries(ledger.keyBytes)) {
-    const capturedBytes = CAPTURED_KEY_DECODED_BYTES[key];
+    const capturedBytes = KEY_DECODED_BYTES[key];
     if (!Number.isInteger(capturedBytes)) continue;
     const materialGrowth = Math.max(
       budget.materialGrowthFloorBytes,
@@ -412,7 +430,7 @@ export function buildBootstrapPayloadBudgetCandidate(tier, keys, representativeL
     }
   }
 
-  const keyBytes = Object.fromEntries(keys.map((key) => [key, CAPTURED_KEY_DECODED_BYTES[key]]));
+  const keyBytes = Object.fromEntries(keys.map((key) => [key, KEY_DECODED_BYTES[key]]));
   for (const [key, baselineBytes] of Object.entries(baseline.keyBytes)) {
     if (!Object.hasOwn(keyBytes, key)) continue;
     keyBytes[key] += Math.max(0, measuredKeyBytes[key] - baselineBytes);
@@ -428,7 +446,7 @@ export function buildBootstrapPayloadBudgetCandidate(tier, keys, representativeL
 export function tierPayloadBytesFromLedger(keys) {
   let bytes = Buffer.byteLength('{"data":{', 'utf8');
   keys.forEach((key, index) => {
-    const valueBytes = CAPTURED_KEY_DECODED_BYTES[key];
+    const valueBytes = KEY_DECODED_BYTES[key];
     if (!Number.isInteger(valueBytes) || valueBytes < 0) {
       throw new Error(`No production byte evidence for bootstrap key: ${key}`);
     }

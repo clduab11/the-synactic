@@ -22,7 +22,7 @@ import {
 } from '../src/config/panels.ts';
 import type { MapLayers, PanelConfig } from '../src/types/index.ts';
 
-const VARIANTS = ['full', 'tech', 'finance', 'commodity', 'happy', 'energy'] as const;
+const VARIANTS = ['full', 'tech', 'finance', 'commodity', 'happy', 'energy', 'trader'] as const;
 
 it('keeps the advertised pre-ready invocation window at 30 seconds', () => {
   assert.equal(WEBMCP_UI_READY_TIMEOUT_MS, 30_000);
@@ -33,12 +33,13 @@ const EXPECTED_VARIANT_PANEL_SNAPSHOTS: Record<DashboardVariant, {
   enabledCount: number;
   enabledSha256: string;
 }> = {
-  full: { enabledCount: 87, enabledSha256: 'f88a8223a3b1ae42a80a9a4d55678b4e0dbaf942632408fe0987e3a956bd5372' },
+  full: { enabledCount: 88, enabledSha256: 'a5a3ab8c15c914c581d52c72f3b02315ae901fa1e5afac2581c0bb25a593a2e2' },
   tech: { enabledCount: 38, enabledSha256: 'de9f78179aa2c75301883511ad0bab48fc67cba5cd4eb4445906abf17458a290' },
-  finance: { enabledCount: 60, enabledSha256: 'e9cbe30455e107add242019de29d44335abf9da2a8a44c9c204076ed279bcfe8' },
+  finance: { enabledCount: 61, enabledSha256: '2f5c64d0a89df902bffec6ef5d80782c3bdfbc0b00cc6b6f66d9b47273ce1d13' },
   commodity: { enabledCount: 33, enabledSha256: 'b534510a2e814392e3966beb211e300e75a2b33f05c283613dd4f6cee50ddfe0' },
   happy: { enabledCount: 10, enabledSha256: 'f62bbf19c2f7ca75fefeb12a7ba32da991a72f494f91e6d310910d5b7a0468ad' },
   energy: { enabledCount: 26, enabledSha256: '4566c4b42ec77521cddce83cccabe91069ffb211ade9441ef0cf115f11a3cd67' },
+  trader: { enabledCount: 17, enabledSha256: '865b0daea68e6eb339a757edb29c8fba4e1e5d706577ad19cb448014c722b649' },
 };
 
 const EXPECTED_VARIANT_DEFAULT_SNAPSHOTS: Record<DashboardVariant, {
@@ -46,12 +47,13 @@ const EXPECTED_VARIANT_DEFAULT_SNAPSHOTS: Record<DashboardVariant, {
   enabled: number;
   sha256: string;
 }> = {
-  full: { total: 109, enabled: 87, sha256: '9b761c8ce3685acbcc233b25b639d1998fbdb3d303cd6d9cbc5b8da1e53d4958' },
+  full: { total: 110, enabled: 88, sha256: 'b1d4b2f7db1a3ec89259b7f15fcb93fea8429688848521213928264960fc3970' },
   tech: { total: 41, enabled: 38, sha256: '43d7c788ff599baae171f7f46532653370e03ca4d322a8e6614f9f0a1cee5045' },
-  finance: { total: 65, enabled: 60, sha256: 'cfcd641367902fe1966986633577763df178f5a1ea9d22038aa350276b55abbb' },
+  finance: { total: 66, enabled: 61, sha256: '506f8af9e9a05ae717cd2d117cce305f5f4163343f9b2b887a2895c230e7f33d' },
   commodity: { total: 36, enabled: 33, sha256: 'cc9e0b178dec33dff354a1eea95b5b215302fc7ce685b3d92b82a356df6d6bee' },
   happy: { total: 10, enabled: 10, sha256: '197a73a578d8734d49e844e0a83b89204d5a6fc6b973b1ed698272d846a2c308' },
   energy: { total: 28, enabled: 26, sha256: 'c29563083968049da7c1c7c0b6a856143c3797c010b9c21d2424bbbbb3febbc1' },
+  trader: { total: 17, enabled: 17, sha256: '0ec63d2abcd05e31c2dd2ac83e37a612781e3d8deb6d551c0968c527815f76ed' },
 };
 
 function makeContext(
@@ -99,7 +101,7 @@ const applierOptions = {
 };
 
 describe('WebMCP live dashboard bindings', () => {
-  it('locks the canonical panel defaults for all six variants', () => {
+  it('locks the canonical panel defaults for all seven variants', () => {
     assert.deepEqual(Object.keys(VARIANT_DEFAULTS).sort(), [...VARIANTS].sort());
 
     for (const variant of VARIANTS) {
@@ -724,7 +726,7 @@ describe('WebMCP live dashboard bindings', () => {
     assert.match(result.message, /at most 10 layers/);
   });
 
-  it('preserves per-target variant denials across all six variants', async () => {
+  it('preserves per-target variant denials across all seven variants', async () => {
     const cases: Record<DashboardVariant, {
       allowed: keyof MapLayers;
       disallowed: keyof MapLayers;
@@ -735,6 +737,7 @@ describe('WebMCP live dashboard bindings', () => {
       commodity: { allowed: 'tradeRoutes', disallowed: 'conflicts' },
       happy: { allowed: 'positiveEvents', disallowed: 'conflicts' },
       energy: { allowed: 'tradeRoutes', disallowed: 'conflicts' },
+      trader: { allowed: 'tradeRoutes', disallowed: 'conflicts' },
     };
 
     for (const variant of VARIANTS) {

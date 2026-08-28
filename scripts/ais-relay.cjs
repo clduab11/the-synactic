@@ -363,6 +363,36 @@ function upstashSet(key, value, ttlSeconds) {
   });
 }
 
+// Activation markers are one-way: no EX, so first publication is permanent
+// evidence (see ACTIVATION_MARKERS in api/health.js).
+function upstashSetPersistent(key, value) {
+  return new Promise((resolve) => {
+    if (!UPSTASH_ENABLED) return resolve(false);
+    const url = new URL('/', UPSTASH_REDIS_REST_URL);
+    const body = JSON.stringify(['SET', key, JSON.stringify(value)]);
+    const req = UPSTASH_HTTP_MODULE.request(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 5000,
+    }, (resp) => {
+      let data = '';
+      resp.on('data', (chunk) => { data += chunk; });
+      resp.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve(parsed?.result === 'OK');
+        } catch { resolve(false); }
+      });
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.end(body);
+  });
+}
+
 function upstashExpire(key, ttlSeconds) {
   return new Promise((resolve) => {
     if (!UPSTASH_ENABLED) return resolve(false);
@@ -1282,6 +1312,9 @@ const X_MAX_TEXT_CHARS = Math.max(200, Number(process.env.X_MAX_TEXT_CHARS) || 8
 const X_TRACK_A_ACCOUNT_BUDGET = 64;
 const X_FEED_CACHE_KEY = 'intelligence:x-feed:v1';
 const X_FEED_META_KEY = 'seed-meta:intelligence:x-feed:v1';
+// Permanent health activation marker (api/health.js SEED_META.xFeed): written
+// once, after the first successful x-feed publish with polled accounts.
+const X_FEED_ACTIVATION_KEY = 'seed-activated:intelligence:x-feed:v1';
 const X_FEED_POLL_STATE_KEY = 'intelligence:x-feed:poll-state:v1';
 const X_FEED_POLL_LOCK_KEY = 'intelligence:x-feed:poll-lock:v1';
 const X_FEED_TTL_SECONDS = 5400;
@@ -1382,6 +1415,12 @@ const xPollCycle = createXPollCycle({
   randomId: () => crypto.randomBytes(4).toString('hex'),
   X_ENABLED,
   X_BEARER_TOKEN,
+  // Best-effort permanent marker write; failure warns rather than failing the
+  // publish — the next successful publish retries it.
+  markXFeedActivated: async () => {
+    const ok = await upstashSetPersistent(X_FEED_ACTIVATION_KEY, 1);
+    if (!ok) console.warn('[Relay] X activation marker write failed — will retry on next publish');
+  },
   X_FEED_CACHE_KEY,
   X_FEED_META_KEY,
   X_FEED_POLL_STATE_KEY,

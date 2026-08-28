@@ -29,6 +29,8 @@ jobs:
         run: corepack enable
       - name: Install
         run: corepack pnpm install --frozen-lockfile
+      - name: Build (recursive — workspace packages import each other's dist/ entry points)
+        run: corepack pnpm -r build
       - name: Test (recursive, bypasses turbo — binary discovery is flaky under corepack)
         run: corepack pnpm -r test
       - name: Lint

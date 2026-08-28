@@ -12,6 +12,7 @@ import {
   CAPTURED_BASE_TIER_KEYS,
   CAPTURED_KEY_DECODED_BYTES,
   DEMOTED_FAST_KEYS,
+  FORK_KEY_DECODED_BYTES,
   ENERGY_ON_DEMAND_KEYS,
   FAST_FIRST_PAINT_JUSTIFICATION,
   FINAL_TIER_DECODED_BYTE_CEILINGS,
@@ -69,6 +70,21 @@ test('frozen production ledger is complete and cannot shrink silently', () => {
   );
   for (const [key, bytes] of Object.entries(CAPTURED_KEY_DECODED_BYTES)) {
     assert.ok(Number.isInteger(bytes) && bytes > 0, `${key} has invalid byte evidence: ${bytes}`);
+  }
+
+  // Fork evidence rows are owned by the live head membership, not the frozen
+  // capture: a row for a key no longer in any tier is stale and must go.
+  const headMembership = new Set([
+    ...bootstrapTierKeyNames('fast', { iranEventsEnabled: false }),
+    ...bootstrapTierKeyNames('slow', { iranEventsEnabled: false }),
+  ]);
+  for (const [key, bytes] of Object.entries(FORK_KEY_DECODED_BYTES)) {
+    assert.ok(Number.isInteger(bytes) && bytes > 0, `${key} has invalid byte evidence: ${bytes}`);
+    assert.ok(
+      !Object.hasOwn(CAPTURED_KEY_DECODED_BYTES, key),
+      `${key} appears in both the frozen capture and the fork evidence table`,
+    );
+    assert.ok(headMembership.has(key), `fork evidence row is orphaned: ${key}`);
   }
 
   assert.equal(

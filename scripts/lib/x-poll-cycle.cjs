@@ -48,6 +48,10 @@ function createXPollCycle(deps = {}) {
     // `retryAfterLeaseConflict` argument the guard passes down.
     scheduleRetry,
     randomId,
+    // Optional: writes the permanent seed-activated marker after the first
+    // successful publish with polled accounts. No-op default keeps existing
+    // callers and tests unchanged.
+    markXFeedActivated = async () => {},
     X_ENABLED = false,
     X_BEARER_TOKEN = '',
     X_FEED_CACHE_KEY,
@@ -154,6 +158,9 @@ function createXPollCycle(deps = {}) {
       xState.lastError = xState.lastError || 'lost X poll lease before publication';
       return false;
     }
+    // A publish that carried meta came from a real polled cycle: durable proof
+    // the producer is live, which arms the strict health probe from here on.
+    if (meta) await markXFeedActivated();
     return true;
   }
 

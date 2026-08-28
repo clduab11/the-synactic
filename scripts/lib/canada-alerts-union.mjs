@@ -6,8 +6,15 @@ import {
   writeExtraKey,
   writeFreshnessMetadataSafely,
 } from '../_seed-utils.mjs';
+import { getOptionalUpstashCreds, upstashCommand } from '../_upstash-rest.mjs';
 
 export const CANADA_ALERTS_KEY = 'alerts:canada:v1';
+/**
+ * Durable proof the union has been materialized on this deployment. Health
+ * softens the canadaAlerts probe until this exists and is strict afterwards,
+ * so it is written without a TTL — first publication is one-way.
+ */
+export const CANADA_ALERTS_ACTIVATION_KEY = 'seed-activated:alerts:canada-union';
 export const CANADA_ALERTS_LEGACY_KEY = 'alerts:alberta-aea:v1';
 export const CANADA_ALERTS_TTL_SECONDS = 5_400;
 export const CANADA_ALERTS_SOURCE_VERSION = 'canada-provincial-alerts-v1';
@@ -165,5 +172,15 @@ export async function rebuildCanadaAlertsUnion({
       ...(preserved ? { preserved: true } : {}),
     },
   );
+
+  // Best-effort and last: a failed marker write must not fail a publish that
+  // already landed, and the next successful rebuild retries it.
+  try {
+    const creds = getOptionalUpstashCreds();
+    if (creds) await upstashCommand(creds, ['SET', CANADA_ALERTS_ACTIVATION_KEY, '1']);
+  } catch (err) {
+    console.warn(`  WARN: canadaAlerts activation marker write failed: ${err?.message || err}`);
+  }
+
   return { ...result, preserved };
 }

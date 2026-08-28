@@ -22,6 +22,7 @@ import {
   writeSeedMeta,
   extendExistingTtl,
 } from './_seed-utils.mjs';
+import { getOptionalUpstashCreds, upstashCommand } from './_upstash-rest.mjs';
 import {
   fetchVendor511,
   isCompleteVendor511,
@@ -30,6 +31,9 @@ import {
   MANITOBA_511,
   select511Records,
 } from './lib/provincial-511.mjs';
+
+/** Durable proof Manitoba has published here; see api/health.js SEED_META. */
+export const MANITOBA_ACTIVATION_KEY = 'seed-activated:infra:manitoba-511';
 
 loadEnvFile(import.meta.url);
 
@@ -219,6 +223,15 @@ async function publishManitobaEnvelope(records) {
   await writeSeedMeta(MANITOBA_KEY, recordCount, MANITOBA_META_KEY, undefined, undefined, {
     sourceVersion: 'manitoba-511-v1',
   });
+  // Written only after a real publish (never on the preserve path): health
+  // softens this probe until the marker exists and is strict afterwards.
+  // Best-effort and last, so a marker failure cannot fail a landed publish.
+  try {
+    const creds = getOptionalUpstashCreds();
+    if (creds) await upstashCommand(creds, ['SET', MANITOBA_ACTIVATION_KEY, '1']);
+  } catch (err) {
+    console.warn(`  WARN: Manitoba activation marker write failed: ${err?.message || err}`);
+  }
 }
 
 async function preserveManitoba() {

@@ -118,30 +118,33 @@ describe('X news-account public trust registries (#6654)', () => {
     assert.match(healthSrc, /key: 'seed-meta:intelligence:x-feed:v1'/);
     assert.match(relaySrc, /intelligence:x-feed:v1/);
     assert.match(relaySrc, /seed-meta:intelligence:x-feed:v1/);
-    // The probe's `cutover` declaration is retired along with the baseline ack
-    // below: the two are halves of one statement ("this key is allowed to be
-    // absent while the producer is brought up"), and leaving the health.js half
-    // behind left the config asserting a deploy window that had closed, under a
-    // comment claiming X_BEARER_TOKEN was still unprovisioned. It is on
-    // ais-relay and the key is served, so both halves go.
-    assert.doesNotMatch(
+    // Fork posture (differs from upstream #6654, whose Railway relay has
+    // X_BEARER_TOKEN provisioned): this stack's producer has never published,
+    // so the probe is gated on the permanent activation marker the relay
+    // writes after its first successful x-feed publish. Both halves of the
+    // gate must exist — health consults the marker, and the relay writes it —
+    // otherwise the probe either fires EMPTY forever on an unprovisioned
+    // producer, or stays soft forever after the producer goes live.
+    assert.match(
       healthSrc,
-      /xFeed:[^\n]*cutover/,
-      'the xFeed cutover is complete — a lingering declaration re-opens a closed deploy window',
+      /activationKey: 'seed-activated:intelligence:x-feed:v1'/,
+      'health must gate the xFeed probe on the relay-written activation marker',
     );
-    // The EMPTY acknowledgement was scoped to the deploy window before the
-    // first ais-relay poll. That poll has happened — production has served
-    // seed-meta:intelligence:x-feed:v1 since generation 1 — so the entry is
-    // spent and is removed rather than left to lapse. An ack only suppresses
-    // an exact name:status match, so it never covered the SEED_ERROR the
-    // unpollable accounts were actually producing; keeping it past its window
-    // would have added an expired entry that reds the scheduled monitor while
-    // still passing the PR gate.
+    assert.match(
+      relaySrc,
+      /seed-activated:intelligence:x-feed:v1/,
+      'the relay must write the activation marker the health probe consults',
+    );
+    // No expiring acknowledgement: an ack must expire by the first scheduled
+    // producer run, and this producer has no scheduled first run until the
+    // owner provisions X_BEARER_TOKEN. A lapsed entry would red the scheduled
+    // monitor while still passing the PR gate; the durable marker gate is the
+    // correct shape for an indefinite pre-activation window.
     const baseline = JSON.parse(readFileSync(join(__dirname, '../scripts/seed-freshness-baseline.json'), 'utf8'));
     assert.equal(
       baseline.acknowledged.find((row) => row.name === 'xFeed'),
       undefined,
-      'the xFeed cutover ack is spent — the producer is live, so EMPTY is now a real fault',
+      'xFeed must be gated by its activation marker, not an expiring acknowledgement',
     );
   });
 });

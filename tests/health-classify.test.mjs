@@ -27,6 +27,7 @@ const {
   STANDALONE_KEYS,
   SEED_META,
   ON_DEMAND_KEYS,
+  ACTIVATION_MARKERS,
   ZERO_RECORD_DATA_OK_KEYS,
   EMPTY_DATA_OK_KEYS,
   projectChinaCoverageStatus,
@@ -1783,9 +1784,23 @@ test('the three bundle tick heartbeats stay registered together (#6691 / #6806)'
     assert.equal(SEED_META[name].key, bundleHeartbeatKey(label));
     assert.equal(SEED_META[name].maxStaleMin, 2880, `${name} must use the 48h = 2× daily budget`);
     assert.equal(ON_DEMAND_KEYS.has(name), false, `${name} is a seeded watchdog, not on-demand`);
-    assert.equal(SEED_META[name].cutover?.mode, 'expiring-ack');
+    // Marker-backed rather than acknowledgement-backed: this fork schedules no
+    // static-ref bundle, so an expiring ack would have to name a first
+    // scheduled run that never comes. The marker records the first tick that
+    // DOES fire here; it is deliberately unregistered in ACTIVATION_MARKERS so
+    // the watchdog never softens — the two assertions above and below pin that.
+    assert.equal(SEED_META[name].cutover?.mode, 'activation-marker');
     assert.equal(SEED_META[name].cutover?.fromKey, null);
-    assert.equal(SEED_META[name].cutover?.status, 'EMPTY');
+    assert.equal(
+      SEED_META[name].cutover?.activationKey,
+      SEED_META[name].activationKey,
+      `${name} cutover must bind the config's own activation key`,
+    );
+    assert.equal(
+      ACTIVATION_MARKERS[name],
+      undefined,
+      `${name} must not register its marker: a registered marker would soften the watchdog`,
+    );
     assert.equal(SEED_META[name].cutover?.issue, issue);
     assert.ok(
       BUNDLE_HEARTBEAT_TTL_SECONDS > SEED_META[name].maxStaleMin * 60,

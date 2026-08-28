@@ -826,11 +826,16 @@ const SEED_META = {
   manitobaRoads:    {
     key: 'seed-meta:infra:manitoba-511',
     maxStaleMin: 45, // same seed-provincial-511 cron */15; 45 = 3× interval
+    activationKey: 'seed-activated:infra:manitoba-511',
+    // This deployment schedules no producer for seed-meta:infra:manitoba-511, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6622,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:infra:manitoba-511',
     },
   },
   torontoRoads:     {
@@ -856,30 +861,62 @@ const SEED_META = {
   canadaAlerts:     {
     key: 'seed-meta:alerts:canada-union',
     maxStaleMin: 45, // union rebuilds on the */15 Alberta tick; 45 = 3× interval
+    activationKey: 'seed-activated:alerts:canada-union',
+    // This deployment schedules no producer for seed-meta:alerts:canada-union, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
     cutover: {
-      mode: 'expiring-ack',
-      // null on the fork's sync PR: this probe is new versus the fork base, so
-      // the transition is <new> -> canada-union here; upstream's repoint from
-      // alberta-aea is upstream history that never existed on this base.
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6659,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:alerts:canada-union',
     },
   },
   canadaAlertsAbSource: {
     key: 'seed-meta:alerts:alberta-aea',
     maxStaleMin: 45, // seed-alberta-emergency-alert cron */15; 45 = 3× interval
-    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6659, status: 'EMPTY' },
+    activationKey: 'seed-activated:alerts:alberta-aea',
+    // This deployment schedules no producer for seed-meta:alerts:alberta-aea, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 6659,
+      activationKey: 'seed-activated:alerts:alberta-aea',
+    },
   },
   canadaAlertsBcSource: {
     key: 'seed-meta:alerts:bc-emergency-info',
     maxStaleMin: 45,
-    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6659, status: 'EMPTY' },
+    activationKey: 'seed-activated:alerts:bc-emergency-info',
+    // This deployment schedules no producer for seed-meta:alerts:bc-emergency-info, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 6659,
+      activationKey: 'seed-activated:alerts:bc-emergency-info',
+    },
   },
   canadaAlertsSkSource: {
     key: 'seed-meta:alerts:saskalert',
     maxStaleMin: 45,
-    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6659, status: 'STALE_SEED' },
+    activationKey: 'seed-activated:alerts:saskalert',
+    // This deployment schedules no producer for seed-meta:alerts:saskalert, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 6659,
+      activationKey: 'seed-activated:alerts:saskalert',
+    },
   },
   // seed-meta is `seed-meta:${domain}:${resource}` from runSeed('transit', 'ttc-alerts'),
   // so the key takes a HYPHEN — it is NOT the canonical transit:ttc:alerts:v1 with
@@ -925,10 +962,22 @@ const SEED_META = {
   researchArxivHnTrending: { key: 'seed-meta:research:arxiv-hn-trending', maxStaleMin: 150 },
   gdeltIntel:       { key: 'seed-meta:intelligence:gdelt-intel',   maxStaleMin: 45 }, // 15min bulk materializer; 45min = 3× cadence and expires before the 24h canonical key.
   telegramFeed:     { key: 'seed-meta:intelligence:telegram-feed:v1', maxStaleMin: 10 }, // 60s poll interval; 10min grace catches poll failures before they go stale in the panel
-  xFeed:            { key: 'seed-meta:intelligence:x-feed:v1', maxStaleMin: 45, // 5–15min ais-relay poll; 45min = 3× max cadence. Cutover complete upstream (#6654): X_BEARER_TOKEN is on ais-relay and the producer serves the key, so EMPTY here is now a real fault, not a deploy window.
-    // Re-declared for the fork's 2026-08 sync PR: the probe is new versus the
-    // fork base, so the completed upstream cutover re-litigates here.
-    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6654, status: 'STALE_SEED' } },
+  xFeed: {
+    key: 'seed-meta:intelligence:x-feed:v1',
+    maxStaleMin: 45, // 5–15min ais-relay poll; 45min = 3× max cadence
+    // Fork posture (differs from upstream #6654, whose Railway ais-relay has
+    // X_BEARER_TOKEN provisioned): this stack's relay has no bearer token yet,
+    // so the producer has never published. The relay writes this permanent
+    // marker on its first successful x-feed publish; before that, absence is
+    // pending activation — after it, missing or stale data is strict.
+    activationKey: 'seed-activated:intelligence:x-feed:v1',
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 6654,
+      activationKey: 'seed-activated:intelligence:x-feed:v1',
+    },
+  },
   digestNotifications: { key: 'seed-meta:digest:last-run',          maxStaleMin: 90 }, // Railway digest-notifications cron runs every 30min; 90 = 3x cadence and detects a dead cron before daily digests are missed.
   forecasts:        { key: 'seed-meta:forecast:predictions',       maxStaleMin: 90 },
   forecastsBootstrap: { key: 'seed-meta:forecast:predictions-bootstrap', maxStaleMin: 90 }, // Same cron. Monitored separately: the fast tier now hydrates from the dashboard list, and a transform/write failure there must not hide behind a healthy canonical key (#5300).
@@ -1114,22 +1163,32 @@ const SEED_META = {
     key: 'seed-meta:economic:boc-valet',
     maxStaleMin: 4320,
     minRecordCount: 19,
+    activationKey: 'seed-activated:economic:boc-valet',
+    // This deployment schedules no producer for seed-meta:economic:boc-valet, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6616,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:economic:boc-valet',
     },
   }, // daily seed-bundle-macro 08:00 UTC; 4320min = 3x interval. minRecordCount = 15 FX pairs + policy rate + 2y/5y/10y yields.
   statcanWds:        {
     key: 'seed-meta:economic:statcan-wds',
     maxStaleMin: 4320,
     minRecordCount: 2,
+    activationKey: 'seed-activated:economic:statcan-wds',
+    // This deployment schedules no producer for seed-meta:economic:statcan-wds, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6676,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:economic:statcan-wds',
     },
   }, // daily seed-bundle-macro 08:00 UTC. Toronto-today 409 "not released yet" is quiet like 404; CPI/LFS still POST. First-publish EMPTY ack #6676 retired after recovery. Floor is the two resilience cubes (CPI YoY + LFS).
   eurostatCountryData: { key: 'seed-meta:economic:eurostat-country-data', maxStaleMin: 4320 }, // daily seed; 4320min = 3 days = 3x interval
@@ -1167,11 +1226,16 @@ const SEED_META = {
     key: 'seed-meta:demographics:capability',
     maxStaleMin: 36000, // 25d: static-ref refreshes every 20d; data TTL is 30d.
     minRecordCount: 150,
+    activationKey: 'seed-activated:demographics:capability',
+    // This deployment schedules no producer for seed-meta:demographics:capability, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6437,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:demographics:capability',
     },
   },
   resilienceRanking:   { key: 'seed-meta:resilience:ranking',          maxStaleMin: 840, requireResilienceCacheState: true }, // RPC cache (12h TTL, refreshed every 6h by seed-resilience-scores cron); 14h budget tolerates 1 missed tick (12h gap) + ~2h jitter for in-flight deploys that preempt a scheduled tick; alerts at 2 missed ticks (18h gap). Bumped from 720 — see comment below.
@@ -1209,11 +1273,16 @@ const SEED_META = {
   mineralProduction:    {
     key: 'seed-meta:supply-chain:mineral-production',
     maxStaleMin: 60 * 24 * 120,
+    activationKey: 'seed-activated:supply-chain:mineral-production',
+    // This deployment schedules no producer for seed-meta:supply-chain:mineral-production, so an expiring
+    // acknowledgement would assert a first scheduled run that never comes.
+    // The marker is written by this repo's producer on its first successful
+    // publish: pending until then, strict from then on.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6439,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:supply-chain:mineral-production',
     },
   },
   sprPolicies:          { key: 'seed-meta:energy:spr-policies',         maxStaleMin: 60 * 24 * 400 }, // 400 days; static registry, same cadence as chokepoint baselines
@@ -1235,11 +1304,19 @@ const SEED_META = {
   staticRefBundleTick: {
     key: 'bundle:heartbeat:static-ref',
     maxStaleMin: 2880, // daily cron `0 3 * * *`; 48h = 2× cadence
+    activationKey: 'seed-activated:bundle:static-ref',
+    // Watchdog exception. This fork schedules no static-ref bundle, so an
+    // expiring acknowledgement would assert a first scheduled run that never
+    // comes. The marker (written by _bundle-runner.mjs on the first tick that
+    // fires here) makes the cutover evidence-backed instead. It is deliberately
+    // NOT registered in ACTIVATION_MARKERS and NOT on-demand: a heartbeat that
+    // never fired must stay EMPTY/crit — that is the entire #6691 signal — so
+    // this probe softens for nothing and reports the missing cron truthfully.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6691,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:bundle:static-ref',
     },
   },
   // The heavy half of static-ref: Arms-Suppliers, Military-Bases and
@@ -1250,11 +1327,14 @@ const SEED_META = {
   staticRefHeavyBundleTick: {
     key: 'bundle:heartbeat:static-ref-heavy',
     maxStaleMin: 2880, // daily cron `0 4 * * *`; 48h = 2× cadence
+    activationKey: 'seed-activated:bundle:static-ref-heavy',
+    // Same watchdog exception as staticRefBundleTick above: marker-backed
+    // cutover, no acknowledgement, no softening. An unfired cron stays crit.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6806,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:bundle:static-ref-heavy',
     },
   },
   emberElectricity:     { key: 'seed-meta:energy:ember',                maxStaleMin: 2880 }, // daily cron (08:00 UTC); 2880min = 48h = 2x interval
@@ -1429,6 +1509,22 @@ const ON_DEMAND_KEYS = new Set([
   // publish of the canonical snapshot. Before that first publish, absence is
   // pending activation; after it, missing or stale data is strict.
   'physicalPremiums',
+  // ais-relay X poll — publishes only once X_BEARER_TOKEN is provisioned on
+  // the relay; the relay writes the permanent marker on its first successful
+  // x-feed publish, and health is strict from that point onward.
+  'xFeed',
+  // Producers this deployment does not schedule: absence is pending
+  // activation until their marker proves one has published here. The Canada
+  // members' markers come from the bundle runner (per section, so a deferred
+  // member never arms a key it did not publish), the union rebuild, and
+  // seed-provincial-511's Manitoba publish path.
+  'demographicsCapability',
+  'mineralProduction',
+  'canadaAlerts',
+  'canadaAlertsAbSource',
+  'canadaAlertsBcSource',
+  'canadaAlertsSkSource',
+  'manitobaRoads',
   'riskScoresLive',
   'usniFleetStale', 'positiveEventsLive',
   'bisPolicy', 'bisExchange', 'bisCredit',
@@ -1508,6 +1604,18 @@ const ACTIVATION_MARKERS = {
   torontoTfs: SEED_META.torontoTfs.activationKey,
   torontoTps: SEED_META.torontoTps.activationKey,
   physicalPremiums: SEED_META.physicalPremiums.activationKey,
+  // Written by scripts/ais-relay.cjs (via lib/x-poll-cycle.cjs) after the
+  // first successful x-feed publish with polled accounts.
+  xFeed: SEED_META.xFeed.activationKey,
+  canadaAlerts: SEED_META.canadaAlerts.activationKey,
+  canadaAlertsAbSource: SEED_META.canadaAlertsAbSource.activationKey,
+  canadaAlertsBcSource: SEED_META.canadaAlertsBcSource.activationKey,
+  canadaAlertsSkSource: SEED_META.canadaAlertsSkSource.activationKey,
+  demographicsCapability: SEED_META.demographicsCapability.activationKey,
+  mineralProduction: SEED_META.mineralProduction.activationKey,
+  manitobaRoads: SEED_META.manitobaRoads.activationKey,
+  bocValet: SEED_META.bocValet.activationKey,
+  statcanWds: SEED_META.statcanWds.activationKey,
   newsFeedHealth: 'seed-activated:news:feed-health',
   newsRecallBenchmark: 'seed-activated:news:recall-benchmark',
   // Written by scripts/_seed-history.mjs on every ingest-health report,
