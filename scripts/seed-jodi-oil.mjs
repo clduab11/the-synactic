@@ -11,10 +11,14 @@ import {
   logSeedResult,
   withRetry,
   readSeedSnapshot,
+  readExistingSeedMeta,
 } from './_seed-utils.mjs';
 import {
+  MAX_JODI_CONTENT_AGE_MIN,
   assessChinaJodiCoverage,
+  buildChinaRowDiagnostic,
   hasFiniteMeasurementAtPaths,
+  jodiDatasetContentMeta,
 } from './shared/jodi-content-age.mjs';
 import {
   DEMAND_CHANGE_BASIS,
@@ -339,17 +343,22 @@ export function assessChinaOilCoverage(countries, now = new Date()) {
  * The two shapes are mutually exclusive per year, and the flip happens at some
  * point after year-end that we do not control — so each year gets BOTH
  * candidates, ordered most-likely-first. Building only the archived shape (the
- * old behaviour) missed the entire current year of publications, which is what
- * pushed the downstream 6-month data-age gate into blocking publishes.
+ * old behaviour) missed the entire current year of publications (#6799), which
+ * is what pushed the downstream 6-month data-age gate into blocking publishes.
+ *
+ * With no `isCurrentYear` flag the archived (plain) name goes first — it is
+ * what every settled year uses, so a completed year costs one request. Pass
+ * `isCurrentYear: true` for the year in progress so the probe-verified live
+ * shape goes first instead of spending a guaranteed 404.
  *
  * @param {'primary'|'secondary'} dataset
  * @param {number} year
- * @param {boolean} isCurrentYear
- * @returns {string[]} base-relative paths, most-likely-first
+ * @param {boolean} [isCurrentYear]
+ * @returns {string[]} absolute URLs, most-likely-first
  */
-export function jodiCsvCandidates(dataset, year, isCurrentYear) {
-  const inProgress = `${dataset}/${dataset}year${year}.csv`;
-  const archived = `${dataset}/${year}.csv`;
+export function jodiCsvCandidates(dataset, year, isCurrentYear = false) {
+  const inProgress = `${JODI_BASE}${dataset}/${dataset}year${year}.csv`;
+  const archived = `${JODI_BASE}${dataset}/${year}.csv`;
   return isCurrentYear ? [inProgress, archived] : [archived, inProgress];
 }
 
@@ -366,7 +375,7 @@ export function assertParseableCsv(text, label) {
     const err = new Error(`JODI CSV payload not parseable (no "${CSV_HEADER_PREFIX}..." header) for ${label}`);
     // A 200 that is not CSV means this candidate is the wrong shape (a landing
     // page, an error document), so the sweep may advance to the next name —
-    // unlike an upstream refusal, which must abort. See fetchCsvWithFallback.
+    // unlike an upstream refusal, which must abort. See fetchYearCsv.
     err.unparseable = true;
     throw err;
   }
@@ -385,44 +394,24 @@ async function fetchCsv(url) {
     // upstream refusing or throttling US: advancing on those would fire an
     // immediate zero-delay second GET at the same host, which is the
     // retry-through-a-429 posture boundary 2 v9 forbids. Mark 404 alone as
-    // candidate-advancing; the rest abort the sweep.
-    if (resp.status === 404) err.notFound = true;
-    else if (resp.status >= 400 && resp.status < 500) err.nonRetryable = true;
+    // candidate-advancing; the rest abort the sweep (see fetchYearCsv).
+    // 404 is ALSO nonRetryable: a missing static file does not appear during a
+    // 2s backoff, and this seeder tries two naming conventions per year —
+    // retrying each 404 three times would spend ~12s of the bundle's
+    // wall-clock budget just to rediscover that a year is not published under
+    // that name. A 5xx keeps its in-candidate backoff retries but is tagged as
+    // a refusal so the sweep still stops afterwards.
+    if (resp.status === 404) {
+      err.notFound = true;
+      err.nonRetryable = true;
+    } else if (resp.status >= 400 && resp.status < 500) {
+      err.nonRetryable = true;
+    } else {
+      err.refusal = true;
+    }
     throw err;
   }
   return resp.text();
-}
-
-/**
- * Fetch one (dataset, year) annual CSV, trying each published filename shape
- * in order until one returns a parseable payload. Returns '' when every
- * candidate fails — matching the previous per-file soft-fail contract, so
- * mergeSourceRows still decides whether the run has enough to proceed. Every
- * candidate's failure reason is logged, never swallowed.
- */
-async function fetchCsvWithFallback(dataset, year, isCurrentYear) {
-  const candidates = jodiCsvCandidates(dataset, year, isCurrentYear);
-  const failures = [];
-  for (const rel of candidates) {
-    try {
-      const text = await withRetry(() => fetchCsv(`${JODI_BASE}${rel}`), 2, 2000);
-      assertParseableCsv(text, rel);
-      console.log(`  ${rel}: ${(text.length / 1024 / 1024).toFixed(1)} MB`);
-      return text;
-    } catch (e) {
-      failures.push(`${rel}: ${e.message}`);
-      // Advance only when this filename shape genuinely does not exist, or the
-      // body was not parseable CSV. A 403/429/5xx means the host is refusing or
-      // throttling — back off by aborting the sweep rather than immediately
-      // asking the same host for the next name.
-      if (!e.notFound && !e.unparseable) {
-        console.warn(`  ${dataset} ${year} sweep aborted at ${rel} — upstream refused (${e.message}); not advancing to remaining candidates`);
-        throw e;
-      }
-    }
-  }
-  console.warn(`  ${dataset} ${year} unavailable — all ${candidates.length} filename candidates failed: ${failures.join(' | ')}`);
-  return '';
 }
 
 export function mergeSourceRows(
@@ -463,27 +452,96 @@ export function jodiSourceYears(now = new Date()) {
   };
 }
 
+/**
+ * Fetch one JODI year, trying each published naming convention in turn.
+ *
+ * Returns `{ ok, text, url, attempted, error }` rather than a bare string so a
+ * caller can tell "this year is unreachable" from "this year is empty". That
+ * distinction is the actual #6799 defect: the previous `.catch(() => '')`
+ * collapsed both into an empty string, and an unreachable CURRENT year then
+ * degraded silently to publishing the prior year as if it were current.
+ *
+ * Sweep-advance rules (boundary 2 v9): only "this filename shape does not
+ * exist" (`err.notFound`, i.e. 404) or a non-CSV body (`err.unparseable`) may
+ * advance to the next candidate. An explicit refusal — 403/429, or a 5xx that
+ * survived its in-candidate backoff — must NOT trigger an immediate follow-up
+ * GET at the same host under the next name: the sweep stops and the failure
+ * surfaces in the returned envelope. Errors carrying none of those tags (e.g.
+ * an injected test fetcher's bare Error) advance, preserving the plain
+ * fall-through contract.
+ */
+export async function fetchYearCsv(kind, year, options = {}) {
+  const fetcher = options.fetchCsv ?? fetchCsv;
+  const retries = options.retries ?? 2;
+  const attempted = jodiCsvCandidates(kind, year, options.isCurrentYear ?? false);
+  let lastError = null;
+
+  for (const url of attempted) {
+    try {
+      const text = await withRetry(() => fetcher(url), retries, 2000);
+      assertParseableCsv(text, url);
+      console.log(`  ${url}: ${(text.length / 1024 / 1024).toFixed(1)} MB`);
+      return { ok: true, text, url, attempted, error: null };
+    } catch (err) {
+      lastError = err;
+      if ((err?.nonRetryable || err?.refusal) && !err.notFound && !err.unparseable) {
+        console.warn(`  ${kind} ${year} sweep aborted at ${url} — upstream refused (${err.message}); not advancing to remaining candidates`);
+        break;
+      }
+    }
+  }
+  return {
+    ok: false,
+    text: '',
+    url: null,
+    attempted,
+    error: lastError?.message || String(lastError),
+  };
+}
+
 async function fetchAllRows() {
   const { currentYear, priorYear, lookbackYear } = jodiSourceYears();
 
   const [primaryCurrent, primaryPrior, secondaryCurrent, secondaryPrior, secondaryLookback] =
     await Promise.all([
-      fetchCsvWithFallback('primary', currentYear, true),
-      fetchCsvWithFallback('primary', priorYear, false),
-      fetchCsvWithFallback('secondary', currentYear, true),
-      fetchCsvWithFallback('secondary', priorYear, false),
-      // Optional file: when every candidate 404s we only lose the demand
-      // change, never the seed. A refusal (403/429/5xx) still aborts the
-      // sweep — do not advance through a host that is throttling us.
-      fetchCsvWithFallback('secondary', lookbackYear, false),
+      fetchYearCsv('primary', currentYear, { isCurrentYear: true }),
+      fetchYearCsv('primary', priorYear),
+      fetchYearCsv('secondary', currentYear, { isCurrentYear: true }),
+      fetchYearCsv('secondary', priorYear),
+      // Optional: its absence only withholds the demand change, never the
+      // seed. A refusal (403/429/5xx) still aborts that year's sweep — do not
+      // advance through a host that is throttling us.
+      fetchYearCsv('secondary', lookbackYear),
     ]);
 
+  for (const [label, result] of [
+    [`primary/${currentYear}`, primaryCurrent],
+    [`primary/${priorYear}`, primaryPrior],
+    [`secondary/${currentYear}`, secondaryCurrent],
+    [`secondary/${priorYear}`, secondaryPrior],
+    [`secondary/${lookbackYear}`, secondaryLookback],
+  ]) {
+    if (!result.ok) console.warn(`  ${label} unavailable (tried ${result.attempted.length} names): ${result.error}`);
+  }
+
+  // Losing BOTH current-year files is not a soft degrade — every month the
+  // snapshot can still date itself from is last year's, so the publish silently
+  // becomes a re-run of a stale vintage. Say so loudly: this is what went
+  // unnoticed from January to August 2026.
+  if (!primaryCurrent.ok && !secondaryCurrent.ok) {
+    console.error(
+      `  [jodi-oil] CURRENT_YEAR_UNAVAILABLE ${currentYear}: no primary or secondary file resolved `
+      + `under any known naming convention. Publishing from ${priorYear} only — the snapshot cannot `
+      + 'advance past that year until this is fixed. Check whether JODI renamed the download again.',
+    );
+  }
+
   return mergeSourceRows(
-    primaryCurrent,
-    primaryPrior,
-    secondaryCurrent,
-    secondaryPrior,
-    secondaryLookback,
+    primaryCurrent.text,
+    primaryPrior.text,
+    secondaryCurrent.text,
+    secondaryPrior.text,
+    secondaryLookback.text,
   );
 }
 
@@ -502,15 +560,59 @@ async function redisPipeline(commands) {
   return resp.json();
 }
 
-export function formatCoverageFailureReason({ hasGlobalCoverage, countryCount, chinaCoverage }) {
-  const reasons = [];
-  if (!hasGlobalCoverage) {
-    reasons.push(`only ${countryCount} countries, need >=${MIN_VALID_COUNTRIES}`);
-  }
-  if (!chinaCoverage.ok) {
-    reasons.push(`China JODI oil coverage failed: ${chinaCoverage.reason} (dataMonth=${chinaCoverage.dataMonth ?? 'missing'})`);
-  }
-  return reasons.join('; ');
+/**
+ * The only condition that may withhold an oil publish: too few countries
+ * carry a usable measurement to trust the file at all. A single country —
+ * China included — is reported, never enforced (issue #6395).
+ */
+export function formatCoverageFailureReason({ countryCount }) {
+  return `only ${countryCount} countries with usable measurements, need >=${MIN_VALID_COUNTRIES}`;
+}
+
+/**
+ * Everything main() decides about a parsed snapshot, in one testable place:
+ * whether it may publish, what China looks like, and the seed-meta record that
+ * carries both to /api/health.
+ *
+ * @param {{ allRows: any[], previousMeta?: any, now?: Date }} input
+ */
+export function prepareOilPublish({ allRows, previousMeta = null, now = new Date() }) {
+  const parsed = buildAllCountries(allRows);
+  const chinaCoverage = assessChinaOilCoverage(parsed, now);
+
+  // A country whose every field parsed to null is not coverage: it would count
+  // toward MIN_VALID_COUNTRIES while serving no measurement to anyone. With no
+  // single-country gate standing behind that floor any more (#6395), the floor
+  // has to mean what it says, so only measurement-bearing countries are
+  // published. It also stops a null-only month from overwriting a country's
+  // last-good record — the key simply is not rewritten and ages out instead.
+  const countries = parsed.filter(hasOilMeasurements);
+  const refusalReason = validateCoverage(countries)
+    ? null
+    : formatCoverageFailureReason({ countryCount: countries.length });
+
+  const contentMeta = jodiDatasetContentMeta(countries, hasOilMeasurements, now);
+  return {
+    parsedCount: parsed.length,
+    countries,
+    chinaCoverage,
+    refusalReason,
+    metaPayload: {
+      fetchedAt: now.getTime(),
+      recordCount: countries.length,
+      chinaDataMonth: chinaCoverage.dataMonth,
+      chinaRow: buildChinaRowDiagnostic(
+        chinaCoverage,
+        previousMeta?.chinaRow ?? null,
+        now.getTime(),
+      ),
+      // Content-age trio: without it a JODI file that stopped advancing would
+      // publish forever as fresh now that no per-country gate refuses it.
+      newestItemAt: contentMeta?.newestItemAt ?? null,
+      oldestItemAt: contentMeta?.oldestItemAt ?? null,
+      maxContentAgeMin: MAX_JODI_CONTENT_AGE_MIN,
+    },
+  };
 }
 
 async function main() {
@@ -538,18 +640,21 @@ async function main() {
 
     console.log(`  Parsed ${allRows.length} KBD rows`);
 
-    const countries = buildAllCountries(allRows);
-    console.log(`  Built ${countries.length} country payloads`);
+    const previousMeta = await readExistingSeedMeta('energy', 'jodi-oil');
+    if (previousMeta?.chinaRow == null) {
+      // readExistingSeedMeta collapses "no prior record" and "read failed" into
+      // one null, so an ongoing gap re-dates to this run. Say so, or the reset
+      // is indistinguishable from a genuine new outage in the log.
+      console.warn('  China oil row: no previous record readable — dating any gap from this run');
+    }
+    const { countries, parsedCount, chinaCoverage, refusalReason, metaPayload } = prepareOilPublish({
+      allRows,
+      previousMeta,
+    });
+    console.log(`  Built ${countries.length} country payloads of ${parsedCount} parsed`);
 
-    const chinaCoverage = assessChinaOilCoverage(countries);
-    const hasGlobalCoverage = validateCoverage(countries);
-    if (!hasGlobalCoverage || !chinaCoverage.ok) {
-      const reason = formatCoverageFailureReason({
-        hasGlobalCoverage,
-        countryCount: countries.length,
-        chinaCoverage,
-      });
-      console.error(`  COVERAGE GATE FAILED: ${reason}`);
+    if (refusalReason) {
+      console.error(`  COVERAGE GATE FAILED: ${refusalReason}`);
       const prevIso2List = await readSeedSnapshot(CANONICAL_KEY, { strict: true });
       if (Array.isArray(prevIso2List) && prevIso2List.length > 0) {
         const prevCountryKeys = prevIso2List.map(iso2 => `${COUNTRY_KEY_PREFIX}${iso2}`);
@@ -565,6 +670,11 @@ async function main() {
       }
       return;
     }
+
+    console.log(chinaCoverage.ok
+      ? `  China oil coverage: ok (dataMonth=${chinaCoverage.dataMonth})`
+      : `  China oil coverage: ${chinaCoverage.reason} (dataMonth=${chinaCoverage.dataMonth ?? 'missing'})`
+        + ` — publishing the other ${countries.length} countries anyway`);
 
     // Every guard in this chain refuses by returning null, so a refused change
     // is otherwise indistinguishable from an upstream that simply has not
@@ -582,7 +692,6 @@ async function main() {
         + `(${chinaDemandAssessment.reason ?? 'no comparable basket'})`);
 
     const iso2List = countries.map(c => c.iso2);
-    const metaPayload = { fetchedAt: Date.now(), recordCount: countries.length, chinaDataMonth: chinaCoverage.dataMonth };
 
     const commands = [];
     for (const payload of countries) {

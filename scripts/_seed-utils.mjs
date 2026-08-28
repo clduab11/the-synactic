@@ -377,16 +377,11 @@ export function getRedisCredentials() {
   return { url, token };
 }
 
-async function redisCommand(url, token, command) {
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(command),
-    signal: AbortSignal.timeout(15_000),
-  });
+export async function parseRedisCommandResponse(resp, label = 'Redis command') {
   if (!resp.ok) {
-    const text = await resp.text().catch(() => '');
-    const err = new Error(`Redis command failed: HTTP ${resp.status} — ${text.slice(0, 200)}`);
+    const text = typeof resp.text === 'function' ? await resp.text().catch(() => '') : '';
+    const detail = text ? ` — ${text.slice(0, 200)}` : '';
+    const err = new Error(`${label} failed: HTTP ${resp.status}${detail}`);
     // Tag errors so callers wrapping in withRetry know whether to back off.
     // Permanent 4xx (auth, payload-too-large, etc.) won't recover on retry —
     // mark non-retryable so withRetry exits the loop in ~10ms instead of
@@ -397,13 +392,40 @@ async function redisCommand(url, token, command) {
     if (PERMANENT_4XX_STATUSES.has(resp.status)) {
       err.nonRetryable = true;
     } else if (resp.status === 429) {
-      const retryAfterMs = parseRetryAfterMs(resp.headers.get('retry-after'));
+      const retryAfterMs = parseRetryAfterMs(getResponseHeader(resp.headers, 'Retry-After'));
       if (retryAfterMs != null) err.retryAfterMs = retryAfterMs;
     }
     err.httpStatus = resp.status;
     throw err;
   }
-  return resp.json();
+  let body;
+  try {
+    body = await resp.json();
+  } catch (cause) {
+    throw Object.assign(new Error(`${label} returned invalid JSON (HTTP ${resp.status})`), { cause });
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error(`${label} returned an unexpected Upstash response`);
+  }
+  if (body.error != null) {
+    throw new Error(`${label} rejected by Upstash: ${String(body.error)}`);
+  }
+  if (!Object.hasOwn(body, 'result')) {
+    throw new Error(`${label} returned an Upstash response without a result`);
+  }
+  return body;
+}
+
+export async function redisCommand(url, token, command, options = {}) {
+  const commandName = String(command?.[0] || 'command').toUpperCase();
+  const label = options.label || `Redis ${commandName}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': CHROME_UA },
+    body: JSON.stringify(command),
+    signal: AbortSignal.timeout(options.timeoutMs ?? 15_000),
+  });
+  return parseRedisCommandResponse(resp, label);
 }
 
 async function redisGet(url, token, key) {
@@ -660,7 +682,7 @@ export async function writeFreshnessMetadata(
   }
   // Use the data TTL if it exceeds 7 days so monthly/annual seeds don't lose
   // their meta key before the health check maxStaleMin threshold is reached.
-  const metaTtl = Math.max(86400 * 7, ttlSeconds || 0);
+  const metaTtl = resolveSeedMetaTtl(undefined, ttlSeconds);
   // Retry transient Redis failures: this SET runs bare on runSeed's
   // validate-skip path, where an unretried Upstash abort escaped to the
   // seeder's top-level catch as `FATAL: The operation was aborted due to
@@ -770,13 +792,13 @@ export async function readCanonicalEnvelopeMeta(canonicalKey) {
 // caller's request shape, not server load:
 //   400 malformed query   401 bad auth      403 forbidden
 //   404 missing path      410 permanently gone
-//   422 semantic error    451 legal block
+//   413 payload too large 422 semantic error    451 legal block
 // 408 Request Timeout and 429 Too Many Requests are deliberately excluded —
 // both are explicit "back off and retry" signals, often paired with a
 // Retry-After header. Tagging them nonRetryable would convert transient
 // rate-limits into immediate seed failures (especially under parallel
 // fetches like seed-imf-* WEO bundles).
-export const PERMANENT_4XX_STATUSES = new Set([400, 401, 403, 404, 410, 422, 451]);
+export const PERMANENT_4XX_STATUSES = new Set([400, 401, 403, 404, 410, 413, 422, 451]);
 
 // sysexits.h EX_TEMPFAIL: fetch failed, last-good TTL was extended, and the
 // bundle runner should retry/report non-OK without treating the seeder as a
@@ -839,7 +861,18 @@ export async function withRetry(fn, maxRetries = 3, delayMs = 1000) {
         const wait = err?.retryAfterMs ? Math.max(baseWait, err.retryAfterMs) : baseWait;
         const cause = err.cause ? ` (cause: ${err.cause.message || err.cause.code || err.cause})` : '';
         console.warn(`  Retry ${attempt + 1}/${maxRetries} in ${wait}ms: ${err.message || err}${cause}`);
-        await new Promise(r => setTimeout(r, wait));
+        // Test-only cap on the idle wait between attempts (WM_SEED_RETRY_DELAY_MS):
+        // suites that stub persistent upstream failures otherwise sleep through
+        // every real backoff. Attempt COUNT and the logged/computed wait stay
+        // real — only the sleep shrinks. Dual-gated on NODE_TEST_CONTEXT so the
+        // knob is structurally inert outside the node test runner: a stray env
+        // var on a Railway seeder must not disable production backoff (and the
+        // full-wait log lines would make that near-invisible). Read per call.
+        const overrideMs = process.env.NODE_TEST_CONTEXT
+          ? Number(process.env.WM_SEED_RETRY_DELAY_MS)
+          : Number.NaN;
+        const pause = Number.isFinite(overrideMs) ? Math.min(wait, overrideMs) : wait;
+        await new Promise(r => setTimeout(r, pause));
       }
     }
   }
@@ -1000,22 +1033,10 @@ export async function writeExtraKey(key, data, ttl, envelopeMeta) {
   // (auth, payload-too-large) fail fast; 429 honors Retry-After. Mirrors the
   // redisCommand / atomicPublish contract (seed-gdelt-intel PUBLISH_TIMEOUT fix).
   await withRetry(async () => {
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': CHROME_UA },
-      body: JSON.stringify(['SET', key, payload, 'EX', ttl]),
-      signal: AbortSignal.timeout(10_000),
+    await redisCommand(url, token, ['SET', key, payload, 'EX', ttl], {
+      label: `Extra key ${key}`,
+      timeoutMs: 10_000,
     });
-    if (!resp.ok) {
-      const err = new Error(`Extra key ${key}: write failed (HTTP ${resp.status})`);
-      if (PERMANENT_4XX_STATUSES.has(resp.status)) {
-        err.nonRetryable = true;
-      } else if (resp.status === 429) {
-        const retryAfterMs = parseRetryAfterMs(getResponseHeader(resp.headers, 'Retry-After'));
-        if (retryAfterMs != null) err.retryAfterMs = retryAfterMs;
-      }
-      throw err;
-    }
   }, 2, 1000);
   console.log(`  Extra key ${key}: written`);
 }
@@ -1031,12 +1052,52 @@ export function extraKeyPayloadBytes(key, data, envelopeMeta) {
   return Buffer.byteLength(serializeExtraKeyValue(key, data, envelopeMeta), 'utf8');
 }
 
-export async function writeSeedMeta(dataKey, recordCount, metaKeyOverride, metaTtlSeconds, coverage) {
+/**
+ * Floor for every seed-meta TTL. A meta key must survive its data key's
+ * disappearance so health can report STALE_SEED (present-but-stale) rather than
+ * losing the heartbeat at the same moment as the payload — see the "seed-meta
+ * outlives its data key" note in api/health.js's absence branch.
+ */
+export const SEED_META_MIN_TTL_SECONDS = 86400 * 7;
+
+/**
+ * The meta TTL for a data key written with `dataTtlSeconds`.
+ *
+ * The floor alone is not enough once a data key outlives 7 days: health reads
+ * freshness from seed-meta and falls through to plain OK when the meta is gone
+ * but the data key still has bytes, so a meta that expires FIRST makes the
+ * STALE_SEED alarm unreachable for the remainder of the data key's life. The
+ * clamp is the same one `writeFreshnessMetadata` has always applied to the
+ * canonical key; extra keys need it for the same reason.
+ *
+ * An explicit `metaTtlSeconds` still wins, so the parameter keeps meaning what
+ * it says. The three seeders that already pass one (seed-jodi-gas,
+ * seed-natural-events, seed-defense-industrial-suppliers) pass their own data
+ * TTL — the value this would have computed — so they are byte-identical either
+ * way; the override exists for a future caller that needs a different one.
+ */
+export function resolveSeedMetaTtl(metaTtlSeconds, dataTtlSeconds) {
+  return metaTtlSeconds ?? Math.max(SEED_META_MIN_TTL_SECONDS, dataTtlSeconds || 0);
+}
+
+export async function writeSeedMeta(dataKey, recordCount, metaKeyOverride, metaTtlSeconds, coverage, extra) {
   const { url, token } = getRedisCredentials();
   const metaKey = metaKeyOverride || `seed-meta:${dataKey.replace(/:v\d+$/, '')}`;
   const meta = { fetchedAt: Date.now(), recordCount: recordCount ?? 0 };
   if (coverage) meta.coverage = coverage;
-  const metaTtl = metaTtlSeconds ?? 86400 * 7;
+  // Optional producer diagnostics, copied verbatim onto the meta record.
+  // api/health.js decides which fields it trusts (see readSeedMeta), so callers
+  // must keep `extra` safe for a public endpoint; the consumer-prices
+  // `coverage` block is deliberately NOT merged here (health parses it with a
+  // separate retailer schema — see fetchTradeFlows in seed-supply-chain-trade).
+  if (extra && typeof extra === 'object') {
+    for (const [key, value] of Object.entries(extra)) {
+      if (value !== undefined) meta[key] = value;
+    }
+  }
+  // No data TTL is in scope here — callers that know one resolve it through
+  // `resolveSeedMetaTtl` before calling. Bare floor otherwise.
+  const metaTtl = resolveSeedMetaTtl(metaTtlSeconds);
   const resp = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': CHROME_UA },
@@ -1047,12 +1108,19 @@ export async function writeSeedMeta(dataKey, recordCount, metaKeyOverride, metaT
     console.warn(`  seed-meta ${metaKey}: write failed`);
     return false;
   }
+  // Upstash can return HTTP 200 with a command-level error. Treat that as a
+  // failed metadata write instead of reporting success while health still
+  // points at the previous heartbeat.
+  await parseRedisCommandResponse(resp, `seed-meta ${metaKey}`);
   return true;
 }
 
 export async function writeExtraKeyWithMeta(key, data, ttl, recordCount, metaKeyOverride, metaTtlSeconds, coverage) {
   await writeExtraKey(key, data, ttl);
-  return writeSeedMeta(key, recordCount, metaKeyOverride, metaTtlSeconds, coverage);
+  // The data TTL is right here, so the meta never has to be the shorter of the
+  // two. seed-economy's four EIA weekly keys (21d data, 14d health budget) rode
+  // the bare 7d default and went silent-OK for the 14 days in between.
+  return writeSeedMeta(key, recordCount, metaKeyOverride, resolveSeedMetaTtl(metaTtlSeconds, ttl), coverage);
 }
 
 // Detailed counterpart to extendExistingTtl. Results stay aligned to the input
@@ -1260,6 +1328,46 @@ export function isTransientProxyError(message) {
 
 const FRED_JSON_HEADERS = { Accept: 'application/json', 'User-Agent': CHROME_UA };
 
+// FRED's own edge returns sporadic 5xx on individual series. Observed
+// 2026-08-26: four consecutive 24/24 runs, then `FRED T10Y2Y: fetch failed —
+// direct: HTTP 502` and the same for UNRATE, publishing 22/24 — enough to trip
+// health's minRecordCount of 24 for the whole hour. Both series answered 200
+// when queried directly minutes later, and adjacent runs fetched them fine.
+//
+// Deliberately status-only, and deliberately NOT reusing isTransientProxyError:
+// that predicate also matches timeouts and socket tears, and a direct leg that
+// timed out has already burned its 20s budget — retrying it would double the
+// worst case inside runSeed's fetch-phase deadline for a leg that is plainly
+// broken. A 5xx fails fast, so this retry costs a few hundred milliseconds.
+const FRED_DIRECT_ATTEMPTS = 2;
+function isRetriableFredStatus(status) {
+  return Number.isInteger(status) && status >= 500 && status <= 599;
+}
+
+// Direct FRED fetch with a bounded retry on a fast-failing 5xx. Shared by the
+// proxy-fallback path and the no-proxy path: a transient 502 is transient
+// regardless of which leg reached it, and having only one of the two retry is
+// how the asymmetry below went unnoticed — the proxy leg already retried three
+// times while its own fallback got a single attempt.
+async function fredDirectFetchJson(url) {
+  let lastError;
+  for (let attempt = 1; attempt <= FRED_DIRECT_ATTEMPTS; attempt += 1) {
+    try {
+      const r = await fetch(url, { headers: FRED_JSON_HEADERS, signal: AbortSignal.timeout(20_000) });
+      if (r.ok) return await r.json();
+      throw Object.assign(new Error(`HTTP ${r.status}`), { status: r.status });
+    } catch (error) {
+      lastError = error;
+      if (attempt < FRED_DIRECT_ATTEMPTS && isRetriableFredStatus(error?.status)) {
+        await new Promise((resolve) => setTimeout(resolve, 350 * attempt + Math.random() * 250));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
 // Fetch JSON from a FRED URL, routing through proxy when available.
 // Proxy-first: FRED consistently blocks/throttles Railway datacenter IPs,
 // so try proxy first to avoid 20s timeout on every direct attempt.
@@ -1283,16 +1391,12 @@ export async function fredFetchJson(url, proxyAuth) {
     }
     console.warn(`  [fredFetch] proxy failed after retries (${lastProxyErr?.message}) — retrying direct`);
     try {
-      const r = await fetch(url, { headers: FRED_JSON_HEADERS, signal: AbortSignal.timeout(20_000) });
-      if (r.ok) return r.json();
-      throw Object.assign(new Error(`HTTP ${r.status}`), { status: r.status });
+      return await fredDirectFetchJson(url);
     } catch (directErr) {
       throw Object.assign(new Error(`direct: ${directErr.message}`), { cause: directErr });
     }
   }
-  const r = await fetch(url, { headers: FRED_JSON_HEADERS, signal: AbortSignal.timeout(20_000) });
-  if (r.ok) return r.json();
-  throw Object.assign(new Error(`HTTP ${r.status}`), { status: r.status });
+  return fredDirectFetchJson(url);
 }
 
 // Fetch JSON from an IMF DataMapper URL, direct-first with proxy fallback.
@@ -1711,8 +1815,10 @@ export async function fetchYahooFxRatesWithProvenance(fxSymbols, fallbacks = {})
  * Returns null on any error by default — scripts must handle first-run (no prev
  * data). Pass strict:true when overwriting without the prior snapshot would lose
  * accumulated state; missing keys still return null, while read failures throw.
+ * Pass includeEnvelopeMeta:true when a cross-seed calculation must bind the
+ * payload and its fetchedAt clock to the same atomic Redis GET.
  */
-export async function readSeedSnapshot(canonicalKey, { strict = false } = {}) {
+export async function readSeedSnapshot(canonicalKey, { strict = false, includeEnvelopeMeta = false } = {}) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
@@ -1725,12 +1831,38 @@ export async function readSeedSnapshot(canonicalKey, { strict = false } = {}) {
       if (strict) throw new Error(`Redis snapshot read failed: HTTP ${resp.status}`);
       return null;
     }
-    const { result } = await resp.json();
-    if (!result) return null;
+    // Upstash's GET contract has one unambiguous miss: an HTTP-200 JSON
+    // envelope with an explicitly-null `result`. In strict mode, every other
+    // malformed envelope is a read failure, not a cold start. This matters for
+    // rolling/baseline seeders: degrading `{}` or invalid JSON to null can make
+    // two ambiguous reads look like a missing key and overwrite last-good
+    // state. Non-strict callers retain their best-effort null degradation.
+    const body = strict
+      ? await parseRedisCommandResponse(resp, 'Redis snapshot read')
+      : await resp.json();
+    const result = body?.result;
+    if (result === null) return null;
+    if (strict && typeof result !== 'string') {
+      throw new Error('Redis snapshot read returned a non-string result');
+    }
+    if (!strict && !result) return null;
+    let parsed;
+    try {
+      parsed = JSON.parse(result);
+    } catch (cause) {
+      if (strict) {
+        throw Object.assign(new Error('Redis snapshot read returned malformed stored JSON'), { cause });
+      }
+      return null;
+    }
+    if (strict && parsed === null) {
+      throw new Error('Redis snapshot read returned a null stored snapshot');
+    }
     // Envelope-aware: WoW/prev baselines (bigmac, grocery-basket, fear-greed)
     // must see bare legacy-shape data whether the last write was pre- or post-
     // contract-migration. unwrapEnvelope is a no-op on legacy values.
-    return unwrapEnvelope(JSON.parse(result)).data;
+    const envelope = unwrapEnvelope(parsed);
+    return includeEnvelopeMeta ? { data: envelope.data, meta: envelope._seed } : envelope.data;
   } catch (error) {
     if (strict) throw error;
     return null;
@@ -1823,6 +1955,23 @@ function toSignificantDigits(value, sig) {
 export function roundSparkline(values, sig = SPARKLINE_SIGNIFICANT_DIGITS) {
   if (!Array.isArray(values)) return values;
   return values.map((v) => toSignificantDigits(v, sig));
+}
+
+/** Decimal places kept for published geographic coordinates. 5 dp is ~1.1m at the equator. */
+export const GEO_COORDINATE_DECIMALS = 5;
+
+/**
+ * Round one lat/lon to `decimals` places for the PUBLISHED payload.
+ *
+ * Apply this at the serialization boundary, never at the parse boundary. Rounded
+ * coordinates that reach comparison logic shift its decisions: the earthquake
+ * cross-agency dedup gates on `haversineDistanceKm(...) <= 10`, and rounding both
+ * sides first can move a pair across that threshold (verified: pairs at 9.99977km
+ * become 10.00054km, so a duplicate publishes twice — or two distinct events merge).
+ * Non-finite values pass through untouched, matching roundSparkline's contract.
+ */
+export function roundGeoCoordinate(value, decimals = GEO_COORDINATE_DECIMALS) {
+  return Number.isFinite(value) ? Number(value.toFixed(decimals)) : value;
 }
 
 export function parseYahooChart(data, symbol) {
@@ -1932,6 +2081,10 @@ export function raceFetchDeadline(promise, ms, label) {
   return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
 }
 
+// Set by _bundle-runner for canonical-clock members that need proof that every
+// publish side effect completed. Standalone seed runs leave it unset.
+export const BUNDLE_COMPLETION_META_KEY_ENV = 'WM_BUNDLE_COMPLETION_META_KEY';
+
 export async function runSeed(domain, resource, canonicalKey, fetchFn, opts = {}) {
   const {
     validateFn,
@@ -1957,11 +2110,37 @@ export async function runSeed(domain, resource, canonicalKey, fetchFn, opts = {}
     sourceVersion,         // new — required when declareRecords is passed
     schemaVersion,         // new — required when declareRecords is passed
     zeroIsValid = false,   // new — when true, recordCount=0 is OK_ZERO, not RETRY
-    contentMeta,           // (rawData) => {newestItemAt, oldestItemAt} | null
+    contentMeta,           // (rawData, runStartedAtMs) => {newestItemAt, oldestItemAt} | null
     maxContentAgeMin,      // positive integer minutes — opts in together with contentMeta
     fetchPhaseTimeoutMs,   // hard ceiling on the fetch phase; defaults to lockTtlMs + margin (#4786)
   } = opts;
   const contractMode = typeof declareRecords === 'function';
+  if (extraKeys && !Array.isArray(extraKeys)) {
+    console.error(`  CONTRACT VIOLATION: ${domain}:${resource} extraKeys must be an array`);
+    process.exit(1);
+  }
+  if (afterPublish && typeof afterPublish !== 'function') {
+    console.error(`  CONTRACT VIOLATION: ${domain}:${resource} afterPublish must be a function`);
+    process.exit(1);
+  }
+  if (afterFreshness && typeof afterFreshness !== 'function') {
+    console.error(`  CONTRACT VIOLATION: ${domain}:${resource} afterFreshness must be a function`);
+    process.exit(1);
+  }
+  const bundleCompletionMetaKey = String(process.env[BUNDLE_COMPLETION_META_KEY_ENV] ?? '').trim();
+  if (bundleCompletionMetaKey) {
+    if (!contractMode) {
+      console.error(`  CONTRACT VIOLATION: ${domain}:${resource} bundle completion attestation requires contract mode`);
+      process.exit(1);
+    }
+    if (!bundleCompletionMetaKey.startsWith('seed-completion:')) {
+      console.error(
+        `  CONTRACT VIOLATION: ${domain}:${resource} bundle completion key must use the dedicated `
+        + `seed-completion: namespace, got ${bundleCompletionMetaKey}`,
+      );
+      process.exit(1);
+    }
+  }
   if (contractMode) {
     // Soft-warn (PR 2) on other mandatory contract fields; PR 3 hard-aborts.
     const missing = [];
@@ -2124,7 +2303,11 @@ export async function runSeed(domain, resource, canonicalKey, fetchFn, opts = {}
     : lockTtlMs + FETCH_PHASE_DEADLINE_MARGIN_MS;
   let data;
   try {
-    data = await raceFetchDeadline(withRetry(fetchFn), fetchDeadlineMs, `${domain}:${resource}`);
+    data = await raceFetchDeadline(
+      withRetry(() => fetchFn({ runStartedAtMs: startMs })),
+      fetchDeadlineMs,
+      `${domain}:${resource}`,
+    );
   } catch (err) {
     // Keep the SIGTERM handler installed across the fetch-failure
     // cleanup. Earlier code did `process.off('SIGTERM', sigTermHandler)`
@@ -2168,7 +2351,7 @@ export async function runSeed(domain, resource, canonicalKey, fetchFn, opts = {}
     let contentOldestAt = null;
     if (contentAgeOptedIn) {
       try {
-        const result = contentMeta(data);
+        const result = contentMeta(data, startMs);
         if (result && typeof result === 'object'
             && Number.isFinite(result.newestItemAt) && result.newestItemAt > 0
             && Number.isFinite(result.oldestItemAt) && result.oldestItemAt > 0) {
@@ -2481,7 +2664,19 @@ export async function runSeed(domain, resource, canonicalKey, fetchFn, opts = {}
         }
         await writeExtraKey(ek.key, ekData, ek.ttl || ttlSeconds, ekEnvelope);
         if (contractMode && ek.metaKey) {
-          const wroteMeta = await writeSeedMeta(ek.key, ekEnvelope?.recordCount ?? 0, ek.metaKey, ek.metaTtlSeconds);
+          const metaExtra = typeof ek.metaExtra === 'function'
+            ? ek.metaExtra(ekData, data)
+            : ek.metaExtra;
+          const wroteMeta = await writeSeedMeta(
+            ek.key,
+            ekEnvelope?.recordCount ?? 0,
+            ek.metaKey,
+            // Same data TTL the writeExtraKey above just used, so a long-lived
+            // extra key can't outlive the meta that reports on it.
+            resolveSeedMetaTtl(ek.metaTtlSeconds, ek.ttl || ttlSeconds),
+            ek.coverage,
+            metaExtra,
+          );
           if (!wroteMeta && ek.metaCritical) throw new Error(`Extra key ${ek.key}: seed-meta ${ek.metaKey} write failed`);
         }
       }
@@ -2527,6 +2722,28 @@ export async function runSeed(domain, resource, canonicalKey, fetchFn, opts = {}
         runId,
         freshnessMeta: meta,
       });
+    }
+
+    // This is the final required Redis write for an attested bundle member.
+    // It deliberately does not run on fetch failure, contract retry, or
+    // validation-skip paths. Bind it to the canonical envelope timestamp so a
+    // marker from any other run cannot attest this publish.
+    if (bundleCompletionMetaKey) {
+      if (meta == null) {
+        throw new Error(`${domain}:${resource} freshness metadata write failed before completion attestation`);
+      }
+      if (!Number.isFinite(envelopeMeta?.fetchedAt)) {
+        throw new Error(`${domain}:${resource} canonical envelope timestamp missing before completion attestation`);
+      }
+      await writeExtraKey(
+        bundleCompletionMetaKey,
+        {
+          fetchedAt: envelopeMeta.fetchedAt,
+          completedAt: Date.now(),
+          runId,
+        },
+        Math.max(7 * 24 * 60 * 60, ttlSeconds || 0),
+      );
     }
 
     const durationMs = Date.now() - startMs;

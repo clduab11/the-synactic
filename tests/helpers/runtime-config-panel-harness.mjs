@@ -1,10 +1,11 @@
 import { build } from 'esbuild';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createBrowserEnvironment } from './mini-dom.mts';
+import { createTempDir, removeTempDir } from './temp-dir.mjs';
 
 export { createBrowserEnvironment };
 
@@ -37,7 +38,7 @@ function createRuntimeState() {
 }
 
 async function loadRuntimeConfigPanel() {
-  const tempDir = mkdtempSync(join(tmpdir(), 'wm-runtime-config-panel-'));
+  const tempDir = createTempDir('wm-runtime-config-panel-');
   const outfile = join(tempDir, 'RuntimeConfigPanel.bundle.mjs');
 
   const stubModules = new Map([
@@ -100,10 +101,15 @@ async function loadRuntimeConfigPanel() {
       export function toRuntimeUrl(path) { return path; }
     `],
     ['tauri-bridge-stub', `export async function invokeTauri() {}`],
-    // src/utils/index.ts pulls getCurrentLanguage from the same module as t().
+    // src/utils/index.ts pulls getCurrentLanguageTag (the full, script-aware
+    // tag — upstream renamed its call site from getCurrentLanguage) from the
+    // same module as t(); other bundled modules still use the region-stripped
+    // getCurrentLanguage. Stub both — a missing name is a hard esbuild error
+    // that fails the whole file before a single test runs.
     ['i18n-stub', `
       export function t(key) { return key; }
       export function getCurrentLanguage() { return 'en'; }
+      export function getCurrentLanguageTag() { return 'en'; }
     `],
     ['dom-utils-stub', `
       function append(parent, child) {
@@ -245,7 +251,7 @@ async function loadRuntimeConfigPanel() {
   return {
     RuntimeConfigPanel: mod.RuntimeConfigPanel,
     cleanupBundle() {
-      rmSync(tempDir, { recursive: true, force: true });
+      removeTempDir(tempDir);
     },
   };
 }

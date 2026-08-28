@@ -10,6 +10,11 @@ import {
   type DeferredPanelShellFootprint,
 } from '@/app/panel-mount-deferral';
 import {
+  SPLIT_LAYOUT_MIN_WIDTH,
+  mapRightClassForVisualSide,
+  type MapVisualSide,
+} from '@/app/split-layout';
+import {
   addResponsiveZoneListener,
   removeResponsiveZoneListener,
   type ResponsiveZoneListener,
@@ -38,7 +43,7 @@ import {
 import { BETA_MODE } from '@/config/beta';
 import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
-import { trackCriticalBannerAction, trackCheckoutSuccess, trackCheckoutFailed, trackGateHit, replayPendingCheckoutSuccess, replayPendingProFunnelEvents, replayPendingConversionEvents } from '@/services/analytics';
+import { trackCriticalBannerAction, trackCheckoutSuccess, trackCheckoutFailed, trackGateHit, trackMapViewChange, replayPendingCheckoutSuccess, replayPendingProFunnelEvents, replayPendingConversionEvents } from '@/services/analytics';
 import { getStoredMapModePreference } from '@/services/map-mode-preference';
 import { loadWidgets, saveWidget, isProUser, isProTierResolved, widgetsEvictedBySaving } from '@/services/widget-store';
 import { sanitizeLockedLayers, shouldSanitizeLockedLayers } from '@/config/map-layer-definitions';
@@ -85,10 +90,12 @@ import type { SupplyChainPanel } from '@/components/SupplyChainPanel';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { loadPanelCollapsed, loadPanelColSpans, loadPanelSpans } from '@/utils/panel-storage';
 import { measure, mutate } from '@/utils/layout-batch';
+import { applyPanelFontScale } from '@/services/font-scale-settings';
 import {
   hydrateGeoHubPanelFromClusters,
   hydrateTechHubPanelFromClusters,
 } from '@/app/hub-activity-hydration';
+import { movePanelToKeyboardZone } from '@/app/panel-keyboard-reorder';
 
 function readSessionStorageValue(key: string): string | null {
   try {
@@ -184,6 +191,24 @@ const DASHBOARD_REFERENCE_LINKS = [
   { label: 'Tools', path: '/tools/' },
 ] as const;
 
+export const VARIANT_SWITCHER_DASHBOARD_URLS = {
+  full: 'https://worldmonitor.app/dashboard',
+  tech: 'https://tech.worldmonitor.app/dashboard',
+  finance: 'https://finance.worldmonitor.app/dashboard',
+  commodity: 'https://commodity.worldmonitor.app/dashboard',
+  energy: 'https://energy.worldmonitor.app/dashboard',
+  trader: 'https://trader.worldmonitor.app/dashboard',
+  happy: 'https://happy.worldmonitor.app/dashboard',
+} as const;
+
+export function variantSwitcherHref(
+  targetVariant: keyof typeof VARIANT_SWITCHER_DASHBOARD_URLS,
+  currentVariant: string,
+  isLocal: boolean,
+): string {
+  return isLocal || currentVariant === targetVariant ? '#' : VARIANT_SWITCHER_DASHBOARD_URLS[targetVariant];
+}
+
 // TEMPORARY MIRROR of each panel constructor's footprint (`defaultRowSpan` /
 // `className: 'panel-wide'`, declared in src/components/*Panel.ts). A deferred
 // shell never instantiates its component, so it cannot read that footprint
@@ -213,6 +238,7 @@ export const DEFERRED_PANEL_NATURAL_FOOTPRINTS: Readonly<Record<string, Deferred
   'internet-disruptions': { rowSpan: 2 },
   'live-news': { className: 'panel-wide' },
   'live-webcams': { className: 'panel-wide' },
+  'news-market-correlation': { rowSpan: 2, className: 'panel-wide' },
   'oil-inventories': { rowSpan: 2 },
   'pipeline-status': { rowSpan: 2 },
   'sanctions-pressure': { rowSpan: 2 },
@@ -221,6 +247,7 @@ export const DEFERRED_PANEL_NATURAL_FOOTPRINTS: Readonly<Record<string, Deferred
   'strategic-posture': { rowSpan: 2 },
   'supply-chain': { rowSpan: 2 },
   'telegram-intel': { rowSpan: 2 },
+  'x-intel': { rowSpan: 2 },
   'threat-timeline': { rowSpan: 2 },
   'trade-policy': { rowSpan: 2 },
   'ucdp-events': { rowSpan: 2 },
@@ -427,11 +454,10 @@ export class PanelLayoutManager implements AppModule {
     //      we stash a session flag before the reload and consume it here.
     const returnResult = handleCheckoutReturn();
     const returnedFromOverlayFlag = consumePostCheckoutFlag();
-    const {
-      returnedFromDesktopBrowser,
-      returnedFromCheckout,
-      returnedFromAccountCheckout,
-    } = resolveCheckoutReturnRouting(returnResult, returnedFromOverlayFlag);
+    const routing = resolveCheckoutReturnRouting(returnResult, returnedFromOverlayFlag);
+    const returnedFromDesktopBrowser = routing.kind === 'desktop';
+    const returnedFromCheckout = routing.kind !== 'none';
+    const returnedFromAccountCheckout = routing.kind === 'overlay' || routing.kind === 'account';
     this.proActivationController = new ProActivationController(ctx, {
       reloadPending: returnedFromAccountCheckout,
       openAiAnalyst: () => this.revealAnalystPanel(),
@@ -865,6 +891,20 @@ export class PanelLayoutManager implements AppModule {
     // section's first frame instead of ~150ms later via setupMobileMapToggle
     // (which shoved #panelsGrid up 698px, field CLS ~0.62 for this cohort).
     const mapStartsCollapsed = this.ctx.isMobile && PanelLayoutManager.isMobileMapCollapsedPreferred();
+    // Render the persisted map side into the markup so a right-side map does
+    // not flash on the left before EventHandlerManager.init() runs (#6417).
+    const mapRightClassActive = (() => {
+      try {
+        const storedSide = localStorage.getItem('map-side');
+        if (storedSide !== 'left' && storedSide !== 'right') return false;
+        return mapRightClassForVisualSide(
+          storedSide as MapVisualSide,
+          document.documentElement.dir === 'rtl',
+        );
+      } catch {
+        return false;
+      }
+    })();
     const bootShellFootprint = import.meta.env.DEV ? captureBootShellFootprint(this.ctx.container) : null;
     const referenceLinksHtml = DASHBOARD_REFERENCE_LINKS.map(({ label, path }) => {
       const href = this.ctx.isDesktopApp ? `https://www.worldmonitor.app${path}` : path;
@@ -877,15 +917,16 @@ export class PanelLayoutManager implements AppModule {
       ${this.ctx.isDesktopApp ? '<div class="tauri-titlebar" data-tauri-drag-region></div>' : ''}
       <a href="#main" class="skip-link">Skip to main content</a>
       <div id="proBannerSlot" class="pro-banner-slot" aria-live="polite"></div>
-      <div class="header">
+      <div class="header" role="banner">
         <div class="header-left">
           <div class="variant-switcher">${(() => {
         const local = this.ctx.isDesktopApp || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         const inIframe = window.self !== window.top;
-        const vHref = (v: string, prod: string) => local || SITE_VARIANT === v ? '#' : prod;
+        const vHref = (v: keyof typeof VARIANT_SWITCHER_DASHBOARD_URLS) =>
+          variantSwitcherHref(v, SITE_VARIANT, local);
         const vTarget = (v: string) => !local && SITE_VARIANT !== v && inIframe ? 'target="_blank" rel="noopener"' : '';
         return `
-            <a href="${vHref('full', 'https://worldmonitor.app/dashboard')}"
+            <a href="${vHref('full')}"
                class="variant-option ${SITE_VARIANT === 'full' ? 'active' : ''}"
                data-variant="full"
                ${vTarget('full')}
@@ -894,7 +935,7 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">${t('header.world')}</span>
             </a>
             <span class="variant-divider"></span>
-            <a href="${vHref('tech', 'https://tech.worldmonitor.app/dashboard')}"
+            <a href="${vHref('tech')}"
                class="variant-option ${SITE_VARIANT === 'tech' ? 'active' : ''}"
                data-variant="tech"
                ${vTarget('tech')}
@@ -903,7 +944,7 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">${t('header.tech')}</span>
             </a>
             <span class="variant-divider"></span>
-            <a href="${vHref('finance', 'https://finance.worldmonitor.app/dashboard')}"
+            <a href="${vHref('finance')}"
                class="variant-option ${SITE_VARIANT === 'finance' ? 'active' : ''}"
                data-variant="finance"
                ${vTarget('finance')}
@@ -912,7 +953,7 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">${t('header.finance')}</span>
             </a>
             <span class="variant-divider"></span>
-            <a href="${vHref('commodity', 'https://commodity.worldmonitor.app/dashboard')}"
+            <a href="${vHref('commodity')}"
                class="variant-option ${SITE_VARIANT === 'commodity' ? 'active' : ''}"
                data-variant="commodity"
                ${vTarget('commodity')}
@@ -921,7 +962,7 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">${t('header.commodity')}</span>
             </a>
             <span class="variant-divider"></span>
-            <a href="${vHref('energy', 'https://energy.worldmonitor.app/dashboard')}"
+            <a href="${vHref('energy')}"
                class="variant-option ${SITE_VARIANT === 'energy' ? 'active' : ''}"
                data-variant="energy"
                ${vTarget('energy')}
@@ -930,7 +971,7 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">${t('header.energy')}</span>
             </a>
             <span class="variant-divider"></span>
-            <a href="${vHref('trader', 'https://trader.worldmonitor.app/dashboard')}"
+            <a href="${vHref('trader')}"
                class="variant-option ${SITE_VARIANT === 'trader' ? 'active' : ''}"
                data-variant="trader"
                ${vTarget('trader')}
@@ -939,7 +980,7 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">${t('header.trader')}</span>
             </a>
             <span class="variant-divider"></span>
-            <a href="${vHref('happy', 'https://happy.worldmonitor.app/dashboard')}"
+            <a href="${vHref('happy')}"
                class="variant-option ${SITE_VARIANT === 'happy' ? 'active' : ''}"
                data-variant="happy"
                ${vTarget('happy')}
@@ -949,10 +990,10 @@ export class PanelLayoutManager implements AppModule {
             </a>`;
       })()}</div>
           <span class="logo">the-synactic</span><span class="logo-mobile">the-synactic</span><span class="version">v${__APP_VERSION__}</span>${BETA_MODE ? '<span class="beta-badge">BETA</span>' : ''}
-          <a href="https://github.com/clduab11/the-synactic" target="_blank" rel="noopener" class="github-link" title="${t('header.viewOnGitHub')}">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <a href="https://github.com/clduab11/the-synactic" target="_blank" rel="noopener" class="github-link" title="${t('header.viewOnGitHub')}" aria-label="${t('header.viewOnGitHub')}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           </a>
-          <button class="mobile-settings-btn" id="mobileSettingsBtn" title="${t('header.settings')}">
+          <button class="mobile-settings-btn" id="mobileSettingsBtn" title="${t('header.settings')}" aria-label="${t('header.settings')}">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
           <div class="status-indicator">
@@ -980,14 +1021,14 @@ export class PanelLayoutManager implements AppModule {
           <button class="search-btn" id="searchBtn"><kbd>⌘K</kbd> ${t('header.search')}</button>
           ${this.ctx.isDesktopApp ? '' : `<button class="copy-link-btn" id="copyLinkBtn">${t('header.copyLink')}</button>`}
           ${this.ctx.isDesktopApp ? '' : `<button class="copy-link-btn embed-link-btn" id="embedLinkBtn">${t('header.embed')}</button>`}
-          ${this.ctx.isDesktopApp ? '' : `<button class="fullscreen-btn" id="fullscreenBtn" title="${t('header.fullscreen')}">⛶</button>`}
-          ${SITE_VARIANT === 'happy' ? `<button class="tv-mode-btn" id="tvModeBtn" title="TV Mode (Shift+T)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>` : ''}
+          ${this.ctx.isDesktopApp ? '' : `<button class="fullscreen-btn" id="fullscreenBtn" title="${t('header.fullscreen')}" aria-label="${t('header.fullscreen')}">⛶</button>`}
+          ${SITE_VARIANT === 'happy' ? `<button class="tv-mode-btn" id="tvModeBtn" title="TV Mode (Shift+T)" aria-label="TV Mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>` : ''}
           <span id="unifiedSettingsMount"></span>
           <span id="authWidgetMount" class="auth-widget-mount"></span>
         </div>
       </div>
       <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
-      <nav class="mobile-menu" id="mobileMenu">
+      <nav class="mobile-menu" id="mobileMenu" aria-label="Menu">
         <div class="mobile-menu-header">
           <span class="mobile-menu-title">THE-SYNACTIC</span>
           <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
@@ -1070,7 +1111,7 @@ export class PanelLayoutManager implements AppModule {
       ).join('')}
       </div>
       <div class="dashboard-tabs-mount" id="panelTabsMount"></div>
-      <main id="main" tabindex="-1" class="main-content${this.ctx.isDesktopApp ? ' desktop-grid' : ''}">
+      <main id="main" tabindex="-1" class="main-content${mapRightClassActive ? ' map-right' : ''}">
         <div class="map-section${mapStartsCollapsed ? ' collapsed' : ''}" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
@@ -1082,6 +1123,9 @@ export class PanelLayoutManager implements AppModule {
                 <button class="map-dim-btn${isGlobeMode ? '' : ' active'}" data-mode="flat" title="2D Map">2D</button>
                 <button class="map-dim-btn${isGlobeMode ? ' active' : ''}" data-mode="globe" title="3D Globe">3D</button>
               </div>
+              <button class="map-pin-btn map-side-btn" id="mapSideBtn" title="Move map to the right side">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+              </button>
               <button class="map-pin-btn" id="mapFullscreenBtn" title="Fullscreen">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
               </button>
@@ -1098,7 +1142,7 @@ export class PanelLayoutManager implements AppModule {
           <div class="map-bottom-grid" id="mapBottomGrid"></div>
         </div>
         <div class="map-width-resize-handle" id="mapWidthResizeHandle"></div>
-        <div class="panels-grid" id="panelsGrid" role="tabpanel"></div>
+        <div class="panels-grid" id="panelsGrid" role="tabpanel" aria-label="Dashboard panels"></div>
       </main>
       <nav class="mobile-tab-bar" id="mobileTabBar" aria-label="Primary">
         <button class="mobile-tab active" type="button" data-mobile-tab="today" aria-current="page">
@@ -1125,7 +1169,8 @@ export class PanelLayoutManager implements AppModule {
             <span class="site-footer-sub">v${__APP_VERSION__} &middot; forked from <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noopener" class="site-footer-credit">World Monitor</a> by <a href="https://x.com/eliehabib" target="_blank" rel="noopener" class="site-footer-credit">@eliehabib</a></span>
           </div>
         </div>
-        <nav>
+        <nav aria-label="World Monitor references">
+          ${referenceLinksHtml}
           <a href="${this.ctx.isDesktopApp ? 'https://www.worldmonitor.app/pro#pricing' : '/pro#pricing'}" target="_blank" rel="noopener">Pricing</a>
           <a href="${this.ctx.isDesktopApp ? 'https://worldmonitor.app/blog/' : 'https://www.worldmonitor.app/blog/'}" target="_blank" rel="noopener">Blog</a>
           <a href="${this.ctx.isDesktopApp ? 'https://worldmonitor.app/docs' : 'https://www.worldmonitor.app/docs'}" target="_blank" rel="noopener">Docs</a>
@@ -1356,8 +1401,8 @@ export class PanelLayoutManager implements AppModule {
       name: t('dashboardTabs.newTabName'),
       // Same unresolved-tier caveat as applyTabPanelState: clamping a new tab
       // before the entitlement is known bakes a free-tier layout into a Pro
-      // user's workspace, and the count clamp carries no marker to undo. Once
-      // the bounded fallback fires, the tier is settled enough to clamp.
+      // user's workspace before its ownership marker can be safely reconciled.
+      // Once the bounded fallback fires, the tier is settled enough to clamp.
       panelSettings: this.isProTierResolvedOrFallback()
         ? enforceFreePanelLimit(defaults.panelSettings, isProUser())
         : defaults.panelSettings,
@@ -1561,7 +1606,7 @@ export class PanelLayoutManager implements AppModule {
         ${top.strikeCapable ? '<span class="banner-strike">STRIKE CAPABLE</span>' : ''}
       </div>
       <button class="banner-view" data-lat="${top.centerLat}" data-lon="${top.centerLon}">View Region</button>
-      <button class="banner-dismiss">×</button>
+      <button class="banner-dismiss" aria-label="${t('common.dismiss')}">×</button>
     `, "legacy direct innerHTML migration"));
 
     this.criticalBannerEl.querySelector('.banner-view')?.addEventListener('click', () => {
@@ -1613,6 +1658,8 @@ export class PanelLayoutManager implements AppModule {
         deferred.placeholder.classList.toggle('hidden', !config.enabled);
       }
       const panel = this.ctx.panels[key];
+      if (deferred?.placeholder?.isConnected) applyPanelFontScale(deferred.placeholder, config.fontScale);
+      if (panel) applyPanelFontScale(panel.getElement(), config.fontScale);
       const liveMediaPanel = panel as { stopLiveMediaForClose?: () => void; resumeLiveMediaForShow?: () => void } | undefined;
       if (!config.enabled) {
         liveMediaPanel?.stopLiveMediaForClose?.();
@@ -1781,6 +1828,7 @@ export class PanelLayoutManager implements AppModule {
   private mountPanelElement(grid: HTMLElement, key: string, panel: Panel, placeholder?: HTMLElement | null): boolean {
     const el = panel.getElement();
     if (el.parentElement) return false;
+    applyPanelFontScale(el, this.ctx.panelSettings[key]?.fontScale);
     this.makeDraggable(el, key);
     if (placeholder?.parentNode) {
       if (import.meta.env.DEV) warnOnDeferredFootprintDrift(key, placeholder, el);
@@ -1809,6 +1857,7 @@ export class PanelLayoutManager implements AppModule {
       ? createDeferredPanelShell(key, this.ctx.panelSettings[key]?.name ?? key, this.getDeferredPanelShellFootprint(key))
       : null;
     if (placeholder && grid) {
+      applyPanelFontScale(placeholder, this.ctx.panelSettings[key]?.fontScale);
       this.insertByOrder(grid, placeholder, key);
       reconcileDeferredPanelShellColSpan(placeholder);
       this.mobilePanelNav?.applyToNewPanel(placeholder);
@@ -2200,6 +2249,7 @@ export class PanelLayoutManager implements AppModule {
     this.lazyDefaultPanel('satellite-fires', () => import('@/components/SatelliteFiresPanel'), 'SatelliteFiresPanel');
 
     this.lazyDefaultPanel('defense-patents', () => import('@/components/DefensePatentsPanel'), 'DefensePatentsPanel');
+    this.lazyDefaultPanel('toronto-safety', () => import('@/components/TorontoSafetyPanel'), 'TorontoSafetyPanel');
 
     // Correlation engine panels
     this.lazyImportedPanel('military-correlation', () => import('@/components/MilitaryCorrelationPanel'), 'MilitaryCorrelationPanel', (MilitaryCorrelationPanel) => {
@@ -2303,6 +2353,9 @@ export class PanelLayoutManager implements AppModule {
             getPanelConfig: (panelId) => getEffectivePanelConfig(panelId, SITE_VARIANT),
             isPanelAllowed: (panelId, config) => isPanelEntitled(panelId, config, hasPremiumAccess(getAuthState())),
             hasPremiumAccess: () => hasPremiumAccess(getAuthState()),
+            applyViewChange: (viewAction) => {
+              if (viewAction.view) trackMapViewChange(viewAction.view);
+            },
             applyLayerChange: this.callbacks.applyMapLayerChange,
           }));
         })
@@ -2334,6 +2387,14 @@ export class PanelLayoutManager implements AppModule {
       'TelegramIntelPanel',
       undefined,
       _lockPanels ? [t('premium.features.telegramIntel1'), t('premium.features.telegramIntel2')] : undefined,
+    );
+
+    this.lazyDefaultPanel(
+      'x-intel',
+      () => import('@/components/XIntelPanel'),
+      'XIntelPanel',
+      undefined,
+      _lockPanels ? [t('premium.features.xIntel1'), t('premium.features.xIntel2')] : undefined,
     );
 
     this.lazyPanel('gcc-investments', async () => {
@@ -2456,6 +2517,7 @@ export class PanelLayoutManager implements AppModule {
     this.lazyDefaultPanel('fear-greed', () => import('@/components/FearGreedPanel'), 'FearGreedPanel');
     this.lazyDefaultPanel('aaii-sentiment', () => import('@/components/AAIISentimentPanel'), 'AAIISentimentPanel');
     this.lazyDefaultPanel('market-breadth', () => import('@/components/MarketBreadthPanel'), 'MarketBreadthPanel');
+    this.lazyDefaultPanel('news-market-correlation', () => import('@/components/NewsMarketCorrelationPanel'), 'NewsMarketCorrelationPanel');
     this.lazyDefaultPanel('macro-tiles', () => import('@/components/MacroTilesPanel'), 'MacroTilesPanel');
     this.lazyDefaultPanel('fsi', () => import('@/components/FSIPanel'), 'FSIPanel');
     this.lazyDefaultPanel('yield-curve', () => import('@/components/YieldCurvePanel'), 'YieldCurvePanel');
@@ -2936,10 +2998,9 @@ export class PanelLayoutManager implements AppModule {
         normalized = { ...normalized, resilienceScore: false };
       }
       // MapContainer also sanitizes at the renderer boundary, but update the
-      // context and persisted URL preference with the effective state first.
-      // Otherwise a settled-free user can have the locked layer stripped from
-      // the renderer while ctx.mapLayers/localStorage retain the stale `true`
-      // value and a later preference/URL reapplication resurrects it (#6045).
+      // URL-derived context with the effective display state first. A shared
+      // link is not a user preference, so it must never overwrite the saved
+      // (and cloud-synced) map-layer selection.
       if (shouldSanitizeLockedLayers(
         hasPremiumAccess(getAuthState()),
         isProTierResolved(),
@@ -2949,7 +3010,6 @@ export class PanelLayoutManager implements AppModule {
       }
       this.ctx.initialUrlState.layers = normalized;
       this.ctx.mapLayers = normalized;
-      saveToStorage(STORAGE_KEYS.mapLayers, normalized);
       this.ctx.map.setLayers(normalized);
     }
 
@@ -3217,7 +3277,7 @@ export class PanelLayoutManager implements AppModule {
   }
 
   private getUltraWideMinWidth(): number {
-    return this.ctx.isDesktopApp ? 900 : 1600;
+    return SPLIT_LAYOUT_MIN_WIDTH;
   }
 
   private getEffectiveUltraWide(): boolean {
@@ -3799,6 +3859,72 @@ export class PanelLayoutManager implements AppModule {
     el.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+
+    // Keyboard path for reordering: the mouse drag above has no keyboard
+    // equivalent, so layout customization was impossible without a pointer.
+    // A visually-hidden-until-focused button in the header moves the panel
+    // one slot per arrow press and persists through the same savePanelOrder()
+    // path as a completed drag. Page Up/Page Down move between the sidebar
+    // and below-map grids when both zones are active on an ultra-wide layout.
+    const header = el.querySelector<HTMLElement>('.panel-header');
+    if (header && !header.querySelector('.panel-move-btn')) {
+      const moveBtn = document.createElement('button');
+      moveBtn.type = 'button';
+      moveBtn.className = 'panel-move-btn';
+      const panelTitle = el.querySelector('.panel-title')?.textContent?.trim() || key;
+      moveBtn.setAttribute(
+        'aria-label',
+        `Move ${panelTitle} panel; arrow keys reorder, Page Up moves to sidebar, Page Down moves below map`,
+      );
+      moveBtn.setAttribute(
+        'aria-keyshortcuts',
+        'ArrowLeft ArrowRight ArrowUp ArrowDown PageUp PageDown',
+      );
+      moveBtn.textContent = '⇅';
+      moveBtn.addEventListener('keydown', (e: KeyboardEvent) => {
+        const targetZone = e.key === 'PageUp'
+          ? 'sidebar'
+          : e.key === 'PageDown'
+            ? 'bottom'
+            : null;
+        if (targetZone) {
+          if (!this.getEffectiveUltraWide()) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const sidebarGrid = document.getElementById('panelsGrid');
+          const bottomGrid = document.getElementById('mapBottomGrid');
+          if (!sidebarGrid || !bottomGrid) return;
+          const moved = movePanelToKeyboardZone({
+            panel: el,
+            panelKey: key,
+            targetZone,
+            sidebarGrid,
+            bottomGrid,
+            bottomSet: this.bottomSetMemory,
+          });
+          if (moved) this.savePanelOrder();
+          moveBtn.focus();
+          return;
+        }
+
+        const back = e.key === 'ArrowLeft' || e.key === 'ArrowUp';
+        const fwd = e.key === 'ArrowRight' || e.key === 'ArrowDown';
+        if (!back && !fwd) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const parent = el.parentElement;
+        if (!parent) return;
+        const sibling = back ? el.previousElementSibling : el.nextElementSibling;
+        if (!(sibling instanceof HTMLElement) || !sibling.classList.contains('panel')) return;
+        if (back) parent.insertBefore(el, sibling);
+        else parent.insertBefore(el, sibling.nextElementSibling);
+        this.savePanelOrder();
+        // The button travels with the panel; keep focus on it so repeated
+        // presses keep moving the same panel.
+        moveBtn.focus();
+      });
+      header.prepend(moveBtn);
+    }
 
     this.panelDragCleanupHandlers.push(() => {
       el.removeEventListener('mousedown', onMouseDown);

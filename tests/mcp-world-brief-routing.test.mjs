@@ -153,6 +153,40 @@ afterEach(() => {
 });
 
 describe('get_world_brief seeded brief routing', () => {
+  it('authenticates a local loopback self-fetch with the sidecar token', async () => {
+    // #6538: on self-host the bootstrap hop targets the sidecar's own global
+    // auth gate. The MCP key authenticates the client; this internal hop must
+    // present the per-session LOCAL_API_TOKEN the process already holds.
+    process.env.LOCAL_API_TOKEN = 'local-sidecar-token';
+    const fetchCalls = [];
+
+    globalThis.fetch = async (input, init = {}) => {
+      fetchCalls.push({ url: String(input), headers: new Headers(init.headers) });
+      const { pathname } = new URL(String(input));
+      if (pathname === '/api/infrastructure/v1/get-bootstrap-data') return insightsResponse();
+      throw new Error(`Unexpected downstream URL: ${input}`);
+    };
+
+    const response = await mcpHandler(new Request('http://127.0.0.1:43123/mcp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-WorldMonitor-Key': ENV_KEY,
+      },
+      body: JSON.stringify(callBody('get_world_brief', {})),
+    }), makeDeps());
+
+    assert.equal(response.status, 200);
+    assert.equal(fetchCalls.length, 1);
+    assert.equal(
+      fetchCalls[0].headers.get('X-WorldMonitor-Local-Token'),
+      'local-sidecar-token',
+      'the internal bootstrap fetch must carry the sidecar token on loopback',
+    );
+    const body = await response.json();
+    assert.match(body.result.content[0].text, /Seeded grounded world brief\./);
+  });
+
   it('preserves non-production origins without exposing them in telemetry tags', () => {
     const cases = [
       {
@@ -266,6 +300,72 @@ describe('get_world_brief seeded brief routing', () => {
     const serialized = JSON.stringify(captured);
     for (const secret of [ENV_KEY, USER_KEY, SECRET_QUERY, SECRET_COOKIE, SECRET_GEO_CONTEXT]) {
       assert.doesNotMatch(serialized, new RegExp(secret), `telemetry must not leak ${secret}`);
+    }
+  });
+
+  // WORLDMONITOR-YJ: hourly scheduled agents hit "Seeded world brief
+  // unavailable" but the alarm could not say WHICH acceptance gate rejected
+  // the snapshot — a stale producer (>60min degraded seeder window) and a
+  // schema bug need opposite responses. The thrown message must name the
+  // bounded rejection reason; the client-facing RPC error stays generic.
+  it('names the rejection reason when the seeded snapshot is rejected', async () => {
+    const scenarios = [
+      {
+        name: 'stale snapshot',
+        overrides: { generatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+        reason: 'stale-snapshot',
+      },
+      {
+        name: 'producer degraded status',
+        overrides: { status: 'degraded' },
+        reason: 'status-not-ok',
+      },
+      {
+        name: 'no headlines',
+        overrides: { topStories: [{ notATitle: true }] },
+        reason: 'no-headlines',
+      },
+    ];
+
+    const deps = makeDeps();
+    let id = 700;
+    for (const scenario of scenarios) {
+      const warned = [];
+      console.warn = (...args) => warned.push(args);
+      globalThis.fetch = async (input) => {
+        const { pathname } = new URL(String(input));
+        if (pathname === '/api/infrastructure/v1/get-bootstrap-data') {
+          return insightsResponse(scenario.overrides);
+        }
+        throw new Error(`Unexpected downstream URL: ${input}`);
+      };
+
+      const response = await mcpHandler(
+        requestFor('https://api.worldmonitor.app/api/mcp', AUTH_CASES[0].headers, id++),
+        deps,
+      );
+      assert.equal(response.status, 200, `${scenario.name}: transport status`);
+      const rpc = await response.json();
+      assert.equal(rpc.error?.code, -32003, `${scenario.name}: source-unavailable RPC code`);
+      assert.deepEqual(
+        rpc.error.data.unavailable_inputs,
+        ['news:insights:v1'],
+        `${scenario.name}: unavailable inputs`,
+      );
+      // The reason is operator-facing only — it must NOT leak into the
+      // client-facing RPC message, which stays a stable generic string.
+      assert.equal(rpc.error.message, 'Required data inputs are unavailable');
+
+      const outageWarning = warned.find((args) => (
+        args.some((arg) => arg instanceof Error && /Seeded world brief unavailable/.test(arg.message))
+      ));
+      assert.ok(outageWarning, `${scenario.name}: expected a tool-execution warning`);
+      const outageError = outageWarning.find((arg) => arg instanceof Error);
+      assert.equal(
+        outageError.message,
+        `Seeded world brief unavailable (${scenario.reason})`,
+        `${scenario.name}: reason named in the operator-facing message`,
+      );
     }
   });
 

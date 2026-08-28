@@ -3,9 +3,9 @@
 // Substitutes the stubbed `whyMatters` per story and the stubbed
 // executive summary (`digest.lead` / `digest.threads` / `digest.signals`)
 // with Gemini 2.5 Flash output via the existing OpenRouter-backed
-// callLLM chain. The LLM provider is pinned to openrouter by
-// skipProviders:['ollama','groq'] so the brief's editorial voice
-// stays on one model across environments.
+// callLLM chain. The LLM provider is pinned to paid openrouter by an exact
+// allowedProviders:['openrouter'] list so additions to the shared chain do not
+// change the model and editorial voice across environments.
 //
 // Deliberately:
 //   - Pure parse/build helpers are exported for testing without IO.
@@ -54,7 +54,7 @@ import {
 // #4921: the grounding spine now lives in shared/brief-llm-core.js — re-export
 // for existing consumers of this module.
 export { checkLeadGrounding, leadGroundsAgainstStory };
-import { sanitizeForPrompt } from '../../server/_shared/llm-sanitize.js';
+import { sanitizeForPrompt, sanitizeForPromptLine } from '../../server/_shared/llm-sanitize.js';
 // Single source of truth for the brief story cap. Both buildDigestPrompt
 // and hashDigestInput must slice to this value or the LLM prose drifts
 // from the rendered story cards (PR #3389 reviewer P1).
@@ -81,12 +81,32 @@ import { MAX_STORIES_PER_USER } from './brief-compose.mjs';
  * @param {{ headline?: string; source?: string; threatLevel?: string; category?: string; country?: string; description?: string }} story
  */
 function sanitizeStoryForPrompt(story) {
+  // Line variant (#5881): every field below is rendered as a single
+  // `Label: value` row in buildStoryDescriptionPrompt's newline-joined block,
+  // so the newline is the delimiter and sanitizeForPrompt -- which preserves a
+  // lone newline for prose -- lets one feed value forge an extra field row.
   return {
-    headline: sanitizeForPrompt(story.headline ?? ''),
-    source: sanitizeForPrompt(story.source ?? ''),
-    threatLevel: sanitizeForPrompt(story.threatLevel ?? ''),
-    category: sanitizeForPrompt(story.category ?? ''),
-    country: sanitizeForPrompt(story.country ?? ''),
+    headline: sanitizeForPromptLine(story.headline ?? ''),
+    source: sanitizeForPromptLine(story.source ?? ''),
+    threatLevel: sanitizeForPromptLine(story.threatLevel ?? ''),
+    category: sanitizeForPromptLine(story.category ?? ''),
+    country: sanitizeForPromptLine(story.country ?? ''),
+    description: sanitizeForPromptLine(story.description ?? ''),
+  };
+}
+
+/**
+ * Sanitize the story shape used by the prose description prompt.
+ * Metadata remains line-safe because it is rendered as labelled rows, while
+ * the RSS description keeps legitimate single newlines for the `Context:`
+ * grounding block. The whyMatters prompt uses sanitizeStoryForPrompt because
+ * its description is also rendered as a single labelled row.
+ *
+ * @param {{ headline?: string; source?: string; threatLevel?: string; category?: string; country?: string; description?: string }} story
+ */
+function sanitizeStoryForDescriptionPrompt(story) {
+  return {
+    ...sanitizeStoryForPrompt(story),
     description: sanitizeForPrompt(story.description ?? ''),
   };
 }
@@ -109,16 +129,20 @@ const WHY_MATTERS_CONCURRENCY = 5;
 //
 // SELF-HOST OVERRIDE. The Railway premise above is false on a deployment that
 // runs its own local inference endpoint (the-synactic self-hosts LM Studio via
-// OLLAMA_API_URL), where this pin means the delivered brief silently refuses
-// the only provider actually present. The pin is therefore env-tunable rather
-// than removed: BRIEF_LLM_SKIP_PROVIDERS is a comma-separated provider list,
-// and an EMPTY value means "skip nothing".
+// OLLAMA_API_URL), where an unconditional pin means the delivered brief
+// silently refuses the only provider actually present. The pin is therefore
+// env-tunable rather than removed: BRIEF_LLM_SKIP_PROVIDERS is a
+// comma-separated provider list, and an EMPTY value means "skip nothing".
 //
 // UNSET and EMPTY are deliberately different. `undefined` (every Railway
-// environment, and every consumer that never heard of this variable) keeps the
-// original two-provider pin byte-for-byte. An explicitly empty string opts in
-// to the full chain. A `||` default would collapse those two cases and make
-// the empty opt-in silently un-settable.
+// environment, and every consumer that never heard of this variable) keeps
+// the exact allowedProviders:['openrouter'] pin, so additions to the shared
+// chain — including the free openrouter fallbacks — cannot silently join the
+// brief voice. SETTING the variable switches the brief chain to skip-list
+// mode: an explicitly empty string opts in to the full chain (which is how a
+// self-host reaches its local transport), and a comma list skips exactly what
+// it names. A `||` default would collapse UNSET and EMPTY and make the empty
+// opt-in silently un-settable.
 export const BRIEF_LLM_DEFAULT_SKIP_PROVIDERS = Object.freeze(['ollama', 'groq']);
 
 /**
@@ -132,7 +156,12 @@ export function parseSkipProviders(raw) {
   return raw.split(',').map((entry) => entry.trim().toLowerCase()).filter(Boolean);
 }
 
-const BRIEF_LLM_SKIP_PROVIDERS = parseSkipProviders(process.env.BRIEF_LLM_SKIP_PROVIDERS);
+const BRIEF_LLM_ALLOWED_PROVIDERS = ['openrouter'];
+
+// The provider filter every brief callLLM site spreads into its opts.
+const BRIEF_LLM_PROVIDER_OPTS = process.env.BRIEF_LLM_SKIP_PROVIDERS === undefined
+  ? Object.freeze({ allowedProviders: BRIEF_LLM_ALLOWED_PROVIDERS })
+  : Object.freeze({ skipProviders: parseSkipProviders(process.env.BRIEF_LLM_SKIP_PROVIDERS) });
 
 // ── whyMatters (per story) ─────────────────────────────────────────────────
 // The pure helpers (`WHY_MATTERS_SYSTEM`, `buildWhyMattersUserPrompt` (aliased
@@ -258,7 +287,7 @@ export async function generateWhyMatters(story, deps) {
       maxTokens: 120,
       temperature: 0.4,
       timeoutMs: 10_000,
-      skipProviders: BRIEF_LLM_SKIP_PROVIDERS,
+      ...BRIEF_LLM_PROVIDER_OPTS,
       stage: 'brief-whymatters-cron',
     });
   } catch {
@@ -301,12 +330,27 @@ export function buildStoryDescriptionPrompt(story) {
     && normalise(rawDescription) !== normalise(story.headline ?? '');
   const contextLine = contextUseful ? `Context: ${rawDescription.slice(0, 400)}` : null;
 
+  // Guard at the composition site, not only at the caller (#5881). The
+  // production caller passes sanitizeStoryForPrompt(story), but a builder whose
+  // safety depends on that is one new call site away from a hole -- and these
+  // rows are newline-joined, so one feed newline forges an extra `Key: value`
+  // row the model reads as a real field.
   const lines = [
-    `Headline: ${story.headline}`,
-    `Source: ${story.source}`,
-    `Severity: ${story.threatLevel}`,
-    `Category: ${story.category}`,
-    `Country: ${story.country}`,
+    `Headline: ${sanitizeForPromptLine(story.headline)}`,
+    `Source: ${sanitizeForPromptLine(story.source)}`,
+    `Severity: ${sanitizeForPromptLine(story.threatLevel)}`,
+    `Category: ${sanitizeForPromptLine(story.category)}`,
+    `Country: ${sanitizeForPromptLine(story.country)}`,
+    // NOT line-sanitized, deliberately. This is the one free-prose sink in the
+    // block -- the article body, whose internal newlines are legitimate
+    // grounding text -- and #5857's rule is to keep sanitizeForPrompt on prose.
+    // tests/brief-llm.test.mjs:1788 locks that contract on purpose. It does
+    // leave a residual: Context is composed into the same newline-joined block
+    // as the rows above, so a newline in the body can still forge a trailing
+    // `Key: value` row. Closing that means rendering the body under its own
+    // structural header instead of as a labelled row, which is a prompt-shape
+    // change rather than a sanitizer fix. Flagged in #5881 rather than done
+    // silently here.
     ...(contextLine ? [contextLine] : []),
     '',
     'One editorial sentence describing what happened (not why it matters):',
@@ -383,14 +427,14 @@ export async function generateStoryDescription(story, deps) {
   // is untrusted input; without sanitisation, a hostile feed's
   // `<description>` would be an injection vector. The whyMatters path
   // already does this — keep the two symmetric.
-  const { system, user } = buildStoryDescriptionPrompt(sanitizeStoryForPrompt(story));
+  const { system, user } = buildStoryDescriptionPrompt(sanitizeStoryForDescriptionPrompt(story));
   let text = null;
   try {
     text = await deps.callLLM(system, user, {
       maxTokens: 140,
       temperature: 0.4,
       timeoutMs: 10_000,
-      skipProviders: BRIEF_LLM_SKIP_PROVIDERS,
+      ...BRIEF_LLM_PROVIDER_OPTS,
       stage: 'brief-description-cron',
     });
   } catch {
@@ -522,7 +566,7 @@ export function buildDigestPrompt(stories, sensitivity, ctx = {}) {
 
   const lines = stories.slice(0, MAX_STORIES_PER_USER).map((s, i) => {
     const n = String(i + 1).padStart(2, '0');
-    const sev = (s.threatLevel ?? '').toUpperCase();
+    const sev = sanitizeForPromptLine(s.threatLevel ?? '').toUpperCase();
     // Short hash prefix — first 8 chars of digest story hash. Keeps
     // the prompt compact while remaining collision-free for ≤30
     // stories. Stories without a hash fall back to position-based
@@ -530,7 +574,13 @@ export function buildDigestPrompt(stories, sensitivity, ctx = {}) {
     const shortHash = typeof s.hash === 'string' && s.hash.length >= 8
       ? s.hash.slice(0, 8)
       : `p${n}`;
-    return `${n}. [h:${shortHash}] [${sev}] ${s.headline} — ${s.category} · ${s.country} · ${s.source}`;
+    // Sanitize at the composition site, not upstream (#5881): these rows are
+    // newline-joined and the model is asked to key its output off [h:<hash>],
+    // so a feed newline can forge a numbered story row with an attacker-chosen
+    // hash. brief-compose.mjs sanitizes these fields before they get here, but
+    // with sanitizeHeadline/sanitizeForPrompt, both of which keep a lone
+    // newline -- the delimiter guard has to live where the delimiter is.
+    return `${n}. [h:${shortHash}] [${sev}] ${sanitizeForPromptLine(s.headline)} — ${sanitizeForPromptLine(s.category)} · ${sanitizeForPromptLine(s.country)} · ${sanitizeForPromptLine(s.source)}`;
   });
 
   const userParts = [
@@ -802,7 +852,7 @@ export async function generateDigestProse(userId, stories, sensitivity, deps, ct
       maxTokens: 900,
       temperature: 0.4,
       timeoutMs: 15_000,
-      skipProviders: BRIEF_LLM_SKIP_PROVIDERS,
+      ...BRIEF_LLM_PROVIDER_OPTS,
       stage: 'brief-digest-cron',
     });
   } catch (err) {

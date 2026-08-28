@@ -1,4 +1,5 @@
 import COUNTRY_BBOXES from '../../../shared/country-bboxes.js';
+import { isOpenSkyProvider } from '../../../shared/provider-redistribution';
 import {
   CHINA_DECISION_SIGNAL_GROUP_IDS,
   CHINA_DECISION_SIGNAL_MAX_SERIALIZED_BYTES,
@@ -9,15 +10,21 @@ import MINING_SITES_RAW from '../../../shared/mining-sites.js';
 import { readJsonFromUpstash } from '../../_upstash-json.js';
 import { classifyByKeyword, SEVERITY_VALUES } from '../../../server/worldmonitor/news/v1/_classifier';
 import { CANONICAL_CHOKEPOINTS } from '../../../server/worldmonitor/supply-chain/v1/_chokepoint-ids';
+import { argStr } from '../filters';
 import { buildAuthHeaders } from '../auth';
-import { assertToolFetchOk, BillingDenialError, throwIfBillingDenial } from '../billing-denial';
+import { assertToolFetchOk, BillingDenialError, RpcValidationError, throwIfBillingDenial } from '../billing-denial';
 import { SUPPORTED_CONSUMER_PRICES_COUNTRIES } from '../constants';
-import { assertMcpToolFetchOk } from '../downstream';
+import {
+  assertMcpToolFetchOk,
+  BothSourcesFailedError,
+  buildMcpDownstreamHeaders,
+} from '../downstream';
 import { evaluateFreshness } from '../freshness';
 import { McpSourceUnavailableError } from '../source-unavailable';
+import { normalizeCountry } from '../../../server/_shared/intel-history-client';
 import {
   collectInsightSources,
-  isAcceptedInsightsSnapshot,
+  insightsSnapshotRejection,
   normalizeInsightSource,
 } from '../../../shared/insights-snapshot.js';
 import type { FreshnessCheck, ToolDef } from '../types';
@@ -42,7 +49,45 @@ type DigestItemForBrief = {
   publishedAt?: string | number;
   pubDate?: string | number;
   date?: string | number;
+  // Emitted by toProtoItem in server/worldmonitor/news/v1/list-feed-digest.ts
+  // for every digest item, and dropped on the way to an agent until #4925.
+  corroborationCount?: number;
+  storyMeta?: {
+    firstSeen?: number;
+    mentionCount?: number;
+    sourceCount?: number;
+    phase?: string;
+  };
 };
+
+type McpDigestCoverage = {
+  state?: string;
+  servedStale?: boolean;
+  staleAgeSeconds?: number;
+  staleReason?: string;
+  attemptedAt?: string;
+};
+
+// Corroboration for the country brief cannot ride on `sources`: that array is
+// the proto BriefSource shape (title/source/url/publishedAt) returned by the
+// gateway, so widening it would be a proto change, and on the common path the
+// server-side sources win anyway. A sibling field keeps the citation list
+// exactly as it is. (#4925 item 3)
+type McpBriefGroundingStory = {
+  title: string;
+  source: string;
+  url?: string;
+  publishedAt?: string;
+  corroborationCount: number;
+  mentionCount?: number;
+  storyPhase?: string;
+};
+
+// Keep the optional grounding copy smaller than the primary citation list.
+// An oversized URL is omitted rather than truncated because a clipped URL is
+// no longer a valid citation target. The primary `sources` field remains the
+// canonical citation surface.
+const MAX_COUNTRY_BRIEF_GROUNDING_URL_LENGTH = 2_000;
 
 function clipBriefText(value: unknown, maxLen: number): string {
   if (typeof value !== 'string') return '';
@@ -69,12 +114,81 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+/**
+ * Describe a stale age for the LLM grounding note.
+ *
+ * Never floors an unknown age at a reassuring number: `Math.max(1, ...)` on a
+ * missing staleAgeSeconds rendered content of ARBITRARY age as "approximately
+ * 1 minutes ago", which is the exact misreading the note exists to prevent.
+ * Absent or zero means we genuinely do not know — say so.
+ */
+function describeStaleAge(staleAgeSeconds: number | undefined): string {
+  if (typeof staleAgeSeconds !== 'number' || !Number.isFinite(staleAgeSeconds) || staleAgeSeconds <= 0) {
+    return 'an earlier build of unknown age';
+  }
+  const minutes = Math.round(staleAgeSeconds / 60);
+  if (minutes < 1) return 'less than a minute ago';
+  if (minutes === 1) return 'about 1 minute ago';
+  if (minutes < 90) return `about ${minutes} minutes ago`;
+  const hours = Math.round(staleAgeSeconds / 3600);
+  return hours === 1 ? 'about 1 hour ago' : `about ${hours} hours ago`;
+}
+
+function projectMcpDigestCoverage(value: unknown): McpDigestCoverage | undefined {
+  if (!isRecord(value)) return undefined;
+  const coverage: McpDigestCoverage = {};
+  if (typeof value.state === 'string') coverage.state = value.state.slice(0, 40);
+  if (typeof value.servedStale === 'boolean') coverage.servedStale = value.servedStale;
+  if (typeof value.staleAgeSeconds === 'number' && Number.isFinite(value.staleAgeSeconds)) {
+    coverage.staleAgeSeconds = Math.max(0, value.staleAgeSeconds);
+  }
+  if (typeof value.staleReason === 'string') coverage.staleReason = value.staleReason.slice(0, 240);
+  if (typeof value.attemptedAt === 'string') coverage.attemptedAt = value.attemptedAt.slice(0, 80);
+  return Object.keys(coverage).length > 0 ? coverage : undefined;
+}
+
 function collectMcpBriefSources(
   items: readonly unknown[],
   maxSources = 6,
   urlOrder: 'link-first' | 'url-first' = 'link-first',
 ): McpBriefSource[] {
   return collectInsightSources(items, maxSources, { urlOrder }) as McpBriefSource[];
+}
+
+// Deliberately NOT folded into collectMcpBriefSources: that helper feeds
+// briefSourceContextLines, which becomes LLM prompt text, and story metadata
+// has no business in the prompt. Items carrying neither field are dropped, so
+// a digest predating #4924 yields an empty array rather than a row of zeroes.
+function collectBriefGroundingStories(
+  items: readonly DigestItemForBrief[],
+  maxStories = 6,
+): McpBriefGroundingStory[] {
+  const out: McpBriefGroundingStory[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    const hasCorroboration = typeof item.corroborationCount === 'number' || isRecord(item.storyMeta);
+    if (!hasCorroboration) continue;
+    const normalized = normalizeInsightSource(item, { urlOrder: 'link-first', allowEmptyUrl: true });
+    if (!normalized) continue;
+    const { title, source, publishedAt } = normalized;
+    if (!title || !source || seen.has(title)) continue;
+    seen.add(title);
+    const url = normalized.url.length <= MAX_COUNTRY_BRIEF_GROUNDING_URL_LENGTH
+      ? normalized.url
+      : undefined;
+    const story: McpBriefGroundingStory = {
+      title,
+      source,
+      corroborationCount: Number.isFinite(item.corroborationCount) ? item.corroborationCount as number : 0,
+    };
+    if (url) story.url = url;
+    if (publishedAt) story.publishedAt = publishedAt;
+    if (Number.isFinite(item.storyMeta?.mentionCount)) story.mentionCount = item.storyMeta?.mentionCount;
+    if (typeof item.storyMeta?.phase === 'string' && item.storyMeta.phase) story.storyPhase = item.storyMeta.phase;
+    out.push(story);
+    if (out.length >= maxStories) break;
+  }
+  return out;
 }
 
 function briefSourceContextLines(sources: McpBriefSource[]): string[] {
@@ -84,6 +198,51 @@ function briefSourceContextLines(sources: McpBriefSource[]): string[] {
       : { title: source.title, source: source.source, url: source.url };
     return `Source [${index + 1}]: ${JSON.stringify(payload)}`;
   });
+}
+
+// Corroboration evidence the insights seeder already computes and publishes on
+// every cluster in `news:insights:v1`, but which this projector used to drop:
+// the headline loop kept `primaryTitle` and nothing else. An agent could not
+// tell a six-outlet corroborated story from a single unconfirmed claim, while
+// the dashboard's NewsPanel shows exactly that distinction. (#4925 item 3)
+type McpWorldBriefStory = {
+  title: string;
+  sourceCount?: number;
+  uniqueSourceCount?: number;
+  corroborationSourceCount?: number;
+  entityCorroboration?: boolean;
+  sourceTier?: number;
+  sources?: string[];
+};
+
+// The per-story outlet list is the only unbounded sub-array on this payload, so
+// cap it here rather than trusting the producer — get_world_brief has a 64 KB
+// output budget and an overflow replaces the entire response.
+const MAX_WORLD_BRIEF_STORY_OUTLETS = 12;
+
+// The snapshot is producer-written, but this projector is the trust boundary
+// for the MCP surface, so validate every field instead of passing it through.
+// Missing or invalid legacy values stay absent instead of becoming evidence.
+function projectStoryCorroboration(title: string, story: Record<string, unknown>): McpWorldBriefStory {
+  const finite = (value: unknown): number | undefined => (
+    typeof value === 'number' && Number.isFinite(value) ? value : undefined
+  );
+  const projected: McpWorldBriefStory = { title };
+  const sourceCount = finite(story.sourceCount);
+  const uniqueSourceCount = finite(story.uniqueSourceCount);
+  const corroborationSourceCount = finite(story.corroborationSourceCount);
+  const sourceTier = finite(story.sourceTier);
+  if (sourceCount !== undefined) projected.sourceCount = sourceCount;
+  if (uniqueSourceCount !== undefined) projected.uniqueSourceCount = uniqueSourceCount;
+  if (corroborationSourceCount !== undefined) projected.corroborationSourceCount = corroborationSourceCount;
+  if (typeof story.entityCorroboration === 'boolean') projected.entityCorroboration = story.entityCorroboration;
+  if (sourceTier !== undefined) projected.sourceTier = sourceTier;
+  if (Array.isArray(story.sources)) {
+    projected.sources = story.sources
+      .filter((name): name is string => typeof name === 'string' && name.length > 0)
+      .slice(0, MAX_WORLD_BRIEF_STORY_OUTLETS);
+  }
+  return projected;
 }
 
 type SeededWorldBriefPayload = {
@@ -97,8 +256,18 @@ type SeededWorldBriefPayload = {
   topStories?: unknown;
 };
 
-function projectSeededWorldBrief(raw: unknown): Record<string, unknown> | null {
-  if (!isAcceptedInsightsSnapshot(raw) || !isRecord(raw)) return null;
+// Rejections carry a bounded reason so the "Seeded world brief unavailable"
+// alarm names WHICH gate fired (WORLDMONITOR-YJ) — a stale producer and a
+// schema regression need opposite responses. Bounded values only: the reason
+// lands in Sentry/log messages, never in the client-facing RPC error.
+type SeededWorldBriefProjection =
+  | { value: Record<string, unknown> }
+  | { reason: string };
+
+function projectSeededWorldBrief(raw: unknown): SeededWorldBriefProjection {
+  const snapshotRejection = insightsSnapshotRejection(raw);
+  if (snapshotRejection !== null) return { reason: snapshotRejection };
+  if (!isRecord(raw)) return { reason: 'malformed-snapshot' };
   const payload = raw as SeededWorldBriefPayload;
   const brief = typeof payload.worldBrief === 'string' ? payload.worldBrief.trim() : '';
   const generatedAt = typeof payload.generatedAt === 'string' ? payload.generatedAt : '';
@@ -108,41 +277,49 @@ function projectSeededWorldBrief(raw: unknown): Record<string, unknown> | null {
   // output requirements. Never substitute an on-demand LLM result when the
   // seeded producer has degraded: an empty or stale snapshot is safer than
   // returning an ungated brief.
-  if (!brief || payload.status !== 'ok') return null;
+  if (!brief) return { reason: 'empty-brief' };
+  if (payload.status !== 'ok') return { reason: 'status-not-ok' };
 
   const headlines: string[] = [];
+  const storyCorroboration: McpWorldBriefStory[] = [];
   for (const story of topStories) {
     if (!isRecord(story)) continue;
     const headline = clipBriefText(story.primaryTitle, 500);
     if (!headline) continue;
     headlines.push(headline);
+    // Pushed in the same iteration, so "topStories[i] describes headlines[i]"
+    // is a guarantee rather than a coincidence two loops could drift apart on.
+    storyCorroboration.push(projectStoryCorroboration(headline, story));
     if (headlines.length >= 12) break;
   }
-  if (headlines.length === 0) return null;
+  if (headlines.length === 0) return { reason: 'no-headlines' };
 
   // The producer's sources share the brief's citation index space. Preserve
   // every record in order, including an empty URL fallback, so a malformed
   // source cannot make later [n] citations point at the wrong article.
   const sourceItems = Array.isArray(payload.worldBriefSources) ? payload.worldBriefSources : null;
-  if (!sourceItems || sourceItems.length === 0 || sourceItems.length > 12) return null;
+  if (!sourceItems || sourceItems.length === 0 || sourceItems.length > 12) return { reason: 'missing-sources' };
   const sources = sourceItems.map((item, index) => normalizeInsightSource(item, {
     fallback: topStories[index],
     urlOrder: 'url-first',
     allowEmptyUrl: true,
   }));
-  if (sources.some((source) => source === null) || !sources.some((source) => source?.url)) return null;
+  if (sources.some((source) => source === null) || !sources.some((source) => source?.url)) {
+    return { reason: 'malformed-sources' };
+  }
   const provider = typeof payload.briefProvider === 'string' ? payload.briefProvider : '';
   const model = typeof payload.briefModel === 'string' ? payload.briefModel : '';
 
-  return {
+  return { value: {
     brief,
     summary: brief,
     headlines,
+    topStories: storyCorroboration,
     provider,
     model,
     generatedAt,
     sources: sources as McpBriefSource[],
-  };
+  } };
 }
 
 function countryBriefSearchTerms(countryCode: string): string[] {
@@ -158,6 +335,101 @@ function countryBriefSearchTerms(countryCode: string): string[] {
 
 const PROCUREMENT_TOOL_DEFAULT_PAGE_SIZE = 10;
 const PROCUREMENT_TOOL_MAX_PAGE_SIZE = 25;
+
+// WTO reporter-versus-World merchandise trade-flow contract. Mirrors the
+// proto/v1/handler vocabulary (server/worldmonitor/trade/v1/get-trade-flows.ts):
+// an absent reporter defaults to "840" (US), the only partner is "000" (World),
+// and years is an inclusive lookback bounded by the seeded 30-year window.
+export const TRADE_FLOWS_DEFAULT_REPORTER = '840';
+export const TRADE_FLOWS_DEFAULT_YEARS = 10;
+export const TRADE_FLOWS_MAX_YEARS = 30;
+const TRADE_FLOWS_M49_CODE = /^[0-9]{3}$/;
+
+// Response vocabulary for `unavailableReason` — the closed enum emitted by the
+// RPC (TradeFlowUnavailableReason). The distinction agents depend on is
+// NOT_COVERED (a contract answer: a retry cannot help and nothing is broken)
+// versus every other member (a fault: the seed is missing or the cache failed).
+const TRADE_FLOW_REASON = {
+  served: 'TRADE_FLOW_UNAVAILABLE_REASON_UNSPECIFIED',
+  invalidRequest: 'TRADE_FLOW_UNAVAILABLE_REASON_INVALID_REQUEST',
+  notCovered: 'TRADE_FLOW_UNAVAILABLE_REASON_NOT_COVERED',
+  seedMissing: 'TRADE_FLOW_UNAVAILABLE_REASON_SEED_MISSING',
+  coverageUnknown: 'TRADE_FLOW_UNAVAILABLE_REASON_COVERAGE_UNKNOWN',
+  cacheUnavailable: 'TRADE_FLOW_UNAVAILABLE_REASON_CACHE_UNAVAILABLE',
+} as const;
+
+type TradeFlowRouteRecord = {
+  reportingCountry?: unknown;
+  partnerCountry?: unknown;
+  year?: unknown;
+  exportValueUsd?: unknown;
+  importValueUsd?: unknown;
+  yoyExportChange?: unknown;
+  yoyImportChange?: unknown;
+  productSector?: unknown;
+};
+
+type TradeFlowRouteResponse = {
+  flows?: TradeFlowRouteRecord[] | null;
+  fetchedAt?: unknown;
+  upstreamUnavailable?: unknown;
+  unavailableReason?: unknown;
+  coverageStartYear?: unknown;
+  coverageEndYear?: unknown;
+};
+
+function coerceTradeFlowNumber(value: unknown): number | null {
+  const n = typeof value === 'string' ? Number(value) : value;
+  return typeof n === 'number' && Number.isFinite(n) ? n : null;
+}
+
+function compactTradeFlowRecord(record: TradeFlowRouteRecord) {
+  const year = coerceTradeFlowNumber(record.year);
+  if (year === null) return null;
+  return {
+    year,
+    reportingCountry: typeof record.reportingCountry === 'string' ? record.reportingCountry : '',
+    partnerCountry: typeof record.partnerCountry === 'string' ? record.partnerCountry : '',
+    exportValueUsd: coerceTradeFlowNumber(record.exportValueUsd),
+    importValueUsd: coerceTradeFlowNumber(record.importValueUsd),
+    yoyExportChange: coerceTradeFlowNumber(record.yoyExportChange),
+    yoyImportChange: coerceTradeFlowNumber(record.yoyImportChange),
+    productSector: typeof record.productSector === 'string' ? record.productSector : '',
+  };
+}
+
+type NormalizedTradeFlowRequest = {
+  reporter: string;
+  years: number;
+};
+
+function normalizeTradeFlowRequest(params: Record<string, unknown>): NormalizedTradeFlowRequest | null {
+  const rawReporter = argStr(params.reporter);
+  if (rawReporter && !TRADE_FLOWS_M49_CODE.test(rawReporter)) return null;
+
+  let years = TRADE_FLOWS_DEFAULT_YEARS;
+  if (params.years !== undefined && params.years !== null) {
+    const rawYears = typeof params.years === 'number' ? params.years : Number(params.years);
+    if (!Number.isInteger(rawYears) || rawYears < 1 || rawYears > TRADE_FLOWS_MAX_YEARS) return null;
+    years = rawYears;
+  }
+
+  return {
+    reporter: rawReporter || TRADE_FLOWS_DEFAULT_REPORTER,
+    years,
+  };
+}
+
+function unavailableTradeFlowResult(reason: typeof TRADE_FLOW_REASON.invalidRequest) {
+  return {
+    flows: [],
+    fetchedAt: '',
+    upstreamUnavailable: false,
+    unavailableReason: reason,
+    coverageStartYear: 0,
+    coverageEndYear: 0,
+  };
+}
 
 type ProcurementRouteTender = {
   id: string;
@@ -195,6 +467,52 @@ type ProcurementRouteResponse = {
  *  rather than sent. */
 function addStringParam(query: URLSearchParams, name: string, value: unknown): void {
   if (typeof value === 'string' && value.trim()) query.set(name, value.trim());
+}
+
+// Intel-history `country` filters are normalized through the canonical
+// `normalizeCountry` (server/_shared/intel-history-client.ts): the generated
+// validator enabled by GHSA-cmj5-cfhr-w964 requires `^([A-Z]{2})?$`, and an
+// LLM sending "ua" earned a 400 round-trip (WORLDMONITOR-10R / -10Q). At the
+// POST call sites below, `|| undefined` keeps a blank/non-string filter
+// omitted — the pattern makes the field optional, and sending "" would turn
+// "search every country" into an explicit empty filter.
+//
+// `normalizeCountry` only trims and uppercases, so #7170 fixed "ua" but not
+// "Ukraine" or "USA" — those still fail the handler's pattern and still buy the
+// 400 round-trip. `assertIntelHistoryCountry` below closes that half.
+
+/** The `^([A-Z]{2})?$` shape the intel-history request messages enforce. */
+const INTEL_HISTORY_COUNTRY_PATTERN = /^[A-Z]{2}$/;
+
+/**
+ * Reject an unusable `country` filter locally, with the SAME contract the
+ * handler's 400 would have produced.
+ *
+ * `RpcValidationError` (not a bare `Error`) is load-bearing on both ends:
+ * `dispatchToolsCall`'s catch has no branch for a plain Error, so one would be
+ * flattened into the generic `-32603 "Internal error: data fetch failed"` —
+ * strictly worse than not checking at all, since the un-guarded path at least
+ * relays the handler's own `-32602 Invalid params` with `error.data.violations`.
+ * It also keeps the `<label> HTTP 400` message shape dispatch's client-4xx
+ * severity downgrade matches on, so a caller-input rejection reports at
+ * `warning` rather than `error`.
+ *
+ * Why it matters: an agent reads -32603 as transient and retries.
+ * WORLDMONITOR-10R recorded 13 `search_intel_history` calls from one IP inside
+ * 40 seconds (2026-08-27T01:43:19Z → 01:43:58Z) against a deterministic
+ * validation failure.
+ *
+ * The sibling scope guard in `get_intel_timeline` (unscoped read) gets the same
+ * treatment in #7182 — deliberately left alone here so the two changes do not
+ * collide on one block.
+ */
+function assertIntelHistoryCountry(label: string, country: string): void {
+  if (country && !INTEL_HISTORY_COUNTRY_PATTERN.test(country)) {
+    throw new RpcValidationError(label, [{
+      field: 'country',
+      description: 'must be an ISO 3166-1 alpha-2 country code, e.g. "UA" for Ukraine or "US" for the United States — not a country name or a three-letter code.',
+    }]);
+  }
 }
 
 function procurementPageSize(value: unknown): number {
@@ -303,7 +621,90 @@ const INTEL_HISTORY_RECORD_SCHEMA = {
   },
 };
 
+const DEFENSE_INDUSTRIAL_METRIC_SCHEMA = {
+  type: 'object',
+  required: ['available', 'value', 'year', 'previousValue', 'previousYear', 'source'],
+  properties: {
+    available: { type: 'boolean' },
+    value: { type: 'number' },
+    year: { type: 'integer' },
+    previousValue: { type: 'number' },
+    previousYear: { type: 'integer' },
+    source: { type: 'string' },
+  },
+};
+
+const DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA = {
+  type: 'object' as const,
+  description: 'A source observation. Read available before value; an unavailable proto3 numeric field is zero.',
+  properties: {
+    available: { type: 'boolean' as const },
+    value: { type: 'number' as const },
+    year: { type: 'integer' as const, description: 'Source observation year.' },
+    source: { type: 'string' as const },
+    unit: { type: 'string' as const },
+  },
+};
+
 export const RPC_TOOLS: ToolDef[] = [
+  {
+    name: 'get_defense_industrial_base',
+    _outputBudgetBytes: 16_384,
+    description: 'Return one country\'s latest World Bank military-capacity indicators and SIPRI-derived five-year arms-supplier shares and concentration. Use this to answer who supplies a country\'s major weapons and how concentrated that dependency is. TIV is a transfer-volume indicator, not money.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        country_code: { type: 'string', description: 'ISO 3166-1 alpha-2 country code, such as UA, DE, or IN.' },
+      },
+      required: ['country_code'],
+    },
+    outputSchema: {
+      type: 'object',
+      required: ['countryCode', 'available', 'expenditurePctGdp', 'expenditureUsd', 'personnel', 'armsExportsTiv', 'armsImportsTiv', 'suppliers', 'supplierHhi', 'windowStartYear', 'windowEndYear', 'supplierSource', 'fetchedAt', 'industrialFetchedAt', 'supplierFetchedAt', 'supplierRetained', 'supplierMappingCoverage'],
+      properties: {
+        countryCode: { type: 'string' },
+        available: { type: 'boolean' },
+        expenditurePctGdp: DEFENSE_INDUSTRIAL_METRIC_SCHEMA,
+        expenditureUsd: DEFENSE_INDUSTRIAL_METRIC_SCHEMA,
+        personnel: DEFENSE_INDUSTRIAL_METRIC_SCHEMA,
+        armsExportsTiv: DEFENSE_INDUSTRIAL_METRIC_SCHEMA,
+        armsImportsTiv: DEFENSE_INDUSTRIAL_METRIC_SCHEMA,
+        suppliers: { type: 'array', items: { type: 'object', required: ['supplierIso2', 'tivShare'], properties: { supplierIso2: { type: 'string', pattern: '^[A-Z]{2}$' }, tivShare: { type: 'number', minimum: 0, maximum: 1 } } } },
+        supplierHhi: { type: 'number', minimum: 0, maximum: 1, description: 'Herfindahl-Hirschman concentration from 0 to 1; higher means fewer dominant suppliers.' },
+        windowStartYear: { type: 'integer' },
+        windowEndYear: { type: 'integer' },
+        supplierSource: { type: 'string' },
+        fetchedAt: { type: 'string', description: 'Oldest source timestamp among values served.' },
+        industrialFetchedAt: { type: 'string', description: 'World Bank snapshot timestamp for the country metrics served.' },
+        supplierFetchedAt: { type: 'string', description: 'SIPRI timestamp for this importer row, including its original timestamp when retained.' },
+        supplierRetained: { type: 'boolean', description: 'True when the importer row was retained after its current SIPRI request failed.' },
+        supplierMappingCoverage: { type: 'number', minimum: 0, maximum: 1, description: 'Share of positive supplier TIV mapped to ISO2 suppliers; HHI uses the full denominator.' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _execute: async (params, base, context, execution) => {
+      const countryCode = argStr(params.country_code).trim().toUpperCase();
+      // The MCP gate has already authenticated and metered this call. Fetch the
+      // caller-invariant country snapshot through its bounded public CDN shape
+      // so MCP traffic does not parse both global Redis snapshots per request.
+      const url = `${base}/api/military/v1/get-defense-industrial-base?country_code=${encodeURIComponent(countryCode)}&public=1`;
+      const response = await fetch(url, {
+        headers: buildMcpDownstreamHeaders(base, execution, {
+          'User-Agent': 'worldmonitor-mcp-edge/1.0',
+        }),
+        signal: AbortSignal.timeout(8_000),
+      });
+      await assertMcpToolFetchOk(response, {
+        operation: 'get-defense-industrial-base',
+        tool: 'get_defense_industrial_base',
+        auth: context,
+        execution,
+      });
+      return response.json();
+    },
+    _coverageKeys: ['military:industrial-base:v1', 'military:arms-suppliers:v1'],
+    _apiPaths: ['GET /api/military/v1/get-defense-industrial-base'],
+  },
   {
     name: 'get_china_decision_signals',
     _outputBudgetBytes: CHINA_DECISION_SIGNAL_MAX_SERIALIZED_BYTES,
@@ -473,7 +874,7 @@ export const RPC_TOOLS: ToolDef[] = [
         headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
         signal: AbortSignal.timeout(8_000),
       });
-      assertToolFetchOk(response, 'list-global-tenders');
+      await assertToolFetchOk(response, 'list-global-tenders');
       const result = await response.json() as ProcurementRouteResponse;
       return {
         opportunities: (result.tenders || []).map(compactProcurementOpportunity),
@@ -492,9 +893,112 @@ export const RPC_TOOLS: ToolDef[] = [
     ],
   },
   {
+    name: 'get_wto_trade_flows',
+    _outputBudgetBytes: 65536,
+    description: 'WTO merchandise trade flows for one reporting country versus the World, over a configurable year window. Coverage is seed-backed from the WTO ITS_MTV_AX (exports) and ITS_MTV_AM (imports) indicators; the response distinguishes "this reporter/partner combination is not part of seeded coverage" (a contract answer, retrying cannot help) from every fault (seed missing or cache unreadable).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        reporter: {
+          type: 'string',
+          pattern: '^[0-9]{3}$',
+          description: 'WTO reporting country as a 3-digit UN M49 code (e.g. "840" = United States). Defaults to "840". The only partner served is the World ("000"); any other partner answers not_covered.',
+        },
+        years: {
+          type: 'integer',
+          minimum: 1,
+          maximum: TRADE_FLOWS_MAX_YEARS,
+          description: 'Number of years to look back from the most recent published year, inclusive of both endpoints (10 returns 11 calendar years). Defaults to 10; 30 is the full seeded window.',
+        },
+      },
+      required: [],
+    },
+    outputSchema: {
+      type: 'object',
+      required: ['flows', 'unavailableReason', 'upstreamUnavailable'],
+      properties: {
+        flows: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['year', 'reportingCountry', 'partnerCountry'],
+            properties: {
+              year: { type: 'integer' },
+              reportingCountry: { type: 'string' },
+              partnerCountry: { type: 'string' },
+              exportValueUsd: { type: ['number', 'null'], description: 'Merchandise exports to the World, USD.' },
+              importValueUsd: { type: ['number', 'null'], description: 'Merchandise imports from the World, USD.' },
+              yoyExportChange: { type: ['number', 'null'], description: 'Percent change in exports vs the prior adjacent year; 0 when no adjacent prior year exists.' },
+              yoyImportChange: { type: ['number', 'null'], description: 'Percent change in imports vs the prior adjacent year; 0 when no adjacent prior year exists.' },
+              productSector: { type: 'string' },
+            },
+          },
+        },
+        fetchedAt: { type: 'string', description: 'ISO timestamp when WTO was read by the seeder. Empty when no flows are served.' },
+        unavailableReason: {
+          type: 'string',
+          enum: Object.values(TRADE_FLOW_REASON),
+          description: 'TRADE_FLOW_UNAVAILABLE_REASON_UNSPECIFIED when flows are served; otherwise WHY no rows returned. NOT_COVERED is a contract answer (a retry cannot help); the rest name faults.',
+        },
+        upstreamUnavailable: { type: 'boolean', description: 'True when a fault prevented serving flows; false both when served and when the combination is simply not covered.' },
+        coverageStartYear: { type: 'integer', description: 'First calendar year in the served window; 0 when no flows are served.' },
+        coverageEndYear: { type: 'integer', description: 'Most recent calendar year in the served window; 0 when no flows are served.' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    // RPC-proxy hybrid: the handler owns slicing and miss-classification, so an
+    // agent reading this tool sees exactly what GET /api/trade/v1/get-trade-flows
+    // returns — no parallel slice/classify logic to drift (issue #6309). The
+    // coverage keys are the seeded fleet's canonical health/data keys.
+    _coverageKeys: [
+      'seed-meta:trade:flows',
+      'trade:flows:v2:index',
+      'trade:flows:v2:840:000',
+    ],
+    _execute: async (params, base, context, execution) => {
+      const request = normalizeTradeFlowRequest(params);
+      if (!request) return unavailableTradeFlowResult(TRADE_FLOW_REASON.invalidRequest);
+      const { reporter, years } = request;
+
+      const query = new URLSearchParams({
+        reporting_country: reporter,
+        years: String(years),
+      });
+      const url = `${base}/api/trade/v1/get-trade-flows?${query}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const response = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(12_000),
+      });
+      await assertMcpToolFetchOk(response, {
+        operation: 'get-trade-flows',
+        tool: 'get_wto_trade_flows',
+        auth: context,
+        execution,
+      });
+      const result = await response.json() as TradeFlowRouteResponse;
+      const flows = Array.isArray(result.flows)
+        ? result.flows.map(compactTradeFlowRecord).filter((f) => f !== null)
+        : [];
+      return {
+        flows,
+        fetchedAt: typeof result.fetchedAt === 'string' ? result.fetchedAt : '',
+        upstreamUnavailable: result.upstreamUnavailable === true,
+        unavailableReason: typeof result.unavailableReason === 'string'
+          ? result.unavailableReason
+          : TRADE_FLOW_REASON.served,
+        coverageStartYear: coerceTradeFlowNumber(result.coverageStartYear) ?? 0,
+        coverageEndYear: coerceTradeFlowNumber(result.coverageEndYear) ?? 0,
+      };
+    },
+    _apiPaths: [
+      'GET /api/trade/v1/get-trade-flows',
+    ],
+  },
+  {
     name: 'get_world_brief',
     _outputBudgetBytes: 65536,
-    description: 'Citation-grounded world intelligence brief from the same precomputed news:insights:v1 snapshot used by the dashboard. The insights seeder applies corroboration, citation, and hallucination gates before publishing; this tool reads that accepted result without a request-time LLM call. The optional geo_context field is retained for client compatibility and does not alter the seeded global snapshot.',
+    description: 'Citation-grounded world intelligence brief from the same precomputed news:insights:v1 snapshot used by the dashboard. The insights seeder applies corroboration, citation, and hallucination gates before publishing; this tool reads that accepted result without a request-time LLM call. The optional geo_context field is retained for client compatibility and does not alter the seeded global snapshot. Each headline is paired with an index-aligned topStories entry carrying the story corroboration evidence published by its snapshot: uniqueSourceCount (distinct outlets), corroborationSourceCount, entityCorroboration, sourceTier, and the outlet names themselves. Legacy snapshots omit corroboration fields they did not publish.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -508,6 +1012,26 @@ export const RPC_TOOLS: ToolDef[] = [
         brief: { type: 'string', description: 'Citation-grounded brief from the dashboard insights snapshot.' },
         summary: { type: 'string', description: 'Alternate naming used by some upstream variants.' },
         headlines: { type: 'array', items: { type: 'string' } },
+        topStories: {
+          type: 'array',
+          description: 'Corroboration evidence for each entry in headlines, index-aligned: topStories[i] describes headlines[i]. Published by the insights seeder, so no request-time computation is involved. Fields unavailable in an accepted legacy snapshot are omitted rather than reported as zero or false.',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Same string as headlines[i].' },
+              sourceCount: { type: 'number', description: 'Articles clustered into this story; one outlet can contribute several. Omitted when unavailable.' },
+              uniqueSourceCount: { type: 'number', description: 'Distinct outlets that carried the story — the corroboration breadth signal. Omitted when unavailable.' },
+              corroborationSourceCount: { type: 'number', description: 'Outlets that independently corroborated the story per the seeder entity gate; 0 when that gate did not fire and omitted when unavailable.' },
+              entityCorroboration: { type: 'boolean', description: 'True when named entities were corroborated across outlets; false when the producer evaluated the gate and it did not fire. Omitted when unavailable.' },
+              sourceTier: { type: 'number', description: 'Best (lowest) source tier in the cluster; 1 is a wire or primary outlet. Omitted when unavailable.' },
+              sources: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Outlet names that carried the story, tier-sorted and deduped, capped at 12. Distinct from this tool top-level sources field, which carries citation records rather than outlet names. Omitted when unavailable.',
+              },
+            },
+          },
+        },
         provider: { type: 'string', description: 'LLM provider used by the insights seeder.' },
         model: { type: 'string', description: 'LLM model used by the insights seeder.' },
         generatedAt: { type: ['string', 'number', 'null'] },
@@ -539,8 +1063,16 @@ export const RPC_TOOLS: ToolDef[] = [
       // gateway-backed path to retain entitlement and replay protection.
       const insightsUrl = `${base}/api/infrastructure/v1/get-bootstrap-data?keys=insights`;
       const insightsAuth = await buildAuthHeaders(context, 'GET', insightsUrl, null);
+      // On a self-hosted install `base` is the sidecar's own loopback origin,
+      // whose global auth gate requires the per-session LOCAL_API_TOKEN (the
+      // MCP key authenticates the client, not this internal hop). Route the
+      // headers through the loopback helper so the process attaches the token
+      // it already holds — mirroring get_defense_industrial_base (#6538).
       const insightsRes = await fetch(insightsUrl, {
-        headers: { ...insightsAuth, 'User-Agent': UA },
+        headers: buildMcpDownstreamHeaders(base, execution, {
+          ...insightsAuth,
+          'User-Agent': UA,
+        }),
         signal: AbortSignal.timeout(6_000),
       });
       await assertMcpToolFetchOk(insightsRes, {
@@ -561,26 +1093,27 @@ export const RPC_TOOLS: ToolDef[] = [
         }
       }
       const result = projectSeededWorldBrief(insights);
-      if (!result) {
+      if ('reason' in result) {
         throw new McpSourceUnavailableError(
-          'Seeded world brief unavailable',
+          `Seeded world brief unavailable (${result.reason})`,
           ['news:insights:v1'],
           [],
         );
       }
-      return result;
+      return result.value;
     },
     _apiPaths: ['GET /api/infrastructure/v1/get-bootstrap-data'],
   },
   {
     name: 'get_country_brief',
     _outputBudgetBytes: 65536,
-    description: 'AI-generated per-country intelligence brief. Produces an LLM-analyzed geopolitical and economic assessment for the given country. Supports analytical frameworks for structured lenses.',
+    description: 'AI-generated per-country intelligence brief. Produces an LLM-analyzed geopolitical and economic assessment for the given country. Supports analytical frameworks for structured lenses. Returns groundingStories alongside sources: the digest articles used to ground the brief, each with corroborationCount, mentionCount, and lifecycle storyPhase, so an agent can weigh how well-corroborated the underlying reporting is. When the news digest is serving retained (stale) content, that grounding is DROPPED and the brief is generated without it; pass allow_stale=true to ground on the retained snapshot instead. Either way the digestCoverage block reports what the grounding was.',
     inputSchema: {
       type: 'object',
       properties: {
         country_code: { type: 'string', description: 'ISO 3166-1 alpha-2 country code, e.g. "US", "DE", "CN", "IR"' },
         framework: { type: 'string', description: 'Optional analytical framework instructions to shape the analysis lens (e.g. Ray Dalio debt cycle, PMESII-PT)' },
+        allow_stale: { type: 'boolean', description: 'Ground the brief on a retained (stale) news digest when the live rebuild has failed. Defaults to false, which drops the stale grounding and returns an ungrounded brief rather than failing; time-sensitive automated decisions should leave this disabled. Retained content is at most six hours old.' },
       },
       required: ['country_code'],
     },
@@ -591,11 +1124,26 @@ export const RPC_TOOLS: ToolDef[] = [
       // (:93-100 empty case, :266-273 computed case, spread at :283 and :285-288);
       // _execute overlays sources (:490-492). No `framework`/`provider` field exists.
       properties: {
-        countryCode: { type: 'string' },
-        countryName: { type: 'string' },
+        // GetCountryIntelBriefResponse is spread verbatim below, so these
+        // mirror the proto's camelCase wire names. `framework` is an input
+        // only and `provider` does not exist on this response — neither is
+        // declared here.
+        countryCode: { type: 'string', description: 'ISO 3166-1 alpha-2 code, echoed back uppercased.' },
+        countryName: { type: 'string', description: 'Resolved country name, or the ISO code when no name is known.' },
         brief: { type: 'string', description: 'LLM-synthesized country intelligence brief.' },
+        generatedAt: { type: ['string', 'number', 'null'] },
         model: { type: 'string' },
-        generatedAt: { type: 'number' },
+        digestCoverage: {
+          type: 'object',
+          description: 'Freshness metadata for the news digest used to ground this brief. Omitted when the digest fetch failed and the brief was generated without digest grounding.',
+          properties: {
+            state: { type: 'string', description: 'Digest coverage state reported by the news service.' },
+            servedStale: { type: 'boolean', description: 'True when the grounding headlines came from a retained accepted snapshot.' },
+            staleAgeSeconds: { type: 'integer', minimum: 0, description: 'Age of the retained snapshot in seconds when stale content was served. Bounded by the six-hour durable-snapshot TTL.' },
+            staleReason: { type: 'string', description: 'Reason the live digest attempt could not replace the retained snapshot.' },
+            attemptedAt: { type: 'string', description: 'Timestamp of the digest refresh attempt associated with this coverage result.' },
+          },
+        },
         sources: {
           type: 'array',
           description: 'Original feed articles used as grounding inputs for this brief.',
@@ -606,6 +1154,26 @@ export const RPC_TOOLS: ToolDef[] = [
               url: { type: 'string' },
               source: { type: 'string' },
               publishedAt: { type: 'string' },
+            },
+          },
+        },
+        groundingStories: {
+          type: 'array',
+          description: 'Corroboration signals for the digest articles used to ground this brief, so an agent can weigh how well-reported the underlying claims are. Independent of sources, which may instead carry the server-side grounding set, and empty when the digest read failed. Not a citation list — cite from sources.',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              source: { type: 'string' },
+              url: { type: 'string' },
+              publishedAt: { type: 'string' },
+              corroborationCount: { type: 'number', description: 'Distinct outlets carrying this story at digest time.' },
+              mentionCount: { type: 'number', description: 'Times the story has been seen across digest cycles since firstSeen.' },
+              storyPhase: {
+                type: 'string',
+                enum: ['STORY_PHASE_UNSPECIFIED', 'STORY_PHASE_BREAKING', 'STORY_PHASE_DEVELOPING', 'STORY_PHASE_SUSTAINED', 'STORY_PHASE_FADING'],
+                description: 'Lifecycle phase from the digest story tracker. STORY_PHASE_FADING is reserved and is not currently emitted by this surface: a fading story stops appearing in the digest, so the phase cannot be observed where it is derived (#7081). Do not read the absence of STORY_PHASE_FADING as evidence that a story is still active.',
+              },
             },
           },
         },
@@ -624,6 +1192,8 @@ export const RPC_TOOLS: ToolDef[] = [
       // 2 s + 22 s brief = 24 s worst-case; 6 s margin before the 30 s Edge kill.
       let contextSnapshot = '';
       let sources: McpBriefSource[] = [];
+      let groundingStories: McpBriefGroundingStory[] = [];
+      let digestCoverage: McpDigestCoverage | undefined;
       try {
         const digestUrl = `${base}/api/news/v1/list-feed-digest?variant=full&lang=en`;
         const digestAuth = await buildAuthHeaders(context, 'GET', digestUrl, null);
@@ -632,8 +1202,12 @@ export const RPC_TOOLS: ToolDef[] = [
           signal: AbortSignal.timeout(2_000),
         });
         if (digestRes.ok) {
-          type DigestPayload = { categories?: Record<string, { items?: DigestItemForBrief[] }> };
+          type DigestPayload = {
+            categories?: Record<string, { items?: DigestItemForBrief[] }>;
+            coverage?: unknown;
+          };
           const digest = await digestRes.json() as DigestPayload;
+          digestCoverage = projectMcpDigestCoverage(digest.coverage);
           const allItems = Object.values(digest.categories ?? {})
             .flatMap(cat => cat.items ?? [])
             .filter(item => typeof item.title === 'string' && item.title.length > 0);
@@ -644,12 +1218,48 @@ export const RPC_TOOLS: ToolDef[] = [
           });
           const groundingItems = (countryItems.length > 0 ? countryItems : allItems).slice(0, 15);
           sources = collectMcpBriefSources(groundingItems, 6);
+          // Built from groundingItems rather than from `sources`, because the
+          // return below prefers the gateway's own source list on the common
+          // path — deriving from `sources` would leave this empty most of the
+          // time, which is exactly the failure this field exists to avoid.
+          groundingStories = collectBriefGroundingStories(groundingItems, 6);
           const sourceLines = sources.length > 0 ? ['Brief source articles:', ...briefSourceContextLines(sources)] : [];
           const headlineLines = groundingItems.map(item => item.title ?? '').filter(Boolean);
-          const contextLines = [...sourceLines, 'Headlines:', ...headlineLines].join('\n');
+          // #7084: the digest can legitimately be a stale replay (a live
+          // rebuild failed and accepted older content is served). Grounding
+          // an LLM on hours-old headlines silently presented as current
+          // produces briefs that describe the past as the present — tell the
+          // model what it is looking at so its output can qualify itself.
+          const staleLines = digestCoverage?.servedStale === true || digestCoverage?.state === 'stale'
+            ? [
+                `NOTE: the headlines below are a retained snapshot from ${describeStaleAge(digestCoverage.staleAgeSeconds)} ` +
+                  `(the live news rebuild failed). Treat them as recent context, not as this moment's news, ` +
+                  `and say so if the brief depends on very recent developments.`,
+              ]
+            : [];
+          const contextLines = [...staleLines, ...sourceLines, 'Headlines:', ...headlineLines].join('\n');
           if (contextLines.trim()) contextSnapshot = contextLines.slice(0, 4000);
         }
       } catch { /* proceed without context — better than failing */ }
+
+      const digestServedStale = digestCoverage?.servedStale === true || digestCoverage?.state === 'stale';
+      if (digestServedStale && params.allow_stale !== true) {
+        // #7084: DROP the stale grounding, do not fail the call. Three lines
+        // above, a digest fetch that times out or 500s is swallowed and the
+        // brief is generated ungrounded — so throwing here made the milder
+        // degradation fatal and the worse one tolerated, and an operator could
+        // restore the tool by breaking the digest harder. The caller still
+        // learns exactly what happened from the digestCoverage block below,
+        // which is the freshness policy hook SKILL.md already tells agents to
+        // use. allow_stale=true keeps its meaning: use the retained snapshot.
+        contextSnapshot = '';
+        sources = [];
+        groundingStories = [];
+        console.warn(
+          `[mcp:get_country_brief] dropped stale digest grounding (${digestCoverage?.staleReason || 'unknown'}, ` +
+            `${digestCoverage?.staleAgeSeconds ?? 0}s) — pass allow_stale=true to ground on it`,
+        );
+      }
 
       const briefUrl = `${base}/api/intelligence/v1/get-country-intel-brief`;
       // Keep grounding context out of the signed URL; the gateway's POST-to-GET
@@ -688,7 +1298,14 @@ export const RPC_TOOLS: ToolDef[] = [
       }
       const result = await res.json() as Record<string, unknown>;
       const resultSources = collectMcpBriefSources(Array.isArray(result.sources) ? result.sources as DigestItemForBrief[] : [], 6);
-      return { ...result, sources: resultSources.length > 0 ? resultSources : sources };
+      // groundingStories stays [] when the 2 s digest fetch failed above, which
+      // is the honest signal: the brief was written without that grounding.
+      return {
+        ...result,
+        sources: resultSources.length > 0 ? resultSources : sources,
+        groundingStories,
+        ...(digestCoverage ? { digestCoverage } : {}),
+      };
     },
     // METHOD DRIFT: _execute POSTs above but OpenAPI declares only GET on this
     // path (verified against docs/api/IntelligenceService.openapi.json). The
@@ -702,7 +1319,7 @@ export const RPC_TOOLS: ToolDef[] = [
   {
     name: 'get_country_risk',
     _outputBudgetBytes: 262144,
-    description: 'Structured risk intelligence for one country: Composite Instability Index (CII) 0-100 with component breakdown. Component wire names are back-compat fossils — ciiContribution=unrest, geoConvergence=conflict, militaryActivity=security, newsActivity=information. `cii` is absent (never null) when untracked or upstream unavailable; top-level advisoryLevel, sanctionsActive, sanctionsCount. Fast Redis read — no LLM. Use for quantitative risk screening or to answer "how risky is X right now?"',
+    description: 'Structured risk intelligence for a specific country: the Composite Instability Index at cii.combinedScore (0-100), its four contributing components under cii.components, the government travel-advisory level, and OFAC sanctions exposure as sanctionsActive plus sanctionsCount. Fast Redis read — no LLM. Use for quantitative risk screening or to answer "how risky is X right now?" Check upstreamUnavailable first: when it is true at least one required upstream read failed, the whole response was withheld, and the zeroed fields mean UNKNOWN, not calm.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -710,55 +1327,56 @@ export const RPC_TOOLS: ToolDef[] = [
       },
       required: ['country_code'],
     },
+    // Mirrors GetCountryRiskResponse verbatim — `_execute` returns the
+    // gateway's `res.json()` unchanged, and the gateway `JSON.stringify`s the
+    // proto-generated struct with no case conversion. Keep this in step with
+    // proto/worldmonitor/intelligence/v1/get_country_risk.proto; the
+    // OpenAPI-parity guard in tests/mcp-output-schema-coverage.test.mjs fails
+    // the build if a property here stops existing on the wire.
     outputSchema: {
       type: 'object',
-      // Handler ground truth: server/worldmonitor/intelligence/v1/get-country-risk.ts
-      // returns { countryCode, countryName, cii?, advisoryLevel, sanctionsActive,
-      // sanctionsCount, fetchedAt, upstreamUnavailable } (:32-41, :54-63, :76-85).
-      // `cii` is ABSENT when untracked/unavailable (`cii: undefined` :35,:57,:67) —
-      // never null. CiiScore payload emitted at get-risk-scores.ts:1205-1231; the
-      // four component wire names are back-compat fossils (:1214-1219).
+      required: ['countryCode', 'countryName', 'advisoryLevel', 'sanctionsActive', 'sanctionsCount', 'fetchedAt', 'upstreamUnavailable'],
       properties: {
-        countryCode: { type: 'string' },
-        countryName: { type: 'string' },
+        countryCode: { type: 'string', description: 'ISO 3166-1 alpha-2 code, echoed back uppercased.' },
+        countryName: { type: 'string', description: 'Resolved country name, or the ISO code when no name is known.' },
         cii: {
-          type: 'object',
-          description: 'CII score object. Absent when the country is untracked or upstream is unavailable (never null).',
+          type: ['object', 'null'],
+          description: 'Composite Instability Index score. Absent when the country is not tracked, and always absent when upstreamUnavailable is true.',
           properties: {
-            region: { type: 'string' },
-            staticBaseline: { type: 'number' },
-            dynamicScore: { type: 'number' },
-            combinedScore: { type: 'number', description: 'Composite Instability Index 0-100.' },
+            region: { type: 'string', description: 'ISO 3166-1 alpha-2 code this score was computed for.' },
+            combinedScore: { type: 'number', description: 'The headline CII, 0-100. This is the number to read as "the CII score" — the top-level `cii` is an object, not a number.' },
+            staticBaseline: { type: 'number', description: 'Structural baseline 0-100, before live signals.' },
+            dynamicScore: { type: 'number', description: 'Approximate 24-hour movement delta, -100 to 100. Positive is rising, negative falling, 0 stable or no valid prior snapshot.' },
             trend: {
               type: 'string',
-              enum: [
-                'TREND_DIRECTION_UNSPECIFIED',
-                'TREND_DIRECTION_RISING',
-                'TREND_DIRECTION_STABLE',
-                'TREND_DIRECTION_FALLING',
-              ],
+              enum: ['TREND_DIRECTION_UNSPECIFIED', 'TREND_DIRECTION_RISING', 'TREND_DIRECTION_STABLE', 'TREND_DIRECTION_FALLING'],
+              description: 'Direction of travel for combinedScore.',
             },
             components: {
               type: 'object',
+              description: 'The four contributions rolled into combinedScore, each 0-100. These field names are historical and do NOT describe their contents — read each description before attributing a score to a driver.',
               properties: {
-                newsActivity: { type: 'number' },
-                ciiContribution: { type: 'number' },
-                geoConvergence: { type: 'number' },
-                militaryActivity: { type: 'number' },
+                ciiContribution: { type: 'number', description: 'DOMESTIC UNREST contribution: protests, riots, fatalities, severity, and outages.' },
+                geoConvergence: { type: 'number', description: 'ARMED CONFLICT contribution: ACLED events, fatalities, violence against civilians, strikes, and OREF alerts.' },
+                militaryActivity: { type: 'number', description: 'SECURITY AND MOBILITY contribution: military flights, military vessels, aviation disruption, and GPS interference.' },
+                newsActivity: { type: 'number', description: 'INFORMATION ENVIRONMENT contribution: news urgency and threat-summary signals.' },
               },
             },
-            computedAt: { type: 'number' },
-            eventMultiplier: { type: 'number' },
-            methodologyVersion: { type: 'string' },
-            advisoryLevel: { type: 'string' },
-            advisoryProvenance: { type: 'string' },
+            computedAt: { type: 'number', description: 'CII computation time, Unix epoch milliseconds.' },
+            methodologyVersion: { type: 'string', description: 'CII formula version, bumped whenever score or movement semantics change.' },
+            eventMultiplier: { type: 'number', description: 'Editorial per-country multiplier applied to live signals before they roll into combinedScore. Bounds [0, 10].' },
+            advisoryLevel: { type: 'string', description: 'Advisory level the score itself consumed. Empty when no advisory input applied. Distinct from the top-level advisoryLevel.' },
+            advisoryProvenance: { type: 'string', description: 'Where cii.advisoryLevel came from — "live" for the advisory cache, otherwise a fallback marker.' },
           },
         },
-        advisoryLevel: { type: 'string' },
-        sanctionsActive: { type: 'boolean' },
-        sanctionsCount: { type: 'number' },
-        fetchedAt: { type: 'number' },
-        upstreamUnavailable: { type: 'boolean' },
+        advisoryLevel: { type: 'string', description: 'Government travel-advisory level, e.g. "do-not-travel", "reconsider", "caution". Empty when none.' },
+        sanctionsActive: { type: 'boolean', description: 'True when this country has active OFAC designations.' },
+        sanctionsCount: { type: 'number', description: 'Count of sanctioned entities associated with this country.' },
+        fetchedAt: { type: 'number', description: 'Freshness stamp taken from cii.computedAt, Unix epoch milliseconds. 0 means unknown, including "no CII score for this country".' },
+        upstreamUnavailable: {
+          type: 'boolean',
+          description: 'True when ANY required upstream read failed. The handler fails closed on the first missing key, so the whole response is withheld: cii is absent and every risk field is zeroed. Those zeros mean UNKNOWN, not "low risk" — never report a country as calm on such a response.',
+        },
       },
     },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -775,11 +1393,253 @@ export const RPC_TOOLS: ToolDef[] = [
         headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
         signal: AbortSignal.timeout(8_000),
       });
-      assertToolFetchOk(res, 'get-country-risk');
+      await assertToolFetchOk(res, 'get-country-risk');
       return res.json();
     },
     _apiPaths: [
       "GET /api/intelligence/v1/get-country-risk",
+    ],
+  },
+  {
+    name: 'list_x_feed',
+    _outputBudgetBytes: 65536,
+    description: 'Curated public news-account posts from monitored X accounts. Returns permalink plus derived facts only — never tweet bodies. Use this to see which accounts posted recently, not to redistribute post text.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum posts to return (1-200, default 50)' },
+        topic: { type: 'string', description: 'Optional topic filter such as breaking, conflict, geopolitics, cyber' },
+        account: { type: 'string', description: 'Optional account handle without @' },
+      },
+      required: [],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        enabled: { type: 'boolean', description: 'Whether the ais-relay X poller currently has credentials.' },
+        count: { type: 'number' },
+        error: { type: 'string' },
+        posts: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              accountId: { type: 'string' },
+              accountName: { type: 'string' },
+              handle: { type: 'string' },
+              topic: { type: 'string' },
+              timestampMs: { type: 'number' },
+              permalink: { type: 'string' },
+              facts: { type: 'array', items: { type: 'string' } },
+              hasMedia: { type: 'boolean' },
+              lang: { type: 'string' },
+              contentState: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _coverageKeys: ['intelligence:x-feed:v1'],
+    _execute: async (params, base, context) => {
+      const qs = new URLSearchParams();
+      const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50) || 50));
+      qs.set('limit', String(limit));
+      if (params.topic) qs.set('topic', String(params.topic));
+      if (params.account) qs.set('account', String(params.account).replace(/^@/, ''));
+      const url = `${base}/api/intelligence/v1/list-x-feed?${qs}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(10_000),
+      });
+      await assertToolFetchOk(res, 'list-x-feed');
+      const payload = await res.json() as Record<string, unknown>;
+      const rawPosts = Array.isArray(payload.posts) ? payload.posts : [];
+      const posts = rawPosts.map((post: unknown) => {
+        if (!post || typeof post !== 'object') return {};
+        const rest = { ...(post as Record<string, unknown>) };
+        delete rest.text;
+        return rest;
+      });
+      return {
+        enabled: Boolean(payload?.enabled),
+        count: posts.length,
+        error: typeof payload?.error === 'string' ? payload.error : '',
+        posts,
+      };
+    },
+    _apiPaths: [
+      'GET /api/intelligence/v1/list-x-feed',
+    ],
+  },
+  {
+    name: 'get_food_stocks',
+    _outputBudgetBytes: 131072,
+    description: 'USDA PSD cereal stocks-to-use by marketing year. Ask for a country (ISO-2) plus optional commodity (wheat, corn, rice, soybeans, barley, palmOil), or country_code=WORLD for the global balance. Returns ending stocks, production, use, and the stocks-to-use ratio. Marketing years are not calendar years and must not be compared across countries as if they were.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        country_code: {
+          type: 'string',
+          description: 'ISO 3166-1 alpha-2 country code (e.g. "EG") or "WORLD" for the global balance sheet.',
+        },
+        commodity: {
+          type: 'string',
+          description: 'Optional commodity slug: wheat, corn, rice, soybeans, barley, palmOil. Note palmOil is camelCase; the rest are lowercase. Omit for all six.',
+        },
+      },
+      // country_code is REQUIRED: omitting it returned every country x six
+      // commodities, which routinely exceeds _outputBudgetBytes and spent a Pro
+      // quota unit to fail. Use country_code=WORLD for the global balance.
+      required: ['country_code'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        records: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              countryCode: { type: 'string', description: 'ISO-2, or "WORLD" for the global aggregate.' },
+              commodity: { type: 'string' },
+              marketingYear: { type: 'string', description: 'e.g. "2024/25". A marketing year, NOT a calendar year — never compare across countries as if it were one.' },
+              stocksToUse: {
+                type: 'number',
+                description: 'Ending stocks / total use (0.18 = 18%). Read hasStocksToUse FIRST — when it is false this 0 is a placeholder, not a measurement. USDA estimates stocks for selected countries only, so a real producer can report production and consumption with no stocks series.',
+              },
+              hasStocksToUse: {
+                type: 'boolean',
+                description: 'False when stocksToUse is a placeholder. Never report a 0% stocks-to-use without checking this.',
+              },
+              endingStocksTmt: { type: 'number', description: 'Ending stocks in 1000 MT. Read hasEndingStocks first; 0 is a placeholder when that flag is false.' },
+              hasEndingStocks: { type: 'boolean', description: 'False when endingStocksTmt is a placeholder rather than a measurement.' },
+              totalUseTmt: {
+                type: 'number',
+                description: 'Denominator of stocksToUse. For a country this is consumption + exports; for WORLD it is consumption only, because world exports are internal transfers already counted in the importer\'s consumption.',
+              },
+              productionTmt: { type: 'number' },
+              consumptionTmt: { type: 'number' },
+              importsTmt: { type: 'number' },
+              exportsTmt: { type: 'number' },
+              unit: { type: 'string', description: 'Always "1000 MT" (thousand metric tons).' },
+              source: {
+                type: 'string',
+                description: '"psd" = USDA full balance sheet (stocks are real). "faostat" = production-only gap fill; every stocks field on that row is a 0 placeholder, not a measurement.',
+              },
+            },
+          },
+        },
+        fetchedAt: { type: 'string' },
+        unavailable: { type: 'boolean' },
+        calorieWeightedStocksToUse: { type: 'number' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _coverageKeys: ['resilience:food-stocks:v1', 'seed-meta:resilience:food-stocks'],
+    _execute: async (params, base, context) => {
+      const q = new URLSearchParams();
+      if (params.country_code) q.set('countryCode', String(params.country_code).trim().toUpperCase());
+      if (params.commodity) q.set('commodity', String(params.commodity).trim());
+      const qs = q.toString();
+      const url = `${base}/api/resilience/v1/get-food-stocks${qs ? `?${qs}` : ''}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(8_000),
+      });
+      await assertToolFetchOk(res, 'get-food-stocks');
+      return res.json();
+    },
+    _apiPaths: [
+      'GET /api/resilience/v1/get-food-stocks',
+    ],
+  },
+  {
+    name: 'get_demographics_capability',
+    _outputBudgetBytes: 32768,
+    description: 'Country demographics capability observations from UN WPP, World Bank/UNESCO UIS, and ILOSTAT. Returns age structure, education and industrial-workforce groups independently, with observation year, source, unit and explicit availability for every metric. Requires an ISO-2 country code and a WorldMonitor subscription.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        country_code: {
+          type: 'string',
+          description: 'Required ISO 3166-1 alpha-2 country code (for example "DE"). Case-insensitive.',
+        },
+      },
+      required: ['country_code'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        countryCode: { type: 'string' },
+        available: { type: 'boolean', description: 'True when at least one validated observation is available.' },
+        fetchedAt: { type: 'string', description: 'ISO-8601 snapshot generation time.' },
+        stages: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'wpp, education, or ilostat.' },
+              status: { type: 'string', description: 'fresh, retained, or unavailable.' },
+              fetchedAt: { type: 'string' },
+              recordCount: { type: 'number' },
+              newestObservationYear: { type: 'number' },
+            },
+          },
+        },
+        ageStructure: {
+          type: 'object',
+          description: 'UN WPP age and working-age population observations. Read each metric available flag before value.',
+          properties: {
+            available: { type: 'boolean' },
+            medianAgeYears: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            oldAgeDependencyRatioPercent: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            totalDependencyRatioPercent: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            workingAgePopulationPeople: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            workingAgePopulationProjected10yPeople: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+          },
+        },
+        education: {
+          type: 'object',
+          description: 'World Bank WDI and UNESCO UIS education observations. Read each metric available flag before value.',
+          properties: {
+            available: { type: 'boolean' },
+            tertiaryEnrollmentGrossPercent: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            stemGraduatesSharePercent: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            researchersPerMillion: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+          },
+        },
+        industrialWorkforce: {
+          type: 'object',
+          description: 'ILOSTAT workforce observations. The combined trained workforce is available only for a valid same-year ISCO 7+8 cohort.',
+          properties: {
+            available: { type: 'boolean' },
+            craftTradesEmploymentPeople: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            plantMachineOperatorsEmploymentPeople: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            trainedIndustrialWorkforcePeople: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+            manufacturingEmploymentSharePercent: DEMOGRAPHICS_OBSERVATION_OUTPUT_SCHEMA,
+          },
+        },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _coverageKeys: ['demographics:capability:v1'],
+    _execute: async (params, base, context) => {
+      const countryCode = String(params.country_code ?? '').trim().toUpperCase();
+      const url = `${base}/api/resilience/v1/get-demographics-capability?countryCode=${encodeURIComponent(countryCode)}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(8_000),
+      });
+      await assertToolFetchOk(res, 'get-demographics-capability');
+      return res.json();
+    },
+    _apiPaths: [
+      'GET /api/resilience/v1/get-demographics-capability',
     ],
   },
   {
@@ -923,7 +1783,7 @@ export const RPC_TOOLS: ToolDef[] = [
   {
     name: 'get_airspace',
     _outputBudgetBytes: 262144,
-    description: 'Live ADS-B aircraft over a country. Returns civilian flights (OpenSky) and identified military aircraft with callsigns, positions, altitudes, and headings. Answers questions like "how many planes are over the UAE right now?" or "are there military aircraft over Taiwan?"',
+    description: 'Live ADS-B aircraft over a country. Returns Wingbits-backed civilian flights and identified military aircraft from redistributable providers, with callsigns, positions, altitudes, and headings. Answers questions like "how many planes are over the UAE right now?" or "are there military aircraft over Taiwan?"',
     inputSchema: {
       type: 'object',
       properties: {
@@ -986,7 +1846,7 @@ export const RPC_TOOLS: ToolDef[] = [
         updated_at?: number;
       };
       type MilResp = {
-        flights?: { callsign: string; hex_code: string; aircraft_type: string; aircraft_model: string; operator: string; operator_country: string; location?: { latitude: number; longitude: number }; altitude: number; heading: number; speed: number; is_interesting: boolean; note: string }[];
+        flights?: { callsign: string; hex_code: string; aircraft_type: string; aircraft_model: string; operator: string; operator_country: string; location?: { latitude: number; longitude: number }; altitude: number; heading: number; speed: number; is_interesting: boolean; note: string; source?: string }[];
       };
 
       const civUrl = `${base}/api/aviation/v1/track-aircraft?${bboxQ}`;
@@ -1021,13 +1881,20 @@ export const RPC_TOOLS: ToolDef[] = [
         }
       }
 
-      const civOk = type === 'military' || civResult.status === 'fulfilled';
+      const civRaw = civResult.status === 'fulfilled' ? civResult.value : null;
+      const civProviderAllowed = !civRaw || !isOpenSkyProvider(civRaw.source);
+      const civOk = type === 'military' || (civResult.status === 'fulfilled' && civProviderAllowed);
       const milOk = type === 'civilian' || milResult.status === 'fulfilled';
 
       // Both sources down — total outage, don't return misleading empty data
-      if (!civOk && !milOk) throw new Error('Airspace data unavailable: both civilian and military sources failed');
+      if (!civOk && !milOk) {
+        const civilianFailure = civResult.status === 'rejected'
+          ? civResult.reason
+          : new Error('Civilian observations are not redistributable');
+        throw new BothSourcesFailedError(civilianFailure, milResult.reason);
+      }
 
-      const civ = civResult.status === 'fulfilled' ? civResult.value : null;
+      const civ = civProviderAllowed ? civRaw : null;
       const mil = milResult.status === 'fulfilled' ? milResult.value : null;
       const warnings: string[] = [];
       if (!civOk) warnings.push('civilian ADS-B data unavailable');
@@ -1039,7 +1906,12 @@ export const RPC_TOOLS: ToolDef[] = [
         altitude_m: p.altitude_m, speed_kts: p.ground_speed_kts,
         heading_deg: p.track_deg, on_ground: p.on_ground,
       }));
-      const militaryFlights = (mil?.flights ?? []).slice(0, 100).map(f => ({
+      const redistributableMilitaryFlights = (mil?.flights ?? [])
+        .filter((flight) => !isOpenSkyProvider(flight.source));
+      if (redistributableMilitaryFlights.length !== (mil?.flights ?? []).length) {
+        warnings.push('some military flight observations unavailable');
+      }
+      const militaryFlights = redistributableMilitaryFlights.slice(0, 100).map(f => ({
         callsign: f.callsign, hex_code: f.hex_code,
         aircraft_type: f.aircraft_type, aircraft_model: f.aircraft_model,
         operator: f.operator, operator_country: f.operator_country,
@@ -1056,7 +1928,7 @@ export const RPC_TOOLS: ToolDef[] = [
         ...(type !== 'military' && { civilian_flights: civilianFlights }),
         ...(type !== 'civilian' && { military_flights: militaryFlights }),
         ...(warnings.length > 0 && { partial: true, warnings }),
-        source: civ?.source ?? 'opensky',
+        source: civ?.source ?? redistributableMilitaryFlights.find((flight) => flight.source)?.source ?? 'none',
         updated_at: civ?.updated_at ? new Date(civ.updated_at).toISOString() : new Date().toISOString(),
       };
     },
@@ -1229,7 +2101,7 @@ export const RPC_TOOLS: ToolDef[] = [
         body,
         signal: AbortSignal.timeout(25_000),
       });
-      assertToolFetchOk(res, 'deduct-situation');
+      await assertToolFetchOk(res, 'deduct-situation');
       return res.json();
     },
     _apiPaths: [
@@ -1272,7 +2144,7 @@ export const RPC_TOOLS: ToolDef[] = [
         body,
         signal: AbortSignal.timeout(25_000),
       });
-      assertToolFetchOk(res, 'get-forecasts');
+      await assertToolFetchOk(res, 'get-forecasts');
       return res.json();
     },
     _apiPaths: [],
@@ -1306,6 +2178,7 @@ export const RPC_TOOLS: ToolDef[] = [
           total_duration: { type: ['number', 'string', 'null'] },
           segments: { type: 'array', items: { type: 'object' } },
         } } },
+        degraded: { type: 'boolean', description: 'True when the upstream search failed or returned no usable results.' },
         search_metadata: { type: ['object', 'null'] },
         error: { type: 'string', description: 'Present when upstream returned a usable error message.' },
       },
@@ -1335,7 +2208,7 @@ export const RPC_TOOLS: ToolDef[] = [
         headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
         signal: AbortSignal.timeout(25_000),
       });
-      assertToolFetchOk(res, 'search-google-flights');
+      await assertToolFetchOk(res, 'search-google-flights');
       return res.json();
     },
     _apiPaths: [
@@ -1368,6 +2241,7 @@ export const RPC_TOOLS: ToolDef[] = [
           date: { type: 'string' }, price: { type: ['number', 'string', 'null'] },
           currency: { type: 'string' },
         } } },
+        degraded: { type: 'boolean', description: 'True when the upstream search failed or returned partial results.' },
         search_metadata: { type: ['object', 'null'] },
         error: { type: 'string' },
       },
@@ -1393,7 +2267,7 @@ export const RPC_TOOLS: ToolDef[] = [
         headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
         signal: AbortSignal.timeout(25_000),
       });
-      assertToolFetchOk(res, 'search-google-dates');
+      await assertToolFetchOk(res, 'search-google-dates');
       return res.json();
     },
     _apiPaths: [
@@ -1437,6 +2311,51 @@ export const RPC_TOOLS: ToolDef[] = [
     },
     _apiPaths: [],
   },
+  {
+    name: 'get_mineral_production',
+    _outputBudgetBytes: 131072,
+    description: 'Who mines and who refines a commodity, with country shares and HHI. Answers "who refines cobalt" or "what does Chile produce". USGS Mineral Commodity Summaries plus BGS fill. Complements get_commodity_geo (deposit locations).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        commodity: { type: 'string', description: 'Commodity id or label, e.g. "cobalt", "lithium", "ree"' },
+        iso2: { type: 'string', description: 'ISO 3166-1 alpha-2 producer filter, e.g. "CL"' },
+        stage: { type: 'string', enum: ['mine', 'refinery'], description: 'Mine or refinery/smelter stage. Omit for both.' },
+      },
+      required: [],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        commodities: { type: 'array' },
+        countries: { type: 'array' },
+        fetchedAt: { type: 'string' },
+        upstreamUnavailable: { type: 'boolean' },
+        dataYear: { type: 'number' },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _execute: async (params, base, context) => {
+      const qs = new URLSearchParams();
+      if (params.commodity) qs.set('commodity', String(params.commodity));
+      if (params.iso2) qs.set('iso2', String(params.iso2).toUpperCase());
+      if (params.stage) qs.set('stage', String(params.stage));
+      const url = `${base}/api/supply-chain/v1/get-mineral-production${qs.size ? `?${qs}` : ''}`;
+      const auth = await buildAuthHeaders(context, 'GET', url, null);
+      const res = await fetch(url, {
+        headers: { ...auth, 'User-Agent': 'worldmonitor-mcp-edge/1.0' },
+        signal: AbortSignal.timeout(15_000),
+      });
+      await assertToolFetchOk(res, 'get-mineral-production');
+      return res.json();
+    },
+    _coverageKeys: [
+      'supply-chain:mineral-production:v1',
+    ],
+    _apiPaths: [
+      'GET /api/supply-chain/v1/get-mineral-production',
+    ],
+  },
   ...ANALYSIS_TOOLS,
   {
     name: 'search_intel_history',
@@ -1468,7 +2387,9 @@ export const RPC_TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     _execute: async (params, base, context, execution) => {
       const url = `${base}/api/intelligence/v1/search-intel-history`;
-      const body = JSON.stringify({ query: params.query, domain: params.domain, country: params.country, from: params.from, to: params.to, limit: Math.min(Number(params.limit ?? MCP_HISTORY_SEARCH_MAX_LIMIT), MCP_HISTORY_SEARCH_MAX_LIMIT) });
+      const country = normalizeCountry(params.country);
+      assertIntelHistoryCountry('search-intel-history', country);
+      const body = JSON.stringify({ query: params.query, domain: params.domain, country: country || undefined, from: params.from, to: params.to, limit: Math.min(Number(params.limit ?? MCP_HISTORY_SEARCH_MAX_LIMIT), MCP_HISTORY_SEARCH_MAX_LIMIT) });
       const auth = await buildAuthHeaders(context, 'POST', url, body);
       // Budget covers one embeddings round-trip (4 s) plus the store read (5 s).
       const response = await fetch(url, {
@@ -1515,12 +2436,24 @@ export const RPC_TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     _execute: async (params, base, context, execution) => {
       // Scope is mandatory server-side (a 400 from the handler). Checking it
-      // here turns an opaque downstream failure into an actionable message and
-      // saves the round-trip; the handler stays the enforcing authority.
+      // here turns an opaque downstream failure into actionable -32602
+      // violations (RpcValidationError) and saves the round-trip; the handler
+      // stays the enforcing authority. A plain Error would land as -32603 +
+      // Sentry error (WORLDMONITOR-10Y).
       const domain = typeof params.domain === 'string' ? params.domain.trim() : '';
-      const country = typeof params.country === 'string' ? params.country.trim() : '';
+      const country = normalizeCountry(params.country);
+      assertIntelHistoryCountry('get-intel-timeline', country);
       if (!domain && !country) {
-        throw new Error('get_intel_timeline requires at least one of domain ("conflict", "military", or "energy") or country (ISO 3166-1 alpha-2) — those are the two indexed scopes on the history store.');
+        throw new RpcValidationError('get-intel-timeline', [
+          {
+            field: 'domain',
+            description: 'Required unless country is set. One of conflict, military, or energy.',
+          },
+          {
+            field: 'country',
+            description: 'Required unless domain is set. ISO 3166-1 alpha-2, uppercase (e.g. UA).',
+          },
+        ]);
       }
 
       const query = new URLSearchParams();
@@ -1577,7 +2510,9 @@ export const RPC_TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     _execute: async (params, base, context, execution) => {
       const url = `${base}/api/intelligence/v1/get-similar-events`;
-      const body = JSON.stringify({ situation: params.situation, domain: params.domain, country: params.country, limit: Math.min(Number(params.limit ?? MCP_HISTORY_PRECEDENT_MAX_LIMIT), MCP_HISTORY_PRECEDENT_MAX_LIMIT) });
+      const country = normalizeCountry(params.country);
+      assertIntelHistoryCountry('get-similar-events', country);
+      const body = JSON.stringify({ situation: params.situation, domain: params.domain, country: country || undefined, limit: Math.min(Number(params.limit ?? MCP_HISTORY_PRECEDENT_MAX_LIMIT), MCP_HISTORY_PRECEDENT_MAX_LIMIT) });
       const auth = await buildAuthHeaders(context, 'POST', url, body);
       // Budget covers one embeddings round-trip (4 s) plus the store read (5 s).
       const response = await fetch(url, {

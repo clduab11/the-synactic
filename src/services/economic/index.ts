@@ -10,13 +10,13 @@
 import { getRpcBaseUrl, getRpcErrorStatusCode } from '@/services/rpc-client';
 import { premiumFetch } from '@/services/premium-fetch';
 import type { GetFredSeriesResponse, GetFredSeriesBatchResponse, ListWorldBankIndicatorsResponse, WorldBankCountryData as ProtoWorldBankCountryData, GetEnergyPricesResponse, EnergyPrice as ProtoEnergyPrice, GetEnergyCapacityResponse, GetBisPolicyRatesResponse, GetBisExchangeRatesResponse, GetBisCreditResponse, GetChinaMacroSnapshotResponse, BisPolicyRate, BisExchangeRate, BisCreditToGdp, GetNationalDebtResponse, NationalDebtEntry, GetBlsSeriesResponse, GetCrudeInventoriesResponse, CrudeInventoryWeek, GetNatGasStorageResponse, NatGasStorageWeek, GetEcbFxRatesResponse, EcbFxRate, GetEuGasStorageResponse, EuGasStorageHistoryEntry, GetEurostatCountryDataResponse, EurostatCountryEntry, GetOilStocksAnalysisResponse, OilStocksAnalysisMember, OilStocksRegionalSummary, OilStocksRegionalSummaryEurope, OilStocksRegionalSummaryAsiaPacific, OilStocksRegionalSummaryNorthAmerica } from '@/generated/client/worldmonitor/economic/v1/service_client';
-import { createCircuitBreaker } from '@/utils';
+import { createCircuitBreaker } from '@/utils/circuit-breaker';
 import { getCSSColor } from '@/utils';
 import { isFeatureAvailable } from '../runtime-config';
 import { dataFreshness } from '../data-freshness';
 import { ensureHydrated, getHydratedData } from '@/services/bootstrap';
 import { mergeCbrPolicyRate } from './cbr-policy-rate';
-import { degradedSources, toEurSpotRows, toFxStressRows, toUsdSpotRows, type FxPanelRows } from './fx-rates';
+import { degradedSources, toEurSpotRows, toFxStressRows, toRubQuoteRows, toUsdSpotRows, type FxPanelRows } from './fx-rates';
 import { toApiUrl } from '@/services/runtime';
 import { hasPremiumAccess } from '@/services/panel-gating';
 import { EconomicServiceClient } from '@/services/generated-rpc-clients';
@@ -417,7 +417,11 @@ export type { CrudeInventoryWeek };
 export async function fetchCrudeInventoriesRpc(): Promise<GetCrudeInventoriesResponse> {
   if (!isFeatureAvailable('energyEia')) return emptyCrudeFallback;
   const hydrated = getHydratedData('crudeInventories') as GetCrudeInventoriesResponse | undefined;
-  if (hydrated?.weeks?.length) return hydrated;
+  if (hydrated?.weeks?.length) {
+    crudeBreaker.recordSuccess(hydrated);
+    return hydrated;
+  }
+
   try {
     return await crudeBreaker.execute(async () => {
       return client.getCrudeInventories({}, { signal: AbortSignal.timeout(20_000) });
@@ -436,7 +440,11 @@ export type { NatGasStorageWeek };
 export async function fetchNatGasStorageRpc(): Promise<GetNatGasStorageResponse> {
   if (!isFeatureAvailable('energyEia')) return emptyNatGasFallback;
   const hydrated = getHydratedData('natGasStorage') as GetNatGasStorageResponse | undefined;
-  if (hydrated?.weeks?.length) return hydrated;
+  if (hydrated?.weeks?.length) {
+    natGasBreaker.recordSuccess(hydrated);
+    return hydrated;
+  }
+
   try {
     return await natGasBreaker.execute(async () => {
       return client.getNatGasStorage({}, { signal: AbortSignal.timeout(20_000) });
@@ -781,7 +789,11 @@ export async function getChinaMacroSnapshotData(): Promise<GetChinaMacroSnapshot
 
 export async function getBisCreditData(): Promise<GetBisCreditResponse> {
   const hydrated = getHydratedData('bisCredit') as GetBisCreditResponse | undefined;
-  if (hydrated?.entries?.length) return hydrated;
+  if (hydrated?.entries?.length) {
+    bisCreditBreaker.recordSuccess(hydrated);
+    return hydrated;
+  }
+
   try {
     return await bisCreditBreaker.execute(
       () => client.getBisCredit({}, { signal: AbortSignal.timeout(20_000) }),
@@ -799,6 +811,14 @@ export async function fetchBisData(): Promise<BisData> {
   const hPolicy = getHydratedData('bisPolicy') as GetBisPolicyRatesResponse | undefined;
   const hEer = getHydratedData('bisExchange') as GetBisExchangeRatesResponse | undefined;
   const hCredit = getHydratedData('bisCredit') as GetBisCreditResponse | undefined;
+
+  // Warm the three breakers with the accepted hydration so a later recurring
+  // fetchBisData/getBisCreditData reads them from cache instead of refetching
+  // (#7048). The same acceptance guards as the Promise.resolve fast paths
+  // below mirror each breaker's shouldCache.
+  if (hPolicy?.rates?.length) bisPolicyBreaker.recordSuccess(hPolicy);
+  if (hEer?.rates?.length) bisEerBreaker.recordSuccess(hEer);
+  if (hCredit?.entries?.length) bisCreditBreaker.recordSuccess(hCredit);
 
   // BIS WS_CBPOL has no Russia (scripts/seed-bis-data.mjs covers 12 banks and the
   // CBR is not one), so the key rate comes from its own seeder and is appended to
@@ -835,7 +855,10 @@ const emptyEcbFxRatesFallback: GetEcbFxRatesResponse = { rates: [], updatedAt: '
 
 export async function getEcbFxRatesData(): Promise<GetEcbFxRatesResponse> {
   const hydrated = getHydratedData('ecbFxRates') as GetEcbFxRatesResponse | undefined;
-  if (hydrated?.rates?.length) return hydrated;
+  if (hydrated?.rates?.length) {
+    ecbFxRatesBreaker.recordSuccess(hydrated);
+    return hydrated;
+  }
 
   try {
     return await ecbFxRatesBreaker.execute(
@@ -852,18 +875,18 @@ export async function getEcbFxRatesData(): Promise<GetEcbFxRatesResponse> {
 // FX panel (#6199)
 // ========================================================================
 
-export type { FxEurSpotRow, FxPanelRows, FxSourceId, FxStressRow, FxUsdSpotRow } from './fx-rates';
+export type { FxEurSpotRow, FxPanelRows, FxRubQuoteRow, FxSourceId, FxStressRow, FxUsdSpotRow } from './fx-rates';
 // Re-exported as a value: the CommoditiesPanel FX tab uses it too, so both
 // surfaces order the same ECB pairs from one definition (#6199).
-export { EUR_FX_ORDER, toEurSpotRows } from './fx-rates';
+export { EUR_FX_ORDER, toEurSpotRows, toRubQuoteRows } from './fx-rates';
 
 /**
- * Assemble the three payloads the FX panel renders.
+ * Assemble the four payloads the FX panel renders.
  *
- * `fxYoy` and `sharedFxRates` are on-demand tier keys, so they arrive via
- * `ensureHydrated` (the credential-less per-key bootstrap URL) rather than
- * riding a tier every visitor downloads — the panel is opt-in, so most sessions
- * never ask for either.
+ * `fxYoy`, `sharedFxRates` and `cbrRates` are on-demand tier keys, so they
+ * arrive via `ensureHydrated` (the credential-less per-key bootstrap URL)
+ * rather than riding a tier every visitor downloads — the panel is opt-in, so
+ * most sessions never ask for any of them.
  *
  * A dead source must not blank its siblings, but the `.catch()` clauses below
  * are NOT what delivers that — both readers already swallow their own errors
@@ -877,31 +900,33 @@ export { EUR_FX_ORDER, toEurSpotRows } from './fx-rates';
  *
  * KNOWN LIMIT — read `degraded` as "returned nothing", not "was unreachable".
  * Only the ECB path carries a real failure signal (`unavailable`), and it
- * folds in naturally because an unavailable response yields zero rows. The two
- * `ensureHydrated` keys have no such signal: undefined means transport failure
- * and cache miss alike, so for them an empty result is *inferred* to be an
- * outage. That inference is sound here only because none of the three has a
- * plausible genuine empty — 45 currencies, 47 USD rates, 7 ECB pairs. Do not
- * copy this shape to a source whose empty state is legitimate; fixing it
+ * folds in naturally because an unavailable response yields zero rows. The
+ * three `ensureHydrated` keys have no such signal: undefined means transport
+ * failure and cache miss alike, so for them an empty result is *inferred* to
+ * be an outage. That inference is sound here only because none of the four has
+ * a plausible genuine empty — 45 currencies, 47 USD rates, 7 ECB pairs, 54 CBR
+ * pairs. Do not copy this shape to a source whose empty state is legitimate; fixing it
  * properly means teaching `ensureHydrated` to distinguish miss from failure.
  */
 export async function getFxPanelData(): Promise<FxPanelRows> {
-  const [stressPayload, usdPayload, ecb] = await Promise.all([
+  const [stressPayload, usdPayload, ecb, rubPayload] = await Promise.all([
     ensureHydrated('fxYoy').catch(() => undefined),
     ensureHydrated('sharedFxRates').catch(() => undefined),
     getEcbFxRatesData().catch(() => null),
+    ensureHydrated('cbrRates').catch(() => undefined),
   ]);
 
   const stress = toFxStressRows(stressPayload);
   const usd = toUsdSpotRows(usdPayload);
   const eur = ecb && !ecb.unavailable ? toEurSpotRows(ecb.rates) : [];
+  const rub = toRubQuoteRows(rubPayload);
 
   // An empty source is reported, not silently dropped. `ensureHydrated` returns
   // undefined for a transport failure and for a miss alike, so we cannot say
-  // which — but none of these three has a plausible genuine empty, so an empty
+  // which — but none of these four has a plausible genuine empty, so an empty
   // one is a source that is down. The panel needs to know so it can say the
   // table is missing and retry, instead of rendering as though it never existed.
-  return { stress, usd, eur, degraded: degradedSources({ stress, usd, eur }) };
+  return { stress, usd, eur, rub, degraded: degradedSources({ stress, usd, eur, rub }) };
 }
 
 // ========================================================================
@@ -912,7 +937,10 @@ export type { GetEuGasStorageResponse, EuGasStorageHistoryEntry };
 
 export async function getEuGasStorageData(): Promise<GetEuGasStorageResponse> {
   const hydrated = getHydratedData('euGasStorage') as GetEuGasStorageResponse | undefined;
-  if (hydrated && !hydrated.unavailable && hydrated.fillPct > 0) return hydrated;
+  if (hydrated && !hydrated.unavailable && hydrated.fillPct > 0) {
+    euGasBreaker.recordSuccess(hydrated);
+    return hydrated;
+  }
 
   try {
     return await euGasBreaker.execute(
@@ -933,7 +961,10 @@ export type { GetEurostatCountryDataResponse, EurostatCountryEntry };
 
 export async function getEurostatCountryData(): Promise<GetEurostatCountryDataResponse> {
   const hydrated = getHydratedData('eurostatCountryData') as GetEurostatCountryDataResponse | undefined;
-  if (hydrated && !hydrated.unavailable && Object.keys(hydrated.countries).length > 0) return hydrated;
+  if (hydrated && !hydrated.unavailable && Object.keys(hydrated.countries).length > 0) {
+    eurostatBreaker.recordSuccess(hydrated);
+    return hydrated;
+  }
 
   try {
     return await eurostatBreaker.execute(
@@ -954,7 +985,10 @@ export type { GetOilStocksAnalysisResponse, OilStocksAnalysisMember, OilStocksRe
 
 export async function getOilStocksAnalysisData(): Promise<GetOilStocksAnalysisResponse> {
   const hydrated = getHydratedData('oilStocksAnalysis') as GetOilStocksAnalysisResponse | undefined;
-  if (hydrated && !hydrated.unavailable && hydrated.ieaMembers.length > 0) return hydrated;
+  if (hydrated && !hydrated.unavailable && hydrated.ieaMembers.length > 0) {
+    oilStocksAnalysisBreaker.recordSuccess(hydrated);
+    return hydrated;
+  }
 
   try {
     return await oilStocksAnalysisBreaker.execute(

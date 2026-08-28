@@ -20,6 +20,7 @@ import {
   DIPLOMACY_KEYWORDS,
   ENTITY_BIGRAMS,
 } from './_clustering.mjs';
+import { MIN_CORROBORATING_PUBLISHERS } from './shared/publisher-families.js';
 import { extractCountryCode } from './shared/geo-extract.mjs';
 import { buildChinaNewsCoverage } from './_china-news-coverage.mjs';
 import { unwrapEnvelope } from './_seed-envelope-source.mjs';
@@ -29,10 +30,28 @@ import {
   briefUserPrompt,
   synthesisSystemPrompt,
   synthesisUserPrompt,
-  parseBriefSynthesis,
-  composeSynthesizedBrief,
 } from './_insights-brief.mjs';
+import {
+  INSIGHTS_COMPOSER_THREW,
+  INSIGHTS_SYNTHESIS_FAILURE_CODES,
+  classifyInsightsSynthesisFailure,
+  composeInsightsSynthesis,
+  resolveInsightsSynthesis,
+} from './_insights-synthesis-diagnostics.mjs';
+export {
+  INSIGHTS_COMPOSER_THREW,
+  INSIGHTS_SYNTHESIS_FAILURE_CODES,
+  classifyInsightsSynthesisFailure,
+  composeInsightsSynthesis,
+  resolveInsightsSynthesis,
+};
 import { buildLlmCallEvent, emitLlmEvents, flushPendingLlmEvents } from './lib/llm-telemetry.cjs';
+import {
+  GROQ_DEFAULT_MODEL,
+  OPENROUTER_FREE_BACKUP_MODEL,
+  OPENROUTER_FREE_PRIMARY_MODEL,
+  OPENROUTER_PROVIDER_ROUTING,
+} from './_llm-model-timeouts.mjs';
 // Import from the scripts mirror (`scripts/shared/`) — NOT the repo-root
 // `shared/`. Railway services with nixpacks `rootDirectory=scripts` only
 // package files under scripts/; a `../shared/` import resolves to
@@ -93,7 +112,6 @@ const CACHE_TTL = 10800; // 3h — 6x the 30 min cron interval. Shorter = key ex
                          // is gated at brief-selection time (see pickBriefCluster + briefSystemPrompt
                          // in _insights-brief.mjs), not by aging out fast.
 const MAX_HEADLINE_LEN = 500;
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const INSIGHTS_SOURCE_VERSION = 'digest-clustering-v2-importance-diversity';
 const INSIGHTS_MAX_CONSECUTIVE_FAILURES = 100;
 const INSIGHTS_RUN_OUTCOMES = Object.freeze({
@@ -102,15 +120,6 @@ const INSIGHTS_RUN_OUTCOMES = Object.freeze({
   DEGRADED: 'degraded',
 });
 
-// These codes are intentionally low-cardinality and safe to put in seed-meta,
-// health responses, and logs. Never include prompt or model output text in the
-// rejection diagnostic: the payload may contain sensitive intelligence.
-export const INSIGHTS_SYNTHESIS_FAILURE_CODES = Object.freeze({
-  PARSE: 'INSIGHTS_SYNTHESIS_PARSE',
-  GATE: 'INSIGHTS_SYNTHESIS_GATE',
-  MISSING_CLUSTER: 'INSIGHTS_SYNTHESIS_MISSING_CLUSTER',
-  PROVIDER: 'INSIGHTS_SYNTHESIS_PROVIDER',
-});
 const INSIGHTS_SYNTHESIS_FAILURE_CODE_SET = new Set(Object.values(INSIGHTS_SYNTHESIS_FAILURE_CODES));
 const INSIGHTS_RUN_META = Symbol('worldmonitor.insightsRunMeta');
 
@@ -157,24 +166,6 @@ export function publishInsightsPayload(data) {
 export function validateInsightsPayload(data) {
   if (insightsRunMeta(data)?.outcome === INSIGHTS_RUN_OUTCOMES.LKG_PRESERVED) return false;
   return declareRecords(data) > 0;
-}
-
-/**
- * Keep synthesis rejection telemetry bounded and machine-actionable. The
- * classifier deliberately accepts only stage outcomes, never raw prompt or
- * provider text, so this value is safe for seed-meta, health, and logs.
- */
-export function classifyInsightsSynthesisFailure({
-  hasBriefCluster = false,
-  synthesisResult = null,
-  parsedSynthesis = null,
-  composed = null,
-} = {}) {
-  if (composed) return null;
-  if (!hasBriefCluster) return INSIGHTS_SYNTHESIS_FAILURE_CODES.MISSING_CLUSTER;
-  if (!synthesisResult) return INSIGHTS_SYNTHESIS_FAILURE_CODES.PROVIDER;
-  if (!parsedSynthesis) return INSIGHTS_SYNTHESIS_FAILURE_CODES.PARSE;
-  return INSIGHTS_SYNTHESIS_FAILURE_CODES.GATE;
 }
 
 export function resolveInsightsFallbackStatus({ synthesisFailureCode, legacyStatus }) {
@@ -370,8 +361,8 @@ async function readExistingInsights() {
 }
 
 // Provider config — mirrors server/_shared/llm.ts getProviderCredentials()
-// Order: ollama → openrouter → groq (canonical chain since #4944: DeepSeek
-// V4 Flash primary with reasoning disabled, groq 70B free-tier fallback)
+// Order: Ollama → paid OpenRouter → two fixed free OpenRouter models → Groq.
+// Each free model stays a separate application-validated attempt.
 const LLM_PROVIDERS = [
   {
     name: 'ollama',
@@ -427,14 +418,34 @@ const LLM_PROVIDERS = [
     apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
     model: openrouterModel(),
     headers: (key) => ({ 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor', 'User-Agent': CHROME_UA }),
-    extraBody: { reasoning: { enabled: false } },
+    extraBody: { reasoning: { enabled: false }, provider: OPENROUTER_PROVIDER_ROUTING },
     timeout: 20_000,
+  },
+  {
+    name: 'openrouter-free',
+    envKey: 'OPENROUTER_API_KEY',
+    apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+    model: OPENROUTER_FREE_PRIMARY_MODEL,
+    headers: (key) => ({ 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor', 'User-Agent': CHROME_UA }),
+    extraBody: { reasoning: { enabled: false }, provider: OPENROUTER_PROVIDER_ROUTING },
+    timeout: 20_000,
+    maxRetries: 0,
+  },
+  {
+    name: 'openrouter-free-backup',
+    envKey: 'OPENROUTER_API_KEY',
+    apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+    model: OPENROUTER_FREE_BACKUP_MODEL,
+    headers: (key) => ({ 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor', 'User-Agent': CHROME_UA }),
+    extraBody: { reasoning: { enabled: false }, provider: OPENROUTER_PROVIDER_ROUTING },
+    timeout: 20_000,
+    maxRetries: 0,
   },
   {
     name: 'groq',
     envKey: 'GROQ_API_KEY',
     apiUrl: 'https://api.groq.com/openai/v1/chat/completions',
-    model: GROQ_MODEL,
+    model: GROQ_DEFAULT_MODEL,
     headers: (key) => ({ 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'User-Agent': CHROME_UA }),
     timeout: 15_000,
   },
@@ -502,7 +513,27 @@ async function callLLM(headline, options = {}) {
   let firstFaulted = null;
   const rejectedResult = () => firstRejected ?? firstFaulted;
 
-  for (const provider of LLM_PROVIDERS) {
+  // A gate rejection is not evidence that the PROVIDER is unhealthy — it says
+  // this SAMPLE was unusable. Advancing on it demotes the chain to a weaker
+  // model, which is less likely to produce a grounded lead than a second sample
+  // from the stronger one, so the strictness of an editorial gate was buying
+  // worse published prose.
+  //
+  // Measured on seed-insights 2026-08-20 before this change: of 9 gate
+  // rejections, the fallback rescued 2 and the other 7 reached the
+  // single-headline brief anyway, while 5 of 14 shipped briefs came from
+  // google/gemma-4-26b-a4b-it:free rather than deepseek-v4-flash. So the
+  // demotion mostly did not save the run, and when it did it shipped the weaker
+  // writer.
+  //
+  // Resample the SAME provider once, then fall through to the rest of the chain
+  // exactly as before. Transport failures still advance immediately — withRetry
+  // already covers transient ones, and a provider that is genuinely down should
+  // not be asked twice.
+  const queue = [...LLM_PROVIDERS];
+  const resampled = new Set();
+  while (queue.length > 0) {
+    const provider = queue.shift();
     const envVal = process.env[provider.envKey];
     if (!envVal) continue;
 
@@ -549,7 +580,7 @@ async function callLLM(headline, options = {}) {
           });
         }
         return response;
-      }, INSIGHTS_LLM_MAX_RETRIES, retryDelayMs);
+      }, provider.maxRetries ?? INSIGHTS_LLM_MAX_RETRIES, retryDelayMs);
 
       const json = await resp.json();
       const usage = {
@@ -595,6 +626,15 @@ async function callLLM(headline, options = {}) {
           record(false, { ...usage, model: json.model || model, reason: 'validate_reject' });
           if (faulted) { if (!firstFaulted) firstFaulted = candidate; }
           else if (!firstRejected) firstRejected = candidate;
+          // One resample before demoting (see the queue comment above). A
+          // FAULTED acceptor is excluded deliberately: that fault is in our own
+          // gate, not in the sample, so a second identical call would throw
+          // identically and only burn budget.
+          if (!faulted && !resampled.has(provider.name)) {
+            resampled.add(provider.name);
+            queue.unshift(provider);
+            console.warn(`  ${provider.name}: resampling once before falling back to a weaker model`);
+          }
           continue;
         }
       }
@@ -732,6 +772,22 @@ export function preserveChinaNewsCoverageInLkg(existing, chinaNewsCoverage) {
   return chinaNewsCoverage ? { ...existing, chinaNewsCoverage } : existing;
 }
 
+export function normalizeDigestItemsForInsights(items) {
+  return items.map(item => ({
+    title: sanitizeTitle(item.title || item.headline || ''),
+    source: item.source || item.feed || '',
+    link: item.link || item.url || '',
+    pubDate: item.pubDate || item.publishedAt || item.date || new Date().toISOString(),
+    isAlert: item.isAlert || false,
+    tier: item.tier,
+    threat: normalizeThreat(item.threat),
+    importanceScore: item.importanceScore,
+    ...(Number.isFinite(item.credibilityScore) ? { credibilityScore: item.credibilityScore } : {}),
+    corroborationCount: item.corroborationCount ?? item.storyMeta?.sourceCount,
+    storyMeta: item.storyMeta,
+  })).filter(item => item.title.length > 10);
+}
+
 async function fetchInsights() {
   const digest = await readOrWarmDigest('en');
   if (!digest) {
@@ -775,18 +831,7 @@ async function fetchInsights() {
 
   console.log(`  Digest items: ${items.length}`);
 
-  const normalizedItems = items.map(item => ({
-    title: sanitizeTitle(item.title || item.headline || ''),
-    source: item.source || item.feed || '',
-    link: item.link || item.url || '',
-    pubDate: item.pubDate || item.publishedAt || item.date || new Date().toISOString(),
-    isAlert: item.isAlert || false,
-    tier: item.tier,
-    threat: normalizeThreat(item.threat),
-    importanceScore: item.importanceScore,
-    corroborationCount: item.corroborationCount ?? item.storyMeta?.sourceCount,
-    storyMeta: item.storyMeta,
-  })).filter(item => item.title.length > 10);
+  const normalizedItems = normalizeDigestItemsForInsights(items);
 
   const clusters = clusterItems(normalizedItems);
   console.log(`  Clusters: ${clusters.length}`);
@@ -846,29 +891,16 @@ async function fetchInsights() {
   } else if (!hasBriefCluster) {
     console.warn(`  [brief_synthesis] no corroborated cluster in corpus (eligible=${briefEligibleClusters ?? 'unknown'})`);
   }
-  // #6001: one definition of "is this synthesis publishable", used BOTH as the
-  // provider-acceptance gate and for the final result, so the chain can never
-  // accept output the composer would later reject. Pure and cheap, so running
-  // it once more below costs nothing and keeps failure classification exact.
-  // Fault-tolerant on purpose: this runs once per provider AND once more for
-  // the final result. An uncaught throw here escapes fetchInsights into
-  // runSeed's withRetry, which would re-run the whole digest read and LLM
-  // chain up to four times until the seed lock expires. Failing to null
-  // classifies as GATE, keeps the LKG fail-safe, and stays visible in the log.
-  const composeFromText = (text) => {
-    try {
-      return composeSynthesizedBrief(text, topStories, {
-        validatorMode: BRIEF_VALIDATOR_MODE,
-        sanitizeTitle,
-        sourceFromStory: briefSourceFromStory,
-        briefCluster,
-        parsedSynthesis: parseBriefSynthesis(text, topStories.length),
-      });
-    } catch (err) {
-      console.warn(`  [brief_synthesis] composer threw (${err.message}) — treating as rejected`);
-      return null;
-    }
+  // The acceptance gate is the composer itself (#6001), so the chain can never
+  // accept output the composer would later reject.
+  const synthesisComposerOptions = {
+    briefCluster,
+    validatorMode: BRIEF_VALIDATOR_MODE,
+    sanitizeTitle,
+    sourceFromStory: briefSourceFromStory,
   };
+  const composeFromText = (text) =>
+    composeInsightsSynthesis(text, topStories, synthesisComposerOptions).brief;
 
   // #6001: L1 may now walk the whole provider chain, and L2 below makes a
   // SECOND callLLM. Stamp the run's LLM start so L2 gets only the remainder —
@@ -880,37 +912,24 @@ async function fetchInsights() {
         userPrompt: synthesisUserPrompt(topStories),
         maxTokens: 900,
         // A model whose output trips the editorial gates must not strand the
-        // run — keep the chain moving to one that passes.
+        // run. callLLM resamples this model once before demoting to a weaker
+        // one, so a single unusable sample no longer costs the better writer.
         accept: composeFromText,
       })
     : null;
-  const parsedSynthesis = synthesisResult
-    ? parseBriefSynthesis(synthesisResult.text, topStories.length)
-    : null;
-  // GATE is one bucket over seven distinct composer null-returns, and a
+  // GATE was one bucket over seven distinct composer null-returns, and a
   // scheduled run cannot be reproduced from outside (topStories come from a
-  // fresh digest each time). Capture WHICH gate fired so a failing run is
-  // diagnosable from its own log. Deliberately NOT composeFromText: this
-  // final pass needs the onReject seam, and reuses the parsedSynthesis
-  // already computed above.
-  let gateReason = null;
-  let gateDetail = null;
-  const composed = synthesisResult
-      ? composeSynthesizedBrief(synthesisResult.text, topStories, {
-        validatorMode: BRIEF_VALIDATOR_MODE,
-        sanitizeTitle,
-        sourceFromStory: briefSourceFromStory,
-        briefCluster,
-        parsedSynthesis,
-        onReject: (code, detail) => { gateReason = code; gateDetail = detail ?? null; },
-      })
-    : null;
-  synthesisFailureCode = classifyInsightsSynthesisFailure({
-    hasBriefCluster,
+  // fresh digest each time). resolveInsightsSynthesis composes once and maps
+  // the composer's bounded rejection onto a per-gate failure code, so a
+  // failing run is diagnosable from its own log — this subsumes the earlier
+  // onReject seam. `failureDetail` carries the model-derived offending
+  // tokens; see the debug-gated log below before surfacing it anywhere.
+  const { composed, failureCode, failureDetail } = resolveInsightsSynthesis({
     synthesisResult,
-    parsedSynthesis,
-    composed,
+    topStories,
+    ...synthesisComposerOptions,
   });
+  synthesisFailureCode = failureCode;
 
   if (composed) {
     worldBrief = composed.lead;
@@ -924,16 +943,29 @@ async function fetchInsights() {
     if (composed.hallucinatedLines > 0) {
       console.warn(`  [brief_hallucination ${BRIEF_VALIDATOR_MODE.toUpperCase()}] ${composed.hallucinatedLines}/${topStories.length} synthesis lines flagged`);
     }
+    if (composed.sourceAttributions > 0) {
+      // Accept-side counterpart to the `validate_reject` reason below: how many
+      // lead sentences named their own outlet. Only the reject path was ever
+      // reported, so a quiet alarm could not be told apart from a gate that had
+      // started accepting too much. A count is enough to see that — the reason
+      // vocabulary stays a bounded literal on purpose (these reach seed-meta and
+      // Railway logs, where the payload may be sensitive), so no offending text
+      // is logged here either.
+      console.log(`  [brief_attribution] ${composed.sourceAttributions} lead sentence(s) named their source outlet`);
+    }
     console.log(`  Brief synthesized (top-${topStories.length}) via ${briefProvider} (${briefModel})`);
   } else {
+    // The bounded per-gate failure code is the loggable diagnostic. The
+    // failureDetail (offending tokens / sentence) is MODEL-DERIVED text:
+    // opt-in only, never persisted to seed-meta or health, and never in the
+    // default log line — Railway logs may carry sensitive payloads.
     console.warn(
-      `  [brief_synthesis] rejected (${synthesisFailureCode || INSIGHTS_SYNTHESIS_FAILURE_CODES.PROVIDER}`
-      + `${gateReason ? `/${gateReason}` : ''}) — `
+      `  [brief_synthesis] rejected (${synthesisFailureCode || INSIGHTS_SYNTHESIS_FAILURE_CODES.PROVIDER}) — `
       + 'falling back to single-headline brief',
     );
     // Model-derived tokens: opt-in only, never persisted to seed-meta or health.
-    if (gateDetail && process.env.BRIEF_GATE_DEBUG) {
-      console.warn(`  [brief_synthesis DEBUG] ${gateReason}: ${String(gateDetail).slice(0, 200)}`);
+    if (failureDetail && process.env.BRIEF_GATE_DEBUG) {
+      console.warn(`  [brief_synthesis DEBUG] ${synthesisFailureCode}: ${String(failureDetail).slice(0, 200)}`);
     }
     // #6001: L2 gets only what remains of the run's LLM budget — two full
     // 60s budgets could outlast the 120s seed lock.
@@ -953,7 +985,14 @@ async function fetchInsights() {
     });
   }
 
-  const multiSourceCount = clusters.filter(c => (c.sources?.length ?? 0) >= 2 || c.entityCorroboration === true).length;
+  // #6428: "multi-source" is a claim about publishers. Counting c.sources
+  // counted feed labels, so a cluster carried only by one newsroom's own
+  // editions was published as multi-source. clusterItems already resolved the
+  // families onto the cluster — read it rather than recomputing.
+  const multiSourceCount = clusters.filter(
+    c => (c.uniquePublisherCount ?? 0) >= MIN_CORROBORATING_PUBLISHERS
+      || c.entityCorroboration === true,
+  ).length;
   const fastMovingCount = 0; // velocity not available in digest items
 
   const enrichedStories = topStories.map(story => {
@@ -970,7 +1009,12 @@ async function fetchInsights() {
       primaryLink: story.primaryLink,
       pubDate: story.pubDate,
       sourceCount: story.sourceCount,
-      uniqueSourceCount: Array.isArray(story.sources) ? story.sources.length : 0,
+      // #6428: uniqueSourceCount is the corroboration breadth number every
+      // consumer (InsightsPanel badge, MCP get_news_intelligence) quotes back
+      // to a user, so it counts PUBLISHERS. `sources` stays the label list —
+      // it is what the UI credits and links, and collapsing it would drop
+      // attribution the publisher is owed.
+      uniqueSourceCount: story.uniquePublisherCount ?? 0,
       sources: Array.isArray(story.sources) ? story.sources : [],
       lastUpdated: story.lastUpdated,
       memberTitles: Array.isArray(story.memberTitles) ? story.memberTitles : [story.primaryTitle],
@@ -980,6 +1024,7 @@ async function fetchInsights() {
       corroborationSourceCount: story.corroborationSourceCount ?? 0,
       importanceScore: story.importanceScore,
       effectiveImportanceScore: story.effectiveImportanceScore,
+      ...(Number.isFinite(story.credibilityScore) ? { credibilityScore: story.credibilityScore } : {}),
       velocity: { level: 'normal', sourcesPerHour: 0 },
       isAlert: story.isAlert,
       category,

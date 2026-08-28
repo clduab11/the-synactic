@@ -10,16 +10,51 @@ import {
   renderChinaCorporateDisclosureSignals,
   type ChinaCorporateDisclosureSnapshot,
 } from './market-disclosures';
-import { composeMarketPanelContent } from './market-panel-content';
+import {
+  composeMarketPanelContent,
+  groupUnavailableSymbols,
+  type UnavailableSymbolGroup,
+} from './market-panel-content';
+import type {
+  MarketQuoteUnavailable,
+  MarketQuoteUnavailableReason,
+} from '@/generated/client/worldmonitor/market/v1/service_client';
 import { openMarketChartModal } from './market-chart-modal';
+import { navigateToStockResearch } from '@/features/stock-research/stock-research-overlay';
+import { normalizeStockResearchSymbol } from '@/features/stock-research/stock-research-route';
 import {
   bindMarketChartActivation,
   getMarketChartRowAttributes,
 } from './market-chart-interactions';
 
+// Not in the `common` namespace on purpose: `common` ships whole inside the
+// budgeted first-paint shell bundle, and this notice only ever renders after a
+// market fetch has completed.
+const UNAVAILABLE_REASON_KEYS: Record<MarketQuoteUnavailableReason, string> = {
+  MARKET_QUOTE_UNAVAILABLE_REASON_UNSPECIFIED: 'components.markets.unavailable.notFound',
+  MARKET_QUOTE_UNAVAILABLE_REASON_NOT_FOUND: 'components.markets.unavailable.notFound',
+  MARKET_QUOTE_UNAVAILABLE_REASON_PROVIDER_ERROR: 'components.markets.unavailable.providerError',
+  MARKET_QUOTE_UNAVAILABLE_REASON_PROVIDER_RATE_LIMITED: 'components.markets.unavailable.rateLimited',
+  MARKET_QUOTE_UNAVAILABLE_REASON_PROVIDER_NOT_CONFIGURED: 'components.markets.unavailable.notConfigured',
+  MARKET_QUOTE_UNAVAILABLE_REASON_REQUEST_LIMIT_EXCEEDED: 'components.markets.unavailable.requestLimit',
+  MARKET_QUOTE_UNAVAILABLE_REASON_UPSTREAM_BUDGET_EXHAUSTED: 'components.markets.unavailable.budget',
+  MARKET_QUOTE_UNAVAILABLE_REASON_SEED_UNAVAILABLE: 'components.markets.unavailable.seed',
+};
+
+function unavailableSymbolLine(group: UnavailableSymbolGroup): string {
+  // An unrecognized reason (a server ahead of this bundle) still names the
+  // symbols rather than dropping the line — silence is the bug being fixed.
+  const reason = t(UNAVAILABLE_REASON_KEYS[group.reason] ?? 'components.markets.unavailable.notFound');
+  const symbols = group.symbols.join(', ');
+  return group.overflow > 0
+    ? t('components.markets.unavailable.symbolsMore', { symbols, count: group.overflow, reason })
+    : t('components.markets.unavailable.symbols', { symbols, reason });
+}
+
 export class MarketPanel extends Panel {
   private _markets: MarketData[] = [];
   private _marketsRateLimited = false;
+  private _marketsUnavailable: readonly MarketQuoteUnavailable[] = [];
   private _disclosures: ChinaCorporateDisclosureSnapshot | null = null;
 
   constructor() {
@@ -28,12 +63,26 @@ export class MarketPanel extends Panel {
 
     // Delegated once on the persistent content element (each render only swaps
     // innerHTML): click or Enter/Space on a plottable ticker opens its terminal chart.
-    bindMarketChartActivation(this.content, () => this._markets, openMarketChartModal);
+    // Rows are marked role="button" purely on having a plottable series, so
+    // every one of them must lead somewhere. The research route only accepts
+    // /^[A-Z][A-Z0-9.-]{0,14}$/, which rejects the caret-prefixed indices
+    // (^GSPC, ^DJI, ^IXIC …) and digit-leading Asian tickers (0700.HK,
+    // 600519.SS …) that lead this panel — those keep the chart modal rather
+    // than becoming announced-but-inert controls.
+    bindMarketChartActivation(this.content, () => this._markets, (stock) => {
+      if (normalizeStockResearchSymbol(stock.symbol)) navigateToStockResearch(stock.symbol, stock);
+      else openMarketChartModal(stock);
+    });
   }
 
-  public renderMarkets(data: MarketData[], rateLimited?: boolean): void {
+  public renderMarkets(
+    data: MarketData[],
+    rateLimited?: boolean,
+    unavailable?: readonly MarketQuoteUnavailable[],
+  ): void {
     this._markets = data;
     this._marketsRateLimited = Boolean(rateLimited);
+    this._marketsUnavailable = unavailable ?? [];
     this._renderMarketsAndDisclosures();
   }
 
@@ -73,6 +122,7 @@ export class MarketPanel extends Panel {
       unavailableMessage: this._marketsRateLimited
         ? t('common.rateLimitedMarket')
         : t('common.failedMarketData'),
+      unavailableSymbolLines: groupUnavailableSymbols(this._marketsUnavailable).map(unavailableSymbolLine),
     });
     if (content.kind === 'retry') {
       this.showRetrying(content.message);
@@ -162,8 +212,8 @@ export class HeatmapPanel extends Panel {
     const hasValuations = Object.keys(this._valuations).length > 0;
     if (!hasValuations) return '';
     return `<div style="display:flex;gap:4px;margin-bottom:8px">
-      <button class="panel-tab${this._tab === 'performance' ? ' active' : ''}" data-tab="performance" style="font-size:11px;padding:3px 10px">Performance</button>
-      <button class="panel-tab${this._tab === 'valuations' ? ' active' : ''}" data-tab="valuations" style="font-size:11px;padding:3px 10px">Valuations</button>
+      <button class="panel-tab${this._tab === 'performance' ? ' active' : ''}" data-tab="performance" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));padding:3px 10px">Performance</button>
+      <button class="panel-tab${this._tab === 'valuations' ? ' active' : ''}" data-tab="valuations" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));padding:3px 10px">Valuations</button>
     </div>`;
   }
 
@@ -238,7 +288,7 @@ export class HeatmapPanel extends Panel {
       .filter((e) => e.forwardPE !== null || e.trailingPE !== null);
 
     if (entries.length === 0) {
-      return '<div style="padding:8px;color:var(--text-dim);font-size:12px">No valuation data available</div>';
+      return '<div style="padding:8px;color:var(--text-dim);font-size:calc(12px * var(--wm-panel-effective-scale, 1))">No valuation data available</div>';
     }
 
     const sorted = [...entries].sort((a, b) => (a.forwardPE ?? a.trailingPE ?? 999) - (b.forwardPE ?? b.trailingPE ?? 999));
@@ -286,26 +336,26 @@ export class HeatmapPanel extends Panel {
         // snapshot, so it must not read as current data.
         const isStale = this._staleValuationSymbols.has(e.symbol.toUpperCase());
         const staleMark = isStale
-          ? ` <span title="Last known value; not refreshed this cycle" style="color:var(--text-dim);font-size:9px">(stale)</span>`
+          ? ` <span title="Last known value; not refreshed this cycle" style="color:var(--text-dim);font-size:calc(9px * var(--wm-panel-effective-scale, 1))">(stale)</span>`
           : '';
         return `<tr${isStale ? ' style="opacity:0.65"' : ''}>
-  <td style="padding:3px 6px;white-space:nowrap;font-size:11px">${escapeHtml(name)}${staleMark}</td>
-  <td style="padding:3px 6px;text-align:right;font-size:11px;color:${peColor(e.trailingPE)}">${fmtPE(e.trailingPE)}</td>
-  <td style="padding:3px 6px;text-align:right;font-size:11px;color:${peColor(e.forwardPE)}">${fmtPE(e.forwardPE)}</td>
-  <td style="padding:3px 6px;text-align:right;font-size:11px">${fmtBeta(e.beta)}</td>
-  <td style="padding:3px 6px;text-align:right;font-size:11px;color:${e.ytdReturn === null ? 'var(--text-dim)' : e.ytdReturn >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPct(e.ytdReturn)}</td>
+  <td style="padding:3px 6px;white-space:nowrap;font-size:calc(11px * var(--wm-panel-effective-scale, 1))">${escapeHtml(name)}${staleMark}</td>
+  <td style="padding:3px 6px;text-align:right;font-size:calc(11px * var(--wm-panel-effective-scale, 1));color:${peColor(e.trailingPE)}">${fmtPE(e.trailingPE)}</td>
+  <td style="padding:3px 6px;text-align:right;font-size:calc(11px * var(--wm-panel-effective-scale, 1));color:${peColor(e.forwardPE)}">${fmtPE(e.forwardPE)}</td>
+  <td style="padding:3px 6px;text-align:right;font-size:calc(11px * var(--wm-panel-effective-scale, 1))">${fmtBeta(e.beta)}</td>
+  <td style="padding:3px 6px;text-align:right;font-size:calc(11px * var(--wm-panel-effective-scale, 1));color:${e.ytdReturn === null ? 'var(--text-dim)' : e.ytdReturn >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPct(e.ytdReturn)}</td>
 </tr>`;
       })
       .join('');
 
     const table = `<div style="overflow-x:auto">
-<table style="width:100%;border-collapse:collapse;font-size:11px">
+<table style="width:100%;border-collapse:collapse;font-size:calc(11px * var(--wm-panel-effective-scale, 1))">
   <thead><tr style="color:var(--text-dim);border-bottom:1px solid var(--border)">
-    <th style="padding:3px 6px;text-align:left;font-weight:500">Sector</th>
-    <th style="padding:3px 6px;text-align:right;font-weight:500">Trail P/E</th>
-    <th style="padding:3px 6px;text-align:right;font-weight:500">Fwd P/E</th>
-    <th style="padding:3px 6px;text-align:right;font-weight:500">Beta</th>
-    <th style="padding:3px 6px;text-align:right;font-weight:500">YTD</th>
+    <th scope="col" style="padding:3px 6px;text-align:left;font-weight:500">Sector</th>
+    <th scope="col" style="padding:3px 6px;text-align:right;font-weight:500">Trail P/E</th>
+    <th scope="col" style="padding:3px 6px;text-align:right;font-weight:500">Fwd P/E</th>
+    <th scope="col" style="padding:3px 6px;text-align:right;font-weight:500">Beta</th>
+    <th scope="col" style="padding:3px 6px;text-align:right;font-weight:500">YTD</th>
   </tr></thead>
   <tbody>${tableRows}</tbody>
 </table></div>`;
@@ -320,13 +370,15 @@ interface EcbFxRateItem {
   change1d?: number | null;
 }
 
-type CommoditiesTab = 'commodities' | 'fx' | 'xau';
+type CommoditiesTab = 'commodities' | 'physical' | 'fx' | 'xau';
 
 // Use the generated types directly — never hand-roll a subset, which silently
 // drifts when the proto gains fields.
 import type {
+  GetPhysicalPremiumsResponse,
   GetHyperliquidFlowResponse,
   HyperliquidAssetFlow,
+  PhysicalPremium,
 } from '@/generated/client/worldmonitor/market/v1/service_client';
 
 function parseFiniteNumber(s: string): number | null {
@@ -450,6 +502,7 @@ export class CommoditiesPanel extends Panel {
   private _tab: CommoditiesTab = 'commodities';
   private _commodityData: Array<{ display: string; price: number | null; change: number | null; sparkline?: number[]; symbol?: string }> = [];
   private _fxRates: EcbFxRateItem[] = [];
+  private _physicalPremiums: PhysicalPremium[] = [];
 
   constructor() {
     super({ id: 'commodities', title: t('panels.commodities'), infoTooltip: t('components.commodities.infoTooltip') });
@@ -459,6 +512,7 @@ export class CommoditiesPanel extends Panel {
       const tab = btn?.dataset.tab;
       if (
         tab === 'commodities' ||
+        tab === 'physical' ||
         tab === 'fx' ||
         (tab === 'xau' && SITE_VARIANT === 'commodity')
       ) {
@@ -478,19 +532,46 @@ export class CommoditiesPanel extends Panel {
     this._render();
   }
 
-  private _buildTabBar(hasFx: boolean, hasXau: boolean): string {
-    const firstTabLabel = 'Commodities';
+  public updatePhysicalPremiums(response: GetPhysicalPremiumsResponse): void {
+    this._physicalPremiums = response.premiums;
+    this._render();
+  }
+
+  private _buildTabBar(hasPhysical: boolean, hasFx: boolean, hasXau: boolean): string {
+    const firstTabLabel = t('components.commodities.commodities');
     const tabs: string[] = [
-      `<button class="panel-tab${this._tab === 'commodities' ? ' active' : ''}" data-tab="commodities" style="font-size:11px;padding:3px 10px">${firstTabLabel}</button>`,
+      `<button class="panel-tab${this._tab === 'commodities' ? ' active' : ''}" data-tab="commodities" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));padding:3px 10px">${firstTabLabel}</button>`,
     ];
-    if (hasFx) tabs.push(`<button class="panel-tab${this._tab === 'fx' ? ' active' : ''}" data-tab="fx" style="font-size:11px;padding:3px 10px">EUR FX</button>`);
-    if (hasXau) tabs.push(`<button class="panel-tab${this._tab === 'xau' ? ' active' : ''}" data-tab="xau" style="font-size:11px;padding:3px 10px">XAU/FX</button>`);
+    if (hasPhysical) tabs.push(`<button class="panel-tab${this._tab === 'physical' ? ' active' : ''}" data-tab="physical" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));padding:3px 10px">${t('components.commodities.physicalPremiums')}</button>`);
+    if (hasFx) tabs.push(`<button class="panel-tab${this._tab === 'fx' ? ' active' : ''}" data-tab="fx" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));padding:3px 10px">EUR FX</button>`);
+    if (hasXau) tabs.push(`<button class="panel-tab${this._tab === 'xau' ? ' active' : ''}" data-tab="xau" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));padding:3px 10px">XAU/FX</button>`);
     return tabs.length > 1 ? `<div style="display:flex;gap:4px;margin-bottom:8px">${tabs.join('')}</div>` : '';
+  }
+
+  private _renderPhysicalPremiums(): string {
+    const rows = this._physicalPremiums.map((premium) => {
+      if (!premium.physical || !premium.paper) return '';
+      const metalKey = premium.metal === 'gold' ? 'gold' : 'silver';
+      const metal = t(`components.commodities.metals.${metalKey}`);
+      const unit = premium.physical.unit === 'kilogram' ? 'kg' : 'g';
+      const physicalPrice = premium.physical.price.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      const paperPrice = premium.paper.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const premiumUsd = `${premium.premiumUsdPerOz >= 0 ? '+' : '-'}$${Math.abs(premium.premiumUsdPerOz).toFixed(2)}`;
+      const premiumPct = `${premium.premiumPct >= 0 ? '+' : ''}${premium.premiumPct.toFixed(2)}%`;
+      return `<div class="commodity-item physical-premium-item">
+        <div class="commodity-name">${escapeHtml(metal)}</div>
+        <div class="commodity-price">${escapeHtml(t('components.commodities.physical'))}: CNY ${escapeHtml(physicalPrice)}/${unit}</div>
+        <div class="commodity-price">${escapeHtml(t('components.commodities.paper'))}: $${escapeHtml(paperPrice)}/oz</div>
+        <div class="commodity-change ${getChangeClass(premium.premiumPct)}">${escapeHtml(t('components.commodities.premium'))}: ${escapeHtml(premiumUsd)}/oz (${escapeHtml(premiumPct)})</div>
+        <div style="margin-top:4px;font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)" title="${escapeHtml(premium.physical.source)}">${escapeHtml(premium.physical.source)}<br>${escapeHtml(t('components.commodities.asOf', { date: premium.physical.asOf }))}</div>
+      </div>`;
+    });
+    return `<div class="commodities-grid">${rows.join('')}</div>`;
   }
 
   private _renderXau(): string {
     const gcf = this._commodityData.find(d => d.symbol === 'GC=F' && d.price !== null);
-    if (!gcf?.price) return `<div style="padding:8px;color:var(--text-dim);font-size:12px">Gold price unavailable</div>`;
+    if (!gcf?.price) return `<div style="padding:8px;color:var(--text-dim);font-size:calc(12px * var(--wm-panel-effective-scale, 1))">Gold price unavailable</div>`;
 
     const goldUsd = gcf.price;
     const fxMap = new Map(this._commodityData.filter(d => d.symbol?.endsWith('=X')).map(d => [d.symbol!, d]));
@@ -503,7 +584,7 @@ export class CommoditiesPanel extends Panel {
       const formatted = Math.round(xauPrice).toLocaleString();
       return `<div class="commodity-item">
         <div class="commodity-name">${escapeHtml(cfg.flag)} XAU/${escapeHtml(cfg.label)}</div>
-        <div class="commodity-price" style="font-size:11px">${escapeHtml(formatted)}</div>
+        <div class="commodity-price" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1))">${escapeHtml(formatted)}</div>
       </div>`;
     }).filter(Boolean);
 
@@ -511,19 +592,26 @@ export class CommoditiesPanel extends Panel {
       const placeholders = XAU_CURRENCY_CONFIG.map(cfg =>
         `<div class="commodity-item">
           <div class="commodity-name">${escapeHtml(cfg.flag)} XAU/${escapeHtml(cfg.label)}</div>
-          <div class="commodity-price" style="font-size:11px">--</div>
+          <div class="commodity-price" style="font-size:calc(11px * var(--wm-panel-effective-scale, 1))">--</div>
         </div>`
       ).join('');
-      return `<div class="commodities-grid">${placeholders}</div><div style="margin-top:6px;font-size:9px;color:var(--text-dim)">FX rates unavailable</div>`;
+      return `<div class="commodities-grid">${placeholders}</div><div style="margin-top:6px;font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">FX rates unavailable</div>`;
     }
-    return `<div class="commodities-grid">${rows.join('')}</div><div style="margin-top:6px;font-size:9px;color:var(--text-dim)">Computed from GC=F + Yahoo FX</div>`;
+    return `<div class="commodities-grid">${rows.join('')}</div><div style="margin-top:6px;font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">Computed from GC=F + Yahoo FX</div>`;
   }
 
   private _render(): void {
+    const hasPhysical = this._physicalPremiums.length > 0;
     const hasFx = this._fxRates.length > 0;
     const hasXau = SITE_VARIANT === 'commodity' && this._commodityData.some(d => d.symbol === 'GC=F' && d.price !== null);
     if (this._tab === 'xau' && !hasXau) this._tab = 'commodities';
-    const tabBar = this._buildTabBar(hasFx, hasXau);
+    if (this._tab === 'physical' && !hasPhysical) this._tab = 'commodities';
+    const tabBar = this._buildTabBar(hasPhysical, hasFx, hasXau);
+
+    if (this._tab === 'physical' && hasPhysical) {
+      this.setSafeContent(unsafeRawHtml(tabBar + this._renderPhysicalPremiums(), 'legacy Panel.setContent() migration'));
+      return;
+    }
 
     if (this._tab === 'fx' && hasFx) {
       const items = this._fxRates.map(r => {
@@ -541,7 +629,7 @@ export class CommoditiesPanel extends Panel {
           ${changeStr ? `<div class="commodity-change ${escapeHtml(changeClass)}">${escapeHtml(changeStr)}</div>` : ''}
         </div>`;
       }).join('');
-      this.setSafeContent(unsafeRawHtml(tabBar + `<div class="commodities-grid">${items}</div><div style="margin-top:6px;font-size:9px;color:var(--text-dim)">Source: ECB</div>`, 'legacy Panel.setContent() migration'));
+      this.setSafeContent(unsafeRawHtml(tabBar + `<div class="commodities-grid">${items}</div><div style="margin-top:6px;font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">Source: ECB</div>`, 'legacy Panel.setContent() migration'));
       return;
     }
 
@@ -559,11 +647,11 @@ export class CommoditiesPanel extends Panel {
       (d) => typeof d.price === 'number' && Number.isFinite(d.price) && !d.symbol?.endsWith('=X'),
     );
     if (validData.length === 0) {
-      if (!hasFx) {
+      if (!hasFx && !hasPhysical) {
         this.showRetrying(t('common.failedCommodities'));
         return;
       }
-      this.setSafeContent(unsafeRawHtml(tabBar + `<div style="padding:8px;color:var(--text-dim);font-size:12px">${t('common.failedCommodities')}</div>`, 'legacy Panel.setContent() migration'));
+      this.setSafeContent(unsafeRawHtml(tabBar + `<div style="padding:8px;color:var(--text-dim);font-size:calc(12px * var(--wm-panel-effective-scale, 1))">${t('common.failedCommodities')}</div>`, 'legacy Panel.setContent() migration'));
       return;
     }
 

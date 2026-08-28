@@ -5,6 +5,7 @@ const { once } = require('node:events');
 const http = require('node:http');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { setTimeout: sleep } = require('node:timers/promises');
 const test = require('node:test');
 
 function get(port, requestPath, headers) {
@@ -172,7 +173,7 @@ test('relay handlers expose bounded Google/OpenSky cooldowns and RSS fallback me
     const staleFeed = 'https://feeds.bbci.co.uk/news/world/rss.xml?test=stale';
     const rssFresh = await get(port, `/rss?url=${encodeURIComponent(staleFeed)}`);
     assert.equal(rssFresh.status, 200);
-    await new Promise((resolve) => setTimeout(resolve, 25));
+    await sleep(25);
     const rssStale = await get(port, `/rss?url=${encodeURIComponent(staleFeed)}`);
     assert.equal(rssStale.status, 200);
     assert.equal(rssStale.headers['x-cache'], 'STALE');
@@ -184,7 +185,7 @@ test('relay handlers expose bounded Google/OpenSky cooldowns and RSS fallback me
     assert.equal(aisEmpty.status, 200);
 
     const health = JSON.parse((await get(port, '/health')).body);
-    assert.equal(health.status, 'ok');
+    assert.equal(health.status, 'degraded', 'top-level JSON status must not hide degraded ingestion');
     assert.equal(health.ingestion.status, 'degraded');
     assert.equal(health.ingestion.aisSnapshot.served, 0);
     assert.equal(health.ingestion.aisSnapshot.connected, false);
@@ -212,6 +213,151 @@ test('relay handlers expose bounded Google/OpenSky cooldowns and RSS fallback me
     const agedHealth = JSON.parse((await get(port, '/health')).body);
     assert.equal(agedHealth.ingestion.aviation.coverage.requests, 0, 'request samples must age out of the rolling window');
     assert.equal(agedHealth.ingestion.aviation.coverage.status, 'degraded', 'active provider reset must remain visible after samples age out');
+  } finally {
+    await stop(child);
+  }
+});
+
+test('RSS keeps serving the last good body after an upstream 403 enters backoff', async () => {
+  const { child, ready } = spawnRelay({
+    RELAY_RSS_RATE_LIMIT_MAX: '1000',
+    RELAY_TEST_RSS_CACHE_TTL_MS: '10',
+    RELAY_METRICS_WINDOW_SECONDS: '10',
+  });
+
+  try {
+    const { port } = await ready;
+    const feedUrl = 'https://feeds.bbci.co.uk/news/world/rss.xml?test=forbidden';
+    const requestPath = `/rss?url=${encodeURIComponent(feedUrl)}`;
+
+    const fresh = await get(port, requestPath);
+    assert.equal(fresh.status, 200);
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    const stale = await get(port, requestPath);
+    assert.equal(stale.status, 200, stale.body);
+    assert.equal(stale.headers['x-cache'], 'STALE');
+    assert.match(stale.body, /<rss>/);
+
+    const backoffStale = await get(port, requestPath);
+    assert.equal(backoffStale.status, 200, backoffStale.body);
+    assert.equal(backoffStale.headers['x-cache'], 'BACKOFF-STALE');
+    assert.match(backoffStale.body, /<rss>/);
+
+    const metrics = JSON.parse((await get(port, '/metrics')).body);
+    assert.ok(metrics.rss.authRejection >= 1, 'the upstream 403 must remain observable');
+    assert.ok(metrics.rss.fallback >= 2, 'both stale responses must be counted as fallback');
+    assert.equal(metrics.rss.served, 3, 'fresh plus both stale responses must be served');
+  } finally {
+    await stop(child);
+  }
+});
+
+test('RSS keeps serving the last good body after upstream 5xx and timeout failures', async () => {
+  for (const [mode, outcome] of [['server-error', 'terminalFailure'], ['timeout', 'timeout']]) {
+    const { child, ready } = spawnRelay({
+      RELAY_RSS_RATE_LIMIT_MAX: '1000',
+      RELAY_TEST_RSS_CACHE_TTL_MS: '10',
+      RELAY_METRICS_WINDOW_SECONDS: '10',
+    });
+
+    try {
+      const { port } = await ready;
+      const feedUrl = `https://feeds.bbci.co.uk/news/world/rss.xml?test=${mode}`;
+      const requestPath = `/rss?url=${encodeURIComponent(feedUrl)}`;
+
+      assert.equal((await get(port, requestPath)).status, 200);
+      await sleep(25);
+
+      const stale = await get(port, requestPath);
+      assert.equal(stale.status, 200, stale.body);
+      assert.equal(stale.headers['x-cache'], 'STALE');
+      assert.match(stale.body, /<rss>/);
+
+      const metrics = JSON.parse((await get(port, '/metrics')).body);
+      assert.ok(metrics.rss[outcome] >= 1, `${mode} must remain observable`);
+      assert.ok(metrics.rss.fallback >= 1, `${mode} must serve stale fallback`);
+    } finally {
+      await stop(child);
+    }
+  }
+});
+
+test('RSS counts concurrent stale deduplication as fallback', async () => {
+  const { child, ready } = spawnRelay({
+    RELAY_RSS_RATE_LIMIT_MAX: '1000',
+    RELAY_TEST_RSS_CACHE_TTL_MS: '10',
+    RELAY_METRICS_WINDOW_SECONDS: '10',
+  });
+
+  try {
+    const { port } = await ready;
+    const feedUrl = 'https://feeds.bbci.co.uk/news/world/rss.xml?test=dedup';
+    const requestPath = `/rss?url=${encodeURIComponent(feedUrl)}`;
+    assert.equal((await get(port, requestPath)).status, 200);
+    await sleep(25);
+
+    const responses = await Promise.all([get(port, requestPath), get(port, requestPath)]);
+    assert.ok(responses.every((response) => response.status === 200), responses.map((response) => response.body).join('\n'));
+    assert.deepEqual(new Set(responses.map((response) => response.headers['x-cache'])), new Set(['STALE', 'DEDUP-STALE']));
+
+    const metrics = JSON.parse((await get(port, '/metrics')).body);
+    assert.ok(metrics.rss.authRejection >= 2, 'leader and dedup follower must retain the upstream rejection outcome');
+    assert.ok(metrics.rss.fallback >= 2, 'leader and dedup follower must count as fallback');
+    assert.equal(metrics.rss.served, 3, 'fresh, stale leader, and stale dedup follower must be served');
+  } finally {
+    await stop(child);
+  }
+});
+
+test('RSS keeps concurrent timeout followers on the stale no-store path', async () => {
+  const { child, ready } = spawnRelay({
+    RELAY_RSS_RATE_LIMIT_MAX: '1000',
+    RELAY_TEST_RSS_CACHE_TTL_MS: '10',
+    RELAY_METRICS_WINDOW_SECONDS: '10',
+  });
+
+  try {
+    const { port } = await ready;
+    const feedUrl = 'https://feeds.bbci.co.uk/news/world/rss.xml?test=dedup-timeout';
+    const requestPath = `/rss?url=${encodeURIComponent(feedUrl)}`;
+    assert.equal((await get(port, requestPath)).status, 200);
+    await sleep(25);
+
+    const responses = await Promise.all([get(port, requestPath), get(port, requestPath)]);
+    assert.ok(responses.every((response) => response.status === 200), responses.map((response) => response.body).join('\n'));
+    assert.deepEqual(new Set(responses.map((response) => response.headers['x-cache'])), new Set(['STALE', 'DEDUP-STALE']));
+
+    const metrics = JSON.parse((await get(port, '/metrics')).body);
+    assert.ok(metrics.rss.timeout >= 2, 'leader and dedup follower must retain the timeout outcome');
+    assert.ok(metrics.rss.fallback >= 2, 'leader and dedup follower must count as fallback');
+    assert.equal(metrics.rss.served, 3, 'fresh, stale leader, and stale dedup follower must be served');
+  } finally {
+    await stop(child);
+  }
+});
+
+test('RSS retains stale bodies while cleanup runs during active backoff', async () => {
+  const { child, ready } = spawnRelay({
+    RELAY_RSS_RATE_LIMIT_MAX: '1000',
+    RELAY_TEST_RSS_CACHE_TTL_MS: '10',
+    RELAY_TEST_RSS_CACHE_CLEANUP_INTERVAL_MS: '1000',
+    RELAY_METRICS_WINDOW_SECONDS: '10',
+  });
+
+  try {
+    const { port } = await ready;
+    const feedUrl = 'https://feeds.bbci.co.uk/news/world/rss.xml?test=forbidden';
+    const requestPath = `/rss?url=${encodeURIComponent(feedUrl)}`;
+    assert.equal((await get(port, requestPath)).status, 200);
+    await sleep(25);
+    assert.equal((await get(port, requestPath)).headers['x-cache'], 'STALE');
+
+    await sleep(1200);
+    const backoffStale = await get(port, requestPath);
+    assert.equal(backoffStale.status, 200, backoffStale.body);
+    assert.equal(backoffStale.headers['x-cache'], 'BACKOFF-STALE');
   } finally {
     await stop(child);
   }
@@ -291,6 +437,72 @@ test('theater-posture Wingbits fallback publication is attributed to Wingbits, n
   }
 });
 
+test('theater-posture rejects Wingbits rows without usable theater coordinates', async () => {
+  const upstash = await createUpstashMock();
+  const { child, ready } = spawnRelay({
+    WINGBITS_API_KEY: 'test-wingbits-key',
+    RELAY_TEST_WINGBITS_GHOST_ROWS: '1',
+    ...upstash.env,
+  });
+
+  try {
+    const { port } = await ready;
+    const trigger = await get(port, '/__test/seed-theater-posture');
+    assert.equal(trigger.status, 200, `trigger failed: ${trigger.body}`);
+
+    assert.equal(upstash.setsFor('theater-posture:sebuf:v1').length, 0);
+    assert.equal(upstash.setsFor('theater_posture:sebuf:stale:v1').length, 0);
+    assert.equal(upstash.setsFor('theater-posture:sebuf:backup:v1').length, 0);
+    assert.equal(upstash.setsFor('seed-meta:theater-posture').length, 0);
+
+    const metrics = JSON.parse((await get(port, '/metrics')).body);
+    assert.equal(metrics.theaterPosture.lastRun.source, 'vessel-only');
+    assert.equal(metrics.theaterPosture.lastRun.flightCount, 0);
+    assert.equal(metrics.theaterPosture.lastRun.published, false);
+    assert.equal(metrics.theaterPosture.lastRun.reason, 'no-input-records');
+    assert.equal(metrics.theaterPosture.emptyRejectionsSinceBoot, 1);
+    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 0, wingbits: 0, vesselOnly: 0 });
+  } finally {
+    await stop(child);
+    await upstash.close();
+  }
+});
+
+test('theater-posture publishes valid vessel-only evidence', async () => {
+  const upstash = await createUpstashMock();
+  const { child, ready } = spawnRelay({
+    RELAY_TEST_ADSB_MODE_SEQUENCE: 'empty',
+    RELAY_TEST_THEATER_VESSEL: '1',
+    ...upstash.env,
+  });
+
+  try {
+    const { port } = await ready;
+    const trigger = await get(port, '/__test/seed-theater-posture');
+    assert.equal(trigger.status, 200, `trigger failed: ${trigger.body}`);
+
+    const seedMetaSets = upstash.setsFor('seed-meta:theater-posture');
+    assert.equal(seedMetaSets.length, 1);
+    const seedMeta = JSON.parse(seedMetaSets[0].command[2]);
+    assert.equal(seedMeta.sourceVersion, 'vessel-only');
+    assert.equal(seedMeta.recordCount, 1);
+    assert.equal(upstash.setsFor('theater-posture:sebuf:v1').length, 1);
+    assert.equal(upstash.setsFor('theater_posture:sebuf:stale:v1').length, 1);
+    assert.equal(upstash.setsFor('theater-posture:sebuf:backup:v1').length, 1);
+
+    const metrics = JSON.parse((await get(port, '/metrics')).body);
+    assert.equal(metrics.theaterPosture.lastRun.source, 'vessel-only');
+    assert.equal(metrics.theaterPosture.lastRun.flightCount, 0);
+    assert.equal(metrics.theaterPosture.lastRun.vesselCount, 1);
+    assert.equal(metrics.theaterPosture.lastRun.published, true);
+    assert.equal(metrics.theaterPosture.emptyRejectionsSinceBoot, 0);
+    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 0, wingbits: 0, vesselOnly: 1 });
+  } finally {
+    await stop(child);
+    await upstash.close();
+  }
+});
+
 test('theater-posture reports a canonical envelope write failure separately', async () => {
   const upstash = await createUpstashMock({
     setResponses: {
@@ -309,7 +521,13 @@ test('theater-posture reports a canonical envelope write failure separately', as
 
     const metrics = JSON.parse((await get(port, '/metrics')).body);
     assert.equal(metrics.theaterPosture.lastRun.redisOk, false);
-    assert.equal(metrics.theaterPosture.lastRun.seedMetaOk, true);
+    assert.equal(metrics.theaterPosture.lastRun.seedMetaOk, false);
+    assert.equal(metrics.theaterPosture.lastRun.published, false);
+    assert.equal(metrics.theaterPosture.lastRun.reason, 'write-failed');
+    assert.ok(metrics.theaterPosture.lastRun.attemptedAt);
+    assert.ok(!('seededAt' in metrics.theaterPosture.lastRun));
+    assert.equal(upstash.setsFor('seed-meta:theater-posture').length, 0);
+    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 0, wingbits: 0, vesselOnly: 0 });
   } finally {
     await stop(child);
     await upstash.close();
@@ -335,6 +553,11 @@ test('theater-posture reports a seed-meta write failure separately', async () =>
     const metrics = JSON.parse((await get(port, '/metrics')).body);
     assert.equal(metrics.theaterPosture.lastRun.redisOk, true);
     assert.equal(metrics.theaterPosture.lastRun.seedMetaOk, false);
+    assert.equal(metrics.theaterPosture.lastRun.published, false);
+    assert.equal(metrics.theaterPosture.lastRun.reason, 'write-failed');
+    assert.ok(metrics.theaterPosture.lastRun.attemptedAt);
+    assert.ok(!('seededAt' in metrics.theaterPosture.lastRun));
+    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 0, wingbits: 0, vesselOnly: 0 });
   } finally {
     await stop(child);
     await upstash.close();
@@ -432,16 +655,18 @@ test('theater-posture uses adsb.lol, then Wingbits, without routine OpenSky debi
     assert.equal(metrics.theaterPosture.lastRun.flightCount, 1);
 
     // Cycle 2: adsb.lol answers an authoritative empty — the chain stops
-    // without consulting Wingbits and the cycle publishes vessel-only.
+    // without consulting Wingbits, but no evidence means there is no valid
+    // posture publication. Preserve the last-known-good Redis envelopes and
+    // metadata instead of replacing them with a fresh zero-record snapshot.
     const second = await get(port, '/__test/seed-theater-posture');
     assert.equal(second.status, 200, `trigger 2 failed: ${second.body}`);
 
     const seedMetaSets = upstash.setsFor('seed-meta:theater-posture');
-    assert.equal(seedMetaSets.length, 2);
+    assert.equal(seedMetaSets.length, 1);
     assert.equal(JSON.parse(seedMetaSets[0].command[2]).sourceVersion, 'adsb.lol');
-    const quietMeta = JSON.parse(seedMetaSets[1].command[2]);
-    assert.equal(quietMeta.sourceVersion, 'vessel-only');
-    assert.equal(quietMeta.recordCount, 0);
+    assert.equal(upstash.setsFor('theater-posture:sebuf:v1').length, 1);
+    assert.equal(upstash.setsFor('theater_posture:sebuf:stale:v1').length, 1);
+    assert.equal(upstash.setsFor('theater-posture:sebuf:backup:v1').length, 1);
 
     const metricsAfterQuiet = JSON.parse((await get(port, '/metrics')).body);
     assert.equal(
@@ -452,10 +677,13 @@ test('theater-posture uses adsb.lol, then Wingbits, without routine OpenSky debi
 
     metrics = JSON.parse((await get(port, '/metrics')).body);
     assert.equal(metrics.theaterPosture.lastRun.source, 'vessel-only');
+    assert.equal(metrics.theaterPosture.lastRun.published, false);
+    assert.equal(metrics.theaterPosture.lastRun.reason, 'no-input-records');
+    assert.equal(metrics.theaterPosture.emptyRejectionsSinceBoot, 1);
     // The Wingbits stub would have contributed a flight had the chain
     // consulted it: adsb.lol's authoritative empty answer stops the chain.
     assert.equal(metrics.theaterPosture.lastRun.flightCount, 0);
-    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 1, wingbits: 0, vesselOnly: 1 });
+    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 1, wingbits: 0, vesselOnly: 0 });
 
     // Cycle 3: adsb.lol returns malformed success, so Wingbits is the recovery source. OpenSky is
     // last-resort only and must not be touched while Wingbits is usable.
@@ -463,9 +691,11 @@ test('theater-posture uses adsb.lol, then Wingbits, without routine OpenSky debi
     assert.equal(third.status, 200, `trigger 3 failed: ${third.body}`);
     metrics = JSON.parse((await get(port, '/metrics')).body);
     assert.equal(metrics.theaterPosture.lastRun.source, 'wingbits');
+    assert.equal(metrics.theaterPosture.lastRun.published, true);
     assert.equal(metrics.theaterPosture.lastRun.flightCount, 1);
     assert.equal(metrics.opensky.requests, 0, 'Wingbits recovery must precede authenticated OpenSky');
-    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 1, wingbits: 1, vesselOnly: 1 });
+    assert.equal(metrics.theaterPosture.emptyRejectionsSinceBoot, 1);
+    assert.deepEqual(metrics.theaterPosture.sourceCountsSinceBoot, { opensky: 0, adsbLol: 1, wingbits: 1, vesselOnly: 0 });
   } finally {
     await stop(child);
     await upstash.close();

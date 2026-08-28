@@ -11,9 +11,10 @@ import {
   assessOilDemandChange,
   computeOilDemandChange,
   jodiSourceYears,
+  jodiCsvCandidates,
+  fetchYearCsv,
   validateCoverage,
   mergeSourceRows,
-  jodiCsvCandidates,
   assertParseableCsv,
   CANONICAL_KEY,
   COUNTRY_KEY_PREFIX,
@@ -680,31 +681,33 @@ describe('validateCoverage', () => {
 // ---------------------------------------------------------------------------
 
 describe('jodiCsvCandidates', () => {
+  const BASE = 'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/';
+
   it('puts the in-progress shape first for the current year', () => {
     assert.deepEqual(
       jodiCsvCandidates('primary', 2026, true),
-      ['primary/primaryyear2026.csv', 'primary/2026.csv'],
+      [`${BASE}primary/primaryyear2026.csv`, `${BASE}primary/2026.csv`],
     );
   });
 
   it('builds the secondary in-progress shape with the dataset name doubled', () => {
     assert.deepEqual(
       jodiCsvCandidates('secondary', 2026, true),
-      ['secondary/secondaryyear2026.csv', 'secondary/2026.csv'],
+      [`${BASE}secondary/secondaryyear2026.csv`, `${BASE}secondary/2026.csv`],
     );
   });
 
   it('puts the archived shape first for a prior year', () => {
     assert.deepEqual(
       jodiCsvCandidates('primary', 2025, false),
-      ['primary/2025.csv', 'primary/primaryyear2025.csv'],
+      [`${BASE}primary/2025.csv`, `${BASE}primary/primaryyear2025.csv`],
     );
   });
 
   it('regression: current-year list contains the probe-verified working name', () => {
     // The old code produced only `primary/2026.csv`, which is a hard 404.
     assert.ok(
-      jodiCsvCandidates('primary', 2026, true).includes('primary/primaryyear2026.csv'),
+      jodiCsvCandidates('primary', 2026, true).some((url) => url.endsWith('primary/primaryyear2026.csv')),
       'current-year candidates must include the <dataset>year<YYYY> shape',
     );
   });
@@ -715,7 +718,7 @@ describe('jodiCsvCandidates', () => {
       assert.equal(got.length, 2);
       assert.deepEqual(
         [...got].sort(),
-        ['secondary/2027.csv', 'secondary/secondaryyear2027.csv'],
+        [`${BASE}secondary/2027.csv`, `${BASE}secondary/secondaryyear2027.csv`],
       );
     }
   });
@@ -809,5 +812,71 @@ describe('golden fixture (JODI Oil CSV)', () => {
         assert.ok(val === null || typeof val === 'number', `${prod}.${field} should be number|null, got ${typeof val}`);
       }
     }
+  });
+});
+
+describe('JODI current-year source resolution (#6799)', () => {
+  // JODI publishes every past year as `<kind>/<year>.csv`, but named the 2026
+  // files `<kind>/<kind>year<year>.csv`. The seeder asked only for the first
+  // shape, got a 404, and its `.catch(() => '')` turned that into "publish from
+  // last year's file" — so production served December 2025 oil data from
+  // January to August 2026 while reporting recordCount 50 and a fresh
+  // fetchedAt. Nothing on the seed clock could see it; only the content clock
+  // added in #6395 eventually surfaced it.
+
+  it('offers both published filename conventions, plain name first', () => {
+    assert.deepEqual(jodiCsvCandidates('primary', 2026), [
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/primary/2026.csv',
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/primary/primaryyear2026.csv',
+    ]);
+    assert.deepEqual(jodiCsvCandidates('secondary', 2026), [
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/secondary/2026.csv',
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/secondary/secondaryyear2026.csv',
+    ]);
+  });
+
+  it('falls through to the second convention when the first 404s', async () => {
+    // Header must clear the in-sweep assertParseableCsv guard (prefix
+    // includes the trailing comma of a wider column set).
+    const csv = 'REF_AREA,TIME_PERIOD,ENERGY_PRODUCT\nDE,2026-05,CRUDEOIL\n';
+    const asked = [];
+    const fetchCsv = async (url) => {
+      asked.push(url);
+      if (url.endsWith('/2026.csv')) throw new Error('HTTP 404');
+      return csv;
+    };
+    const result = await fetchYearCsv('primary', 2026, { fetchCsv, retries: 0 });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.text, csv);
+    assert.match(result.url, /primaryyear2026\.csv$/);
+    assert.equal(asked.length, 2, 'must try the plain name before the prefixed one');
+  });
+
+  it('stops at the first convention that answers', async () => {
+    // The payload must clear the in-sweep assertParseableCsv guard — a bare
+    // non-CSV string would advance the sweep as 'unparseable' by design.
+    const csv = 'REF_AREA,TIME_PERIOD,ENERGY_PRODUCT\nDE,2025-05,CRUDEOIL\n';
+    const asked = [];
+    const fetchCsv = async (url) => { asked.push(url); return csv; };
+    const result = await fetchYearCsv('secondary', 2025, { fetchCsv, retries: 0 });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.text, csv);
+    assert.match(result.url, /secondary\/2025\.csv$/);
+    assert.equal(asked.length, 1, 'a working plain name must not trigger a second request');
+  });
+
+  it('reports a total miss instead of silently returning an empty string', async () => {
+    // The silent-empty return is the actual defect: a year that cannot be
+    // fetched AT ALL must be distinguishable from a year that is legitimately
+    // empty, or the next rename degrades to stale data just as quietly.
+    const fetchCsv = async () => { throw new Error('HTTP 404'); };
+    const result = await fetchYearCsv('primary', 2026, { fetchCsv, retries: 0 });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.text, '');
+    assert.match(result.error, /404/);
+    assert.deepEqual(result.attempted, jodiCsvCandidates('primary', 2026));
   });
 });

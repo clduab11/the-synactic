@@ -124,6 +124,43 @@ describe('SearchAdapter recovery path', () => {
     expect(result.url).toBe(replacementUrl);
   });
 
+  it('retains failed pin classifications when the Exa fallback also fails', async () => {
+    const exa = {
+      search: vi.fn().mockResolvedValue([{ url: 'https://coldstorage.com.sg/en/p/bread/i/2.html' }]),
+      extract: vi.fn(),
+    } as unknown as ExaProvider;
+    const firecrawl = {
+      extract: vi
+        .fn()
+        .mockResolvedValueOnce({
+          data: {
+            productName: 'Garden Sunflower Seeds 1kg',
+            price: 9.95,
+            currency: 'SGD',
+            sizeText: '400g',
+          },
+        })
+        .mockResolvedValueOnce({ data: {} }),
+    } as unknown as FirecrawlProvider;
+    const adapter = new SearchAdapter(exa, firecrawl);
+    const context = makeContext(
+      makeConfig({ allowedHosts: ['www.coldstorage.com.sg'], extractionFallback: 'none' }),
+    );
+    const target = {
+      ...makeTarget(),
+      metadata: { ...makeTarget().metadata, direct: true },
+    };
+
+    const error = await adapter.fetchTarget(context, target).catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(SearchTargetError);
+    expect((error as SearchTargetError).failures.map(({ reason }) => reason)).toEqual([
+      'title-mismatch',
+      'missing-price',
+    ]);
+    expect(exa.extract).not.toHaveBeenCalled();
+  });
+
   it('opens a Firecrawl cooldown after repeated provider errors while keeping fallback bounded', async () => {
     const exa = {
       search: vi.fn().mockResolvedValue([
@@ -363,12 +400,16 @@ describe('SearchAdapter recovery path', () => {
   });
 
   it('loads the diagnosed retailer route policies from YAML', () => {
+    // Routes verified live against each retailer on 2026-08-05 (#6182).
+    // jiomart_in moved OFF `/p/groceries/`, which now answers 200 with a
+    // "We couldn't find the page" SPA shell on every sampled URL; coldstorage_sg
+    // serves a second legacy `/product/<slug>` route alongside the catalogue one.
     const recoveryPolicies = [
-      ['jiomart_in', '/p/groceries/', 'www.jiomart.com'],
+      ['jiomart_in', '/product/', 'www.jiomart.com'],
       ['noon_grocery_ae', ['/p/', '/now-product/'], 'minutes.noon.com'],
       ['noon_sa', ['/p/', '/now-product/'], 'minutes.noon.com'],
       ['carrefour_sa', '/p/', 'www.carrefourksa.com'],
-      ['coldstorage_sg', '/p/', 'www.coldstorage.com.sg'],
+      ['coldstorage_sg', ['/p/', '/product/'], 'www.coldstorage.com.sg'],
     ] as const;
 
     for (const [slug, path, alias] of recoveryPolicies) {

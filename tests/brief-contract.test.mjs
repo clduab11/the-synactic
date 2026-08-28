@@ -46,6 +46,44 @@ describe('synthesis prompts (#4921)', () => {
     assert.match(prompt, /2\. Turkey hikes interest rates to 50% \(Bloomberg, 1 source\)/);
     assert.match(prompt, /3\. Magnitude 6\.8 earthquake/);
   });
+
+  // #6428: this count is fed to the LLM that writes the published brief, so it
+  // is the most directly user-visible corroboration claim in the product. It
+  // read story.sources.length — feed LABELS — so one newsroom's own editions
+  // told the model a single-sourced story carried six.
+  it('user prompt counts publishers, not feed labels', () => {
+    const prompt = synthesisUserPrompt([
+      {
+        primaryTitle: 'Missile attack kills troops in border strike',
+        primarySource: 'Reuters World',
+        sources: ['Reuters World', 'Reuters US', 'Reuters Business', 'Reuters Asia'],
+      },
+      {
+        primaryTitle: 'Talks resume in Geneva',
+        primarySource: 'Reuters World',
+        sources: ['Reuters World', 'BBC World', 'Al Jazeera'],
+      },
+    ]);
+    assert.match(
+      prompt,
+      /1\. Missile attack kills troops in border strike \(Reuters World, 1 source\)/,
+      'four Reuters feed labels are one publisher',
+    );
+    assert.match(
+      prompt,
+      /2\. Talks resume in Geneva \(Reuters World, 3 sources\)/,
+      'three real publishers must still read as three',
+    );
+  });
+
+  it('user prompt never falls back to the article count', () => {
+    // sourceCount is articles. A story with no usable source list must claim
+    // one source, not the number of headlines that clustered into it.
+    const prompt = synthesisUserPrompt([
+      { primaryTitle: 'Something happened', primarySource: 'Wire', sources: [], sourceCount: 9 },
+    ]);
+    assert.match(prompt, /1\. Something happened \(Wire, 1 source\)/);
+  });
 });
 
 describe('parseBriefSynthesis (#4921)', () => {
@@ -182,20 +220,26 @@ describe('citation-scoped numeric and date grounding (#6030)', () => {
 
 describe('brief-contract wiring (source-textual)', () => {
   it('seed-insights runs the synthesis path through the pure composer with enforce-by-default', () => {
-    const src = readSrc('scripts/seed-insights.mjs');
-    assert.match(src, /synthesisSystemPrompt/);
+    const seedSrc = readSrc('scripts/seed-insights.mjs');
+    const diagnosticsSrc = readSrc('scripts/_insights-synthesis-diagnostics.mjs');
+    assert.match(seedSrc, /synthesisSystemPrompt/);
     // #6001 moved the composer call behind composeFromText so the SAME gate
     // decides provider acceptance and the final result. Both links still have
     // to hold: the composer receives topStories, and the synthesis response is
     // what gets composed.
-    assert.match(src, /composeSynthesizedBrief\(text, topStories, \{/);
-    assert.match(src, /composeFromText\(synthesisResult\.text\)/);
-    assert.match(src, /accept: composeFromText/, 'the acceptance gate must be the composer itself');
-    assert.match(src, /validatorMode: BRIEF_VALIDATOR_MODE/);
-    assert.match(src, /=== 'shadow' \? 'shadow' : 'enforce'/, 'enforce must be the default mode');
-    assert.match(src, /generateLegacySingleHeadlineBrief\(topStories[,)]/, 'L2 fallback must be wired');
-    assert.match(src, /briefStoryLines/);
-    assert.match(src, /sourceAgeRange/);
+    assert.match(diagnosticsSrc, /composeSynthesizedBriefResult\(text, topStories, composerOptions\)/);
+    // #5947 moved the compose+classify glue into the exported
+    // resolveInsightsSynthesis so it is reachable behaviorally; the
+    // enforce-by-default and gate-reason contracts are asserted for real in
+    // tests/seed-insights-freshness.test.mjs rather than by matching this text.
+    assert.match(seedSrc, /resolveInsightsSynthesis\(\{/);
+    assert.match(seedSrc, /accept: composeFromText/, 'the acceptance gate must be the composer itself');
+    assert.match(diagnosticsSrc, /opts\.validatorMode \?\? 'enforce'/);
+    assert.match(seedSrc, /=== 'shadow' \? 'shadow' : 'enforce'/, 'enforce must be the default mode');
+    assert.match(seedSrc, /sourceFromStory: briefSourceFromStory/, 'the seeder must inject its formatter');
+    assert.match(seedSrc, /generateLegacySingleHeadlineBrief\(topStories[,)]/, 'L2 fallback must be wired');
+    assert.match(seedSrc, /briefStoryLines/);
+    assert.match(seedSrc, /sourceAgeRange/);
   });
 
   it('country-intel brief strips invented citations before shipping', () => {

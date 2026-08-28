@@ -15,9 +15,15 @@ import {
   LEGACY_PRODUCT_ALIASES,
   resolveProductToPlan,
 } from "../config/productCatalog";
-import { ANON_ID_V4_REGEX, verifyUserId } from "../lib/identitySigning";
+import {
+  ANON_ID_V4_REGEX,
+  parseCheckoutLoginEmailToken,
+  verifyCheckoutLoginEmail,
+  verifyUserId,
+} from "../lib/identitySigning";
 import { DEV_USER_ID, isDev } from "../lib/auth";
 import { isChargedEventType, recordUnattributedEvent } from "./unattributedPayments";
+import { normalizeCheckoutAttributionSource } from "../../shared/mcp-attribution";
 
 // ---------------------------------------------------------------------------
 // Types for webhook payload data (narrowed from `any`)
@@ -189,6 +195,14 @@ export async function upsertEntitlements(
       });
     }
   }
+
+  // Company Monitoring deliberately does NOT run here (#6256). It is a
+  // segment feature, and this is the one entitlement-write path every
+  // subscriber traverses; provisioning from here charged all of them for its
+  // queries, an extra write, and 1+N HMACs, and let any fault inside it —
+  // including a config typo that fails every retry identically — roll back a
+  // paying customer's entitlement. Roots are provisioned on first authenticated
+  // use, and lapses are reconciled by the reaper cron.
 
   // ACCEPTED BOUND: cache sync runs after mutation commits. If scheduler
   // fails to enqueue, stale cache survives up to ENTITLEMENT_CACHE_TTL_SECONDS
@@ -809,6 +823,97 @@ function mergeDodoCustomerId(
   return existing.dodoCustomerId;
 }
 
+/**
+ * Returns the login email the checkout stamped into its metadata together with
+ * the moment it was stamped, or null when there is nothing trustworthy to use
+ * (#6335).
+ *
+ * Verified against the userId this handler ACTUALLY resolved — not the one in
+ * the metadata — so a signature minted for a different account (or replayed
+ * onto a subscription whose ownership `preferExistingCustomerOwner` reassigned)
+ * is rejected, and against the event's own clock, so a year-old checkout's
+ * metadata replayed by a `subscription.updated` cannot outrank the `users` row.
+ *
+ * `issuedAt` comes back because "is the stamp fresher than the users row?" is
+ * the caller's actual question — see the recipient selection in
+ * `handleSubscriptionActive`. It is read through the shared token parser and is
+ * only returned once the signature over it has verified.
+ *
+ * Every rejection is a fallback, never a failure: the caller drops to
+ * `users.email` and then to the checkout email exactly as before.
+ */
+async function resolveSignedCheckoutLoginEmail(
+  userId: string,
+  metadata: Record<string, string> | undefined,
+  eventTimestamp: number,
+  subscriptionId: string,
+): Promise<{ email: string; issuedAt: number } | null> {
+  const stamped = metadata?.wm_login_email;
+  const signature = metadata?.wm_login_email_sig;
+  const hasStamped = typeof stamped === "string" && stamped.length > 0;
+  const hasSignature = typeof signature === "string" && signature.length > 0;
+  // Neither field: an ordinary pre-#6335 checkout session. Silent by design —
+  // this is the majority shape until every in-flight session has turned over.
+  if (!hasStamped && !hasSignature) return null;
+  // Exactly one of the pair. Both halves are stamped together or not at all
+  // (checkout.ts), so a half-present pair is tampering or a stamping-side
+  // regression — warned in EITHER direction, and reporting only presence,
+  // matching the `describeUnresolvedIdentity` convention for Sentry-bound text.
+  if (!hasStamped || !hasSignature) {
+    console.warn(
+      `[subscriptionHelpers] Half-present wm_login_email pair in checkout metadata — ignoring ` +
+        `(email=${hasStamped ? "present" : "absent"}, signature=${hasSignature ? "present" : "absent"}, ` +
+        `subscriptionId=${subscriptionId})`,
+    );
+    return null;
+  }
+  // Fail closed on padding rather than normalizing it away afterwards. The
+  // signature covers the exact bytes INCLUDING surrounding whitespace, so
+  // trimming post-verification would mean the value we send is not the value we
+  // proved authentic. The stamping side always trims before signing
+  // (normalizeCheckoutLoginEmail), so no producible token is rejected here —
+  // which is exactly why it warns: a padded value is corruption or tampering,
+  // and returning silently would make that anomaly invisible.
+  if (stamped !== stamped.trim()) {
+    console.warn(
+      `[subscriptionHelpers] Padded wm_login_email in checkout metadata — ignoring (subscriptionId=${subscriptionId})`,
+    );
+    return null;
+  }
+  // Verify the value EXACTLY as stamped; the signature covers those bytes.
+  const verdict = await verifyCheckoutLoginEmail(
+    userId,
+    stamped,
+    signature,
+    eventTimestamp,
+  );
+  if (verdict === "expired") {
+    // Routine, not anomalous. A `subscription.updated`→active re-delivers the
+    // original checkout's metadata for the whole life of the subscription, so
+    // every such event past the window lands here by design. Logged at
+    // console.log so it cannot dilute the tamper signal below.
+    console.log(
+      `[subscriptionHelpers] wm_login_email aged out of the checkout window — using the users row (subscriptionId=${subscriptionId})`,
+    );
+    return null;
+  }
+  if (verdict !== "valid") {
+    // Genuinely did not come from us for this (userId, email). The address
+    // itself is deliberately absent: this string reaches Sentry via Convex
+    // auto-Sentry, and a login email is exactly the PII the sibling identity
+    // diagnostics (describeUnresolvedIdentity) keep out of it.
+    console.warn(
+      `[subscriptionHelpers] wm_login_email failed signature verification — falling back to the users row (subscriptionId=${subscriptionId})`,
+    );
+    return null;
+  }
+  // Safe to read now: the signature over this exact issuedAt has verified.
+  const parsed = parseCheckoutLoginEmailToken(signature);
+  if (!parsed) return null;
+  // Byte-identical to what the signature covers — see the padding guard above.
+  return { email: stamped, issuedAt: parsed.issuedAt };
+}
+
 function preferExistingCustomerOwner(
   existingCustomerUserId: string | undefined,
   resolvedUserId: string,
@@ -948,6 +1053,13 @@ export async function handleSubscriptionActive(
       reconcileNotFoundCount: undefined,
       renewalVerificationState: undefined,
       renewalVerificationAttemptAt: undefined,
+      // Clear the prior episode stamps too. A reactivated sub that still
+      // carried `cancelledAt` read as "already cancelled" to
+      // classifyRefundAlert, silencing a genuine full-refund alert after
+      // reactivate (#6769). The cancel/on-hold handlers re-anchor these on the
+      // next status transition, so wiping them here is safe.
+      cancelledAt: undefined,
+      onHoldAt: undefined,
     });
   } else {
     await ctx.db.insert("subscriptions", {
@@ -959,6 +1071,11 @@ export async function handleSubscriptionActive(
       currentPeriodStart,
       currentPeriodEnd,
       dodoCustomerId: incomingDodoCustomerId,
+      // MCP paid-funnel (#6716): stamp only on FIRST activation (this insert
+      // branch). Replays / renewals skip via the `else` above. The marker is
+      // validated by the shared allowlist, never an inline string compare, so
+      // checkout's writer and this reader cannot drift apart.
+      attributionSource: normalizeCheckoutAttributionSource(data.metadata?.wm_attribution),
       rawPayload: data,
       updatedAt: eventTimestamp,
     });
@@ -1013,12 +1130,25 @@ export async function handleSubscriptionActive(
 
   if (incomingDodoCustomerId) {
     if (existingCustomer) {
-      await ctx.db.patch(existingCustomer._id, {
-        userId,
-        email,
-        normalizedEmail,
-        updatedAt: eventTimestamp,
-      });
+      // Skip the rewrite when nothing changes. Dodo delivers related events
+      // for one purchase in a burst (subscription.active + payment.succeeded
+      // + subscription.updated within milliseconds), and re-patching the same
+      // customers row with identical values was pure OCC-conflict fuel —
+      // Convex Insights recorded these as processWebhookEvent write conflicts
+      // on `customers`. Safe to skip: no consumer reads customers.updatedAt
+      // (verified repo-wide, 2026-08-13); it's a bookkeeping stamp only.
+      const customerUnchanged =
+        existingCustomer.userId === userId &&
+        existingCustomer.email === email &&
+        existingCustomer.normalizedEmail === normalizedEmail;
+      if (!customerUnchanged) {
+        await ctx.db.patch(existingCustomer._id, {
+          userId,
+          email,
+          normalizedEmail,
+          updatedAt: eventTimestamp,
+        });
+      }
     } else {
       await ctx.db.insert("customers", {
         userId,
@@ -1031,19 +1161,76 @@ export async function handleSubscriptionActive(
     }
   }
 
+  // #6330: customer lifecycle emails target the account's LOGIN email, not
+  // the address typed into Dodo checkout. The two can be different aliases of
+  // the same person, and a "your subscription is active — sign in" email
+  // addressed to the checkout alias steers the buyer into "account not known"
+  // at the login screen. The customers row above deliberately keeps the
+  // checkout email — it mirrors Dodo's record for portal lookups.
+  //
+  // #6335: two sources can hold the account's login email, and NEITHER is
+  // reliably the fresher one — so pick by which was last confirmed against
+  // Clerk rather than by a fixed precedence.
+  //
+  //   - The stamped value was the login email at `issuedAt` (checkout time).
+  //   - The `users` row's address was last refreshed at `lastSeenAt`:
+  //     `users:ensureRecord` rewrites `email` and stamps `lastSeenAt` in the
+  //     same patch (convex/users.ts), so that timestamp dates the address.
+  //
+  // The original bug is the row being stale: it is only rewritten once per page
+  // load per userId (`src/services/convex-client.ts` short-circuits on a
+  // module-level `lastEnsuredUserId`), so an email change made in a long-lived
+  // tab leaves it pointing at the abandoned address. But the inverse is just as
+  // real — change the email AFTER checking out, then load a page before the
+  // activation webhook arrives, and the STAMP is the stale one. Comparing the
+  // two clocks is correct in both directions; a fixed "stamp wins" rule is only
+  // correct in one.
+  //
+  // Falls through to the checkout email when neither source yields an address
+  // (pre-#6335 sessions, phone-only signups, accounts predating the users row).
+  const signedLoginEmail = await resolveSignedCheckoutLoginEmail(
+    userId,
+    data.metadata,
+    eventTimestamp,
+    data.subscription_id,
+  );
+  const userRow = await ctx.db
+    .query("users")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .first();
+  const userRowEmail = (userRow?.email ?? "").trim();
+  const userRowIsFresher =
+    userRow !== null &&
+    userRowEmail.length > 0 &&
+    signedLoginEmail !== null &&
+    userRow.lastSeenAt > signedLoginEmail.issuedAt;
+  const loginEmail =
+    signedLoginEmail !== null && !userRowIsFresher
+      ? signedLoginEmail.email
+      : userRowEmail;
+  const recipientEmail = loginEmail.length > 0 ? loginEmail : email.trim();
+  const checkoutEmailDiffers =
+    loginEmail.length > 0 &&
+    normalizedEmail.length > 0 &&
+    normalizedEmail !== loginEmail.toLowerCase();
+
   // Schedule the appropriate customer email (non-blocking). Only a proven
   // post-lapse return receives the customer-only welcome-back confirmation.
   // Pre-lapse recovery and already-active replay/update paths remain silent.
-  if (!email) {
+  if (!recipientEmail) {
     console.warn(
-      `[subscriptionHelpers] subscription.active: no customer email — skipping welcome email (subscriptionId=${data.subscription_id})`,
+      `[subscriptionHelpers] subscription.active: no resolvable recipient email — skipping welcome email (subscriptionId=${data.subscription_id})`,
     );
   } else if (wasLapsed) {
     if (process.env.RESEND_API_KEY) {
       await ctx.scheduler.runAfter(
         0,
         internal.payments.subscriptionEmails.sendReactivationEmail,
-        { userEmail: email, planKey },
+        {
+          userEmail: recipientEmail,
+          planKey,
+          checkoutEmail: checkoutEmailDiffers ? email.trim() : undefined,
+        },
       );
       console.log(`[subscriptionHelpers] subscription.active: scheduled reactivation email (subscriptionId=${data.subscription_id})`);
     } else {
@@ -1058,13 +1245,17 @@ export async function handleSubscriptionActive(
       0,
       internal.payments.subscriptionEmails.sendSubscriptionEmails,
       {
-        userEmail: email,
+        userEmail: recipientEmail,
         planKey,
         userId,
         recurringPreTaxAmount: data.recurring_pre_tax_amount,
         currency: data.currency,
         taxInclusive: data.tax_inclusive,
         discountId: data.discount_id ?? undefined,
+        // Present only when the buyer typed a different address at checkout:
+        // triggers the sign-in line in the welcome, a pointer email to the
+        // checkout inbox, and the Billing Email row in the admin alert.
+        checkoutEmail: checkoutEmailDiffers ? email.trim() : undefined,
       },
     );
   }

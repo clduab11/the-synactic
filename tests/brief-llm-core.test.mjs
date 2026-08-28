@@ -796,18 +796,20 @@ describe('grounding relaxation', () => {
       assert.equal(ok('The talks between Iran and the US continue.', H_IRAN_US), true);
     });
 
-    it('rejects when a coordinated part is invented, naming the whole sequence', () => {
+    it('rejects when a coordinated part is invented, naming the invention', () => {
       const v = verdict('The talks between Iran and Atlantis resumed.', H_IRAN_US);
       assert.equal(v.ok, false);
       // Asserting the payload is what proves it rejected on the INVENTION and
-      // not on some incidental token elsewhere in the sentence.
-      assert.deepEqual(v.hallucinated, ['iran', 'and', 'atlantis']);
+      // not on some incidental token elsewhere in the sentence. Since upstream
+      // #6798 made coordinating "and" a sequence break, the payload names the
+      // invented part alone — no longer the whole bridged run.
+      assert.deepEqual(v.hallucinated, ['atlantis']);
     });
 
     it('rejects an invented part regardless of coordination order', () => {
       const v = verdict('The talks between Atlantis and Iran resumed.', H_IRAN_US);
       assert.equal(v.ok, false);
-      assert.deepEqual(v.hallucinated, ['atlantis', 'and', 'iran']);
+      assert.deepEqual(v.hallucinated, ['atlantis']);
     });
 
     it('keeps a real multiword name intact — it grounds whole, never relaxed', () => {
@@ -818,7 +820,8 @@ describe('grounding relaxation', () => {
     it('rejects a multiword name whose second half is genuinely absent', () => {
       const v = verdict('The delegation from Trinidad and Tobago arrived.', 'Trinidad hosts the summit');
       assert.equal(v.ok, false);
-      assert.deepEqual(v.hallucinated, ['trinidad', 'and', 'tobago']);
+      // Post-#6798 payload: the ungrounded part alone (see above).
+      assert.deepEqual(v.hallucinated, ['tobago']);
     });
 
     it('never splits name-internal joiners', () => {
@@ -942,5 +945,113 @@ describe('grounding relaxation', () => {
       // contains them together.
       assert.equal(ok('The Sudan Korea accord was signed.', 'South Sudan and North Korea sign a pact'), false);
     });
+  });
+});
+
+// Upstream #6798 landed after the relaxation above: `extractProperNounSequences`
+// now treats coordinating "and" as GRAMMAR (a sequence break), never a name
+// joiner, while official names ("Democratic Republic of Congo") keep their
+// name-internal joiners. The AE cases below pin that extractor contract.
+describe('coordinating and is grammar, not a name joiner', () => {
+  let validateNoHallucinatedProperNouns;
+  let extractProperNounSequences;
+  before(async () => {
+    ({ validateNoHallucinatedProperNouns, extractProperNounSequences } = await import('../shared/brief-llm-core.js'));
+  });
+
+  it('AE1: Ukraine and Russia against separately named headline accepts', () => {
+    const headline = 'Ukraine launches one of its largest aerial attacks of the war, killing at least 6 people in Russia';
+    const summary = 'Ukraine and Russia traded aerial attacks.';
+    assert.equal(validateNoHallucinatedProperNouns(summary, headline).ok, true);
+    const seqs = extractProperNounSequences(summary).map((s) => s.join(' '));
+    assert.ok(!seqs.includes('ukraine and russia'), `must not extract one joined run: ${JSON.stringify(seqs)}`);
+  });
+
+  it('AE9: title-case And does not glue Ukraine And Russia', () => {
+    const headline = 'Ukraine launches one of its largest aerial attacks of the war, killing at least 6 people in Russia';
+    const summary = 'Ukraine And Russia traded aerial attacks.';
+    assert.equal(validateNoHallucinatedProperNouns(summary, headline).ok, true);
+    const seqs = extractProperNounSequences(summary).map((s) => s.join(' '));
+    assert.ok(!seqs.includes('ukraine and russia'), `title-case And must not join: ${JSON.stringify(seqs)}`);
+  });
+
+  it('AE9: all-caps AND does not glue Ukraine AND Russia', () => {
+    const headline = 'Ukraine launches one of its largest aerial attacks of the war, killing at least 6 people in Russia';
+    const summary = 'Ukraine AND Russia traded aerial attacks.';
+    assert.equal(validateNoHallucinatedProperNouns(summary, headline).ok, true);
+    const seqs = extractProperNounSequences(summary).map((s) => s.join(' '));
+    assert.ok(!seqs.includes('ukraine and russia'), `all-caps AND must not join: ${JSON.stringify(seqs)}`);
+    assert.ok(!seqs.some((s) => s.includes('and')), `AND must not remain a name token: ${JSON.stringify(seqs)}`);
+  });
+
+  it('AE6: Bosnia and Herzegovina extracts as two tokens and accepts', () => {
+    const headline = 'Bosnia and Herzegovina appeals for aid';
+    const summary = 'Bosnia and Herzegovina appealed.';
+    assert.equal(validateNoHallucinatedProperNouns(summary, headline).ok, true);
+    const seqs = extractProperNounSequences(summary).map((s) => s.join(' '));
+    assert.deepEqual(seqs, ['bosnia', 'herzegovina']);
+  });
+
+  it('AE3: Democratic Republic of Congo stays one official name', () => {
+    const headline = 'Democratic Republic of Congo reports outbreak';
+    const summary = 'The Democratic Republic of Congo reported an outbreak.';
+    assert.equal(validateNoHallucinatedProperNouns(summary, headline).ok, true);
+    const seqs = extractProperNounSequences('Democratic Republic of Congo');
+    assert.ok(seqs.some((s) => s.join(' ') === 'democratic republic of congo'));
+  });
+
+  it('AE8: Centers for Disease Control stays one official name', () => {
+    const headline = 'Centers for Disease Control issues travel notice';
+    const summary = 'The Centers for Disease Control issued a travel notice.';
+    assert.equal(validateNoHallucinatedProperNouns(summary, headline).ok, true);
+    const seqs = extractProperNounSequences('Centers for Disease Control');
+    assert.ok(seqs.some((s) => s.join(' ') === 'centers for disease control'));
+  });
+
+  it('AE5: Tehran against Iran-only headline still rejects', () => {
+    const headline = 'Iran struck another ship in the Strait of Hormuz';
+    const summary = 'Tehran struck another ship.';
+    assert.equal(validateNoHallucinatedProperNouns(summary, headline).ok, false);
+  });
+
+  it('preserves the SEC acronym expansion across and in both directions', () => {
+    assert.equal(
+      validateNoHallucinatedProperNouns(
+        'SEC announced enforcement.',
+        'Securities and Exchange Commission announced enforcement.',
+      ).ok,
+      true,
+    );
+    assert.equal(
+      validateNoHallucinatedProperNouns(
+        'Securities and Exchange Commission announced enforcement.',
+        'SEC announced enforcement.',
+      ).ok,
+      true,
+    );
+  });
+
+  it('does not ground Johnson and Johnson from one Johnson occurrence', () => {
+    assert.equal(
+      validateNoHallucinatedProperNouns(
+        'Johnson and Johnson halted vaccine production.',
+        'Prime Minister Boris Johnson halted talks.',
+      ).ok,
+      false,
+    );
+    assert.equal(
+      validateNoHallucinatedProperNouns(
+        'Johnson and Johnson halted vaccine production.',
+        'Johnson and Johnson halted vaccine production.',
+      ).ok,
+      true,
+    );
+    assert.equal(
+      validateNoHallucinatedProperNouns(
+        'Bank of America and Bank of America announced a merger.',
+        'Bank of America announced a merger.',
+      ).ok,
+      false,
+    );
   });
 });

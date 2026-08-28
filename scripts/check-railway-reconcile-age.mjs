@@ -4,6 +4,7 @@
 //
 // WHY THIS EXISTS
 //
+// During the bounded rollback window,
 // .github/workflows/railway-deploy-trigger.yml has two outcomes that are
 // indistinguishable at the workflow-status level:
 //
@@ -21,7 +22,7 @@
 // asks the question that does not depend on why: when did a run last actually
 // reconcile? The answer comes from the workflow's own run history, because a
 // run that reconciled and a run that declined differ only in whether the
-// deploying STEP ran.
+// strict terminal acceptance STEP ran.
 //
 // DIRECTION OF FAILURE
 //
@@ -42,26 +43,25 @@ import { REPOSITORY, readArgument } from './railway-cli.mjs';
 // because a rename here would make every run read as "did not reconcile" —
 // which alarms rather than going quiet, but alarms forever for the wrong
 // reason.
-export const RECONCILE_STEP_NAME = 'Trigger deploys for services this merge changed';
+export const RECONCILE_STEP_NAME = 'Finalize exact Railway reconciliation acceptance';
+export const RECONCILE_STEP_NAMES = Object.freeze([
+  RECONCILE_STEP_NAME,
+  'Trigger deploys for services this merge changed',
+]);
 
 export const DEFAULT_WORKFLOW_FILE = 'railway-deploy-trigger.yml';
 
-// Sized against the workflow's own backstop, not against a fixture. The cron
-// there is hourly and is deliberately the SLOW path — the event trigger is
-// what normally reconciles. One missed hour is ordinary (a young head commit
-// whose gate has not resolved defers the run on purpose); three consecutive
-// hours with nothing reconciling means neither the event nor the backstop is
-// working, which is exactly the state that stranded the fleet for 19.5h.
+// Retained only for the bounded manual rollback surface. Three hours limits the
+// evidence lookback so an old controller success cannot authorize or excuse a
+// failed rollback attempt; normal native autodeploy does not run this scanner.
 export const DEFAULT_MAX_RECONCILE_AGE_MS = 3 * 60 * 60 * 1000;
 
 // The listing is bounded by TIME, never by a run count.
 //
-// A count was the original design and it was unusable: this workflow is woken
-// by every Deploy Gate evaluation in the repository — measured at ~33/hour —
-// so the newest 30 runs span under an hour and can never reach back past a
-// three-hour threshold. STALE became unreachable and the alarm degraded to a
-// permanent shrug. A count cannot be raised out of the problem either, because
-// the API caps per_page at 100 and 100 runs is still only ~3h at that rate.
+// A count was the original design and it was unusable while every Deploy Gate
+// evaluation woke this workflow — measured at ~33/hour. Keep the time contract
+// during the rollback window so the liveness decision is independent of how
+// many explicit attempts an operator made.
 //
 // With a `created:>=` filter the window spans the threshold BY CONSTRUCTION,
 // which also collapses the old three-state result into two: if no run inside
@@ -90,7 +90,7 @@ export function readRunReconciled(jobsPayload) {
     const steps = job?.steps;
     if (!Array.isArray(steps)) continue;
     for (const step of steps) {
-      if (step?.name !== RECONCILE_STEP_NAME) continue;
+      if (!RECONCILE_STEP_NAMES.includes(step?.name)) continue;
       // `success` only. `skipped` is the declined run this exists to catch, and
       // `failure` is a reconcile that did not happen — it reds its own run, so
       // counting it would let a fleet that is genuinely behind read as fresh.
@@ -155,7 +155,7 @@ export function describeReconcileSummary(summary) {
       : `Fleet last reconciled ${hours(summary.ageMs)}h ago (run ${summary.runId}).`;
   }
   return summary.inspected === 0
-    ? `The fleet has not been reconciled in ${hours(summary.maxAgeMs)}h: this workflow produced NO completed run in that window at all. Neither the Deploy Gate event nor the hourly backstop is firing.`
+    ? `The fleet has not been reconciled in ${hours(summary.maxAgeMs)}h: the manual rollback workflow produced NO completed run in that window.`
     : `The fleet has not been reconciled in ${hours(summary.maxAgeMs)}h. ${summary.inspected} run(s) completed in that window and none of them deployed.`;
 }
 

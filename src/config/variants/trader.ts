@@ -126,6 +126,8 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   dayNight: false,
   ciiChoropleth: false,
   resilienceScore: false,
+  canadaRoads: false,
+  canadaAlerts: false,
   webcams: false,
   diseaseOutbreaks: false,
 };
@@ -189,6 +191,8 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
   dayNight: false,
   ciiChoropleth: false,
   resilienceScore: false,
+  canadaRoads: false,
+  canadaAlerts: false,
   webcams: false,
   diseaseOutbreaks: false,
 };

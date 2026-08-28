@@ -90,9 +90,17 @@ describe('variant env guards', () => {
     );
   });
 
-  it('reuses buildVariant for SSR, Tauri, and localhost fallback paths', () => {
+  it('reuses buildVariant for SSR, Tauri, partial-DOM, and localhost fallback paths', () => {
     const buildVariantUses = variantSrc.match(/return buildVariant;/g) ?? [];
-    assert.equal(buildVariantUses.length, 3, `Expected three buildVariant fallbacks, got ${buildVariantUses.length}`);
+    // Upstream has three fallbacks (SSR, Tauri, localhost). This fork adds a
+    // fourth: the partial-DOM guard below, introduced in the 117-commit merge
+    // (411974340) so a test harness that fakes `window` without `location`
+    // resolves the build variant instead of throwing at import time.
+    assert.equal(buildVariantUses.length, 4, `Expected four buildVariant fallbacks, got ${buildVariantUses.length}`);
     assert.ok(variantSrc.includes("if (typeof window === 'undefined') return buildVariant;"), 'SSR should fall back to buildVariant');
+    assert.ok(
+      variantSrc.includes("if (typeof location === 'undefined') return buildVariant;"),
+      'the fourth fallback must be the fork’s partial-DOM guard, not an unreviewed new path',
+    );
   });
 });

@@ -7,8 +7,19 @@ export interface ServerInsightStory {
   primarySource: string;
   primaryLink: string;
   pubDate: string;
+  /** Articles in the cluster — a volume signal, not a corroboration signal. */
   sourceCount: number;
+  /**
+   * Distinct PUBLISHERS behind the cluster (#6428). Written by
+   * scripts/seed-insights.mjs via countPublisherFamilies, so nine BBC feed
+   * labels count once. Optional only because a payload cached before the
+   * field existed would not carry it; consumers must fail closed rather than
+   * fall back to sourceCount, which counts articles.
+   */
+  uniqueSourceCount?: number;
   importanceScore: number;
+  /** 0-100 source reliability, distinct from importanceScore. Absent on pre-rollout cache. */
+  credibilityScore?: number;
   velocity: { level: string; sourcesPerHour: number };
   isAlert: boolean;
   category: string;
