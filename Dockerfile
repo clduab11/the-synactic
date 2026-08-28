@@ -23,6 +23,16 @@ COPY . .
 # the clean image context before handlers import or bundle them.
 RUN node scripts/generate-inventory-facts.mjs
 
+# Build the crawlable corpus + sitemap NOW, while the tree is still pristine.
+# The corpus builder's contract is "inputs are committed repo data only": its
+# attribution scan walks the whole tree, so it must run BEFORE build-handlers
+# and build:pro materialize api/**/[rpc].js bundles and public/pro/* dist
+# (those artifacts re-reference upstream hosts and read as ~140 stale/missing
+# manifest entries — a failure that exists only inside the image, never in a
+# git checkout). Vite later copies public/ into dist/, so corpus pages ship
+# regardless of build position.
+RUN npm run build:crawlable-corpus && npm run build:sitemap
+
 # Compile TypeScript API handlers → self-contained ESM bundles
 # Output is api/**/*.js alongside the source .ts files
 RUN node docker/build-handlers.mjs
@@ -36,9 +46,10 @@ RUN node docker/build-handlers.mjs
 # build:pro installs pro-test's own lockfile.
 RUN npm run build:pro
 
-# Build the crawlable static corpus and Vite frontend (outputs to dist/)
-# Skip blog build — blog-site has its own deps not installed here
-RUN npm run build:crawlable-corpus && npm run build:sitemap && npx tsc && npx vite build
+# Build the Vite frontend (outputs to dist/; corpus + sitemap already built
+# above on the pristine tree). Skip blog build — blog-site has its own deps
+# not installed here.
+RUN npx tsc && npx vite build
 # Assert the /pro pages survived the public/ -> dist/ copy (#6898). build:pro
 # succeeding proves public/pro/ exists; it does NOT prove Vite copied it, and
 # docker/nginx.conf's SPA fallback would serve the dashboard shell at 200 for a
