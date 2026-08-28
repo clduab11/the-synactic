@@ -59,7 +59,7 @@ Deep dives: [Country Instability Index](/country-instability-index) · [CII risk
 
 The dashboard monitors Israel's Home Front Command (Pikud HaOref) alert system for incoming rocket, missile, and drone sirens — a real-time signal that is difficult to obtain programmatically due to Akamai WAF protection.
 
-**Data flow**: Two sources, in order. **Primary — Tzeva Adom**
+**Data flow**: primary and fallback, in order. **Primary — Tzeva Adom**
 (`api.tzevaadom.co.il/notifications`): a plain fetch, no proxy, no credential,
 no cost. **Fallback — OREF direct**: only attempted when the primary returns
 nothing AND `OREF_PROXY_AUTH` is set, polling `oref.org.il` with `curl` (not

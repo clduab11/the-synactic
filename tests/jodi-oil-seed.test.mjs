@@ -733,14 +733,13 @@ describe('assertParseableCsv', () => {
   });
 
   it('accepts a BOM-prefixed header', () => {
-    const csv = `﻿`;
-    // `csv` above holds a raw U+FEFF taken straight from this source file.
-    // Assert it survived, so an editor or normalizer silently stripping it
-    // makes this test fail loudly instead of passing vacuously.
-    assert.equal(csv.charCodeAt(0), 0xFEFF, 'source-literal BOM was stripped');
-    // The payload actually under test builds its BOM by code point, so it is
-    // independent of however this file happens to be encoded on disk.
+    // BOM built by code point, never as a raw literal: the repo's unicode
+    // safety gate (lint:unicode) rejects invisible characters in executable
+    // files, and an escape-built payload is immune to editors/normalizers
+    // stripping it anyway — the failure mode the old raw-literal canary
+    // existed to detect.
     const csvWithBom = String.fromCharCode(0xFEFF) + HEADER + '\r\nAE,2026-01,CRUDEOIL,CLOSTLV,KBD,x,3\r\n';
+    assert.equal(csvWithBom.charCodeAt(0), 0xFEFF);
     assert.equal(assertParseableCsv(csvWithBom, 'primary/primaryyear2026.csv'), csvWithBom);
   });
 
