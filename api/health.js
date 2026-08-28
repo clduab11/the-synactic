@@ -1599,8 +1599,6 @@ const ACTIVATION_MARKERS = {
   // Written by scripts/seed-cbr-rates.mjs (CBR_ACTIVATION_KEY) in runSeed's
   // afterPublish hook, so it exists only once a real table has been published.
   cbrRates: 'seed-activated:economic:cbr-rates',
-  bocValet: 'seed-activated:economic:boc-valet',
-  statcanWds: 'seed-activated:economic:statcan-wds',
   torontoTfs: SEED_META.torontoTfs.activationKey,
   torontoTps: SEED_META.torontoTps.activationKey,
   physicalPremiums: SEED_META.physicalPremiums.activationKey,
@@ -1614,6 +1612,9 @@ const ACTIVATION_MARKERS = {
   demographicsCapability: SEED_META.demographicsCapability.activationKey,
   mineralProduction: SEED_META.mineralProduction.activationKey,
   manitobaRoads: SEED_META.manitobaRoads.activationKey,
+  // Both seeders already wrote these markers (BOC_VALET_ACTIVATION_KEY /
+  // STATCAN_WDS_ACTIVATION_KEY); the entries moved here from literals above so
+  // the registry reads its key from the config it gates and cannot drift.
   bocValet: SEED_META.bocValet.activationKey,
   statcanWds: SEED_META.statcanWds.activationKey,
   newsFeedHealth: 'seed-activated:news:feed-health',
