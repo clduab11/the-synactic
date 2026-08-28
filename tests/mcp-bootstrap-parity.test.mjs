@@ -41,6 +41,8 @@ const EXCLUDED_FROM_MCP = new Map([
   // ===========================================================================
   // #4920 completeness-measurement ops keys (pipeline health, not content)
   // ===========================================================================
+  ['prediction:price-archive:coverage:v1',
+    'ops surface: bounded window index for the durable price archive (backtest lane); the archive objects live in R2/filesystem, this string feeds api/health.js + the backtester gap-refusal gate. Becomes a tool _cacheKey when the archiver-health MCP surface ships.'],
   ['news:feed-health:v1',
     'ops surface: per-feed validation status + silent-zero streaks published by the daily feed-validation workflow; consumed by api/health.js + operators, not a queryable news slice (#4920).'],
   ['news:recall-benchmark:v1',
