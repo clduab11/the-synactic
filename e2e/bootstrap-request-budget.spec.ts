@@ -100,6 +100,15 @@ test.describe('bootstrap request budget (#7046)', () => {
   });
 
   test('energy startup requests every registry once and renders populated map and panels', async ({ page }) => {
+    // Two full page boots in one test: the energy dashboard startup, then the
+    // deck.gl/maplibre map harness (swiftshader-rendered — its style/canvas
+    // readiness alone allows a 12 s fallback). On ci-smoke's 4-worker runner
+    // that exhausted the 90 s global timeout inside the final layer-count poll
+    // while the harness was still hydrating (run 33192042389; the same
+    // assertions pass locally in well under half the budget). slow() buys
+    // wall-clock headroom only — every request-count and layer-count
+    // assertion is unchanged.
+    test.slow();
     const log = await installBootstrapAccounting(page);
     await seedAnonymousDashboard(page, 'energy');
     await waitForStartup(page);

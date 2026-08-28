@@ -77,6 +77,17 @@ function assertOnlyKnownViolations(
   ).toEqual([]);
 }
 
+// Each test here is two fixed-cost phases — a full dashboard boot (the
+// wm-initial-data-ready wait alone is worth ~40-60 s on the shared CI runner)
+// followed by a whole-page axe scan of ~1.6-2k nodes (plus a settings-modal
+// scan in the second test). Under ci-smoke's 4-worker contention the dashboard
+// scan COMPLETED with zero violations at ~94 s — just past the 90 s global
+// timeout — on both attempts of run 33192042389, and the settings test never
+// reached its scan at all. The budget below buys wall-clock headroom only; the
+// assertions and the empty known-violations baselines are unchanged, so any
+// real violation still fails the gate.
+test.describe.configure({ timeout: 240_000 });
+
 test.describe('a11y — axe-core WCAG A/AA scan', () => {
   test('dashboard has no axe violations outside the known backlog', async ({ page }) => {
     await loadDashboard(page);

@@ -314,6 +314,18 @@ export class Panel {
     this.content = document.createElement('div');
     this.content.className = 'panel-content';
     this.content.id = `${options.id}Content`;
+    // .panel-content is the panel's overflow-y:auto scroll container. A panel
+    // whose hydrated content carries no focusable children (e.g. the insights
+    // World Brief prose) is keyboard-unscrollable, and axe flags it as
+    // scrollable-region-focusable (serious, WCAG 2.1.1) — but only once live
+    // data actually overflows, so the e2e axe gate is green on fixture-empty
+    // CI runs and red against real data. tabindex="0" makes the region itself
+    // the keyboard scroll target; role="group" (a non-landmark container, so
+    // ~40 panels don't flood the screen-reader landmark list) permits the
+    // aria-label that names the focus stop after the panel title.
+    this.content.tabIndex = 0;
+    this.content.setAttribute('role', 'group');
+    this.content.setAttribute('aria-label', options.title);
 
     this.element.appendChild(this.header);
     this.element.appendChild(this.content);
