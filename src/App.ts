@@ -19,6 +19,7 @@ import {
   VARIANT_DEFAULTS,
   getEffectivePanelConfig,
   getInitialPanelSettingsForVariant,
+  isPanelInVariantDefaults,
   isPanelEntitled,
   enforceFreePanelLimit,
   restoreFreeMapPanelAccess,
@@ -3481,10 +3482,19 @@ export class App {
     // PRO-gated: the isNearViewport check is a visibility gate, not an entitlement gate,
     // so without hasPremiumAccess() here we'd still hit the 6 WTO RPCs every poll for
     // free users once the panel scrolled into view.
-    if (SITE_VARIANT === 'full' || SITE_VARIANT === 'finance' || SITE_VARIANT === 'commodity' || SITE_VARIANT === 'energy') {
+    // Registry-derived, not a hand-listed variant set — see the matching note in
+    // data-loader.ts. The old list omitted `trader`, so its supply-chain panel
+    // was scheduled for no refresh at all and went stale after first paint.
+    if (isPanelInVariantDefaults('trade-policy')) {
       this.refreshScheduler.scheduleRefresh('tradePolicy', () => this.dataLoader.loadTradePolicy(), REFRESH_INTERVALS.tradePolicy, () => hasPremiumAccess() && this.isPanelNearViewport('trade-policy'));
+    }
+    if (isPanelInVariantDefaults('supply-chain')) {
       this.refreshScheduler.scheduleRefresh('supplyChain', () => this.dataLoader.loadSupplyChain(), REFRESH_INTERVALS.supplyChain, () => this.isPanelNearViewport('supply-chain'));
+    }
+    if (isPanelInVariantDefaults('china-corridors')) {
       this.refreshScheduler.scheduleRefresh('chinaCorridors', () => this.dataLoader.loadChinaCorridors(), REFRESH_INTERVALS.chinaCorridors, () => this.isPanelNearViewport('china-corridors'));
+    }
+    if (isPanelInVariantDefaults('china-activity-nowcast')) {
       this.refreshScheduler.scheduleRefresh('chinaActivityNowcast', () => this.dataLoader.loadChinaActivityNowcast(), REFRESH_INTERVALS.chinaActivityNowcast, () => this.isPanelNearViewport('china-activity-nowcast'));
     }
 

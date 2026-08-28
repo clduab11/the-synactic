@@ -999,18 +999,25 @@ export class DataLoaderManager implements AppModule {
         tasks.push({ name: 'oil', task: () => runGuarded('oil', () => this.loadOilAnalytics()) });
       }
 
-      // Trade policy + supply-chain data (FULL, FINANCE, COMMODITY, ENERGY variants use supply-chain surface)
-      if (SITE_VARIANT === 'full' || SITE_VARIANT === 'finance' || SITE_VARIANT === 'commodity' || SITE_VARIANT === 'energy') {
-        if (shouldLoad('trade-policy')) {
+      // Trade policy + supply-chain data. Membership comes from the panel
+      // registry, not a hand-listed set of variants: the previous list named
+      // full/finance/commodity/energy and so silently skipped `trader`, whose
+      // ONE OSINT panel is supply-chain — it hydrated only via the ungated
+      // viewport prime and then never refreshed. A registry-derived check
+      // cannot drift when a variant is added. It is also stricter where the
+      // old list was wrong: energy has no trade-policy panel, but `forceAll`
+      // fetched it anyway.
+      {
+        if (isPanelInVariantDefaults('trade-policy') && shouldLoad('trade-policy')) {
           tasks.push({ name: 'tradePolicy', task: () => runGuarded('tradePolicy', () => this.loadTradePolicy()) });
         }
-        if (shouldLoad('supply-chain')) {
+        if (isPanelInVariantDefaults('supply-chain') && shouldLoad('supply-chain')) {
           tasks.push({ name: 'supplyChain', task: () => runGuarded('supplyChain', () => this.loadSupplyChain()) });
         }
-        if (shouldLoad('china-corridors')) {
+        if (isPanelInVariantDefaults('china-corridors') && shouldLoad('china-corridors')) {
           tasks.push({ name: 'chinaCorridors', task: () => runGuarded('chinaCorridors', () => this.loadChinaCorridors({ skipIfPopulated: true })) });
         }
-        if (shouldLoad('china-activity-nowcast')) {
+        if (isPanelInVariantDefaults('china-activity-nowcast') && shouldLoad('china-activity-nowcast')) {
           tasks.push({ name: 'chinaActivityNowcast', task: () => runGuarded('chinaActivityNowcast', () => this.loadChinaActivityNowcast({ skipIfPopulated: true })) });
         }
       }
