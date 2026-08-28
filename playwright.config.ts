@@ -117,7 +117,12 @@ export default defineConfig({
   webServer: webMcpProduction
     ? undefined
     : {
-        command: 'VITE_E2E=1 npm run dev -- --host 127.0.0.1 --port 4173',
+        // cross-env, not a bare `VAR=1` prefix: Playwright spawns this through
+        // the platform shell, and on Windows that is cmd.exe, where the prefix
+        // is not a command — the whole suite failed to start locally with
+        // "'VITE_E2E' is not recognized". Identical behaviour on CI's Linux
+        // shell, and cross-env is already how every npm script here sets vars.
+        command: 'cross-env VITE_E2E=1 npm run dev -- --host 127.0.0.1 --port 4173',
         url: 'http://127.0.0.1:4173/tests/map-harness.html',
         reuseExistingServer: false,
         timeout: 120000,
