@@ -576,12 +576,25 @@ const SEED_META = {
   chinaCoverage:   { key: 'seed-meta:health:china-coverage',   maxStaleMin: 180 },
   // Always-on loop publishes every few seconds. Five minutes tolerates deploy
   // churn while still detecting a stopped worker well before leases age out.
-  companyMonitoringWorker: { key: 'seed-meta:company-monitoring:worker', maxStaleMin: 5, workerControl: true,
-    // Arrived via the 2026-08 upstream sync (#6386 upstream); new-vs-base only on
-    // this fork's PR, so the cutover is re-declared here per the sync-PR clause
-    // in .github/workflows/test.yml. Producer unscheduled on self-host until the
-    // company-monitoring worker ships in the compose loop.
-    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6386, status: 'STALE_SEED' } },
+  companyMonitoringWorker: {
+    key: 'seed-meta:company-monitoring:worker',
+    maxStaleMin: 5,
+    workerControl: true,
+    // Arrived via the 2026-08 upstream sync (#6386 upstream); new-vs-base only
+    // on this fork's PR, so the transition re-litigates here. Marker-backed
+    // rather than acknowledged: this deployment does not schedule the worker,
+    // so an expiring ack would name a first scheduled run that never comes.
+    // The marker already existed and is written by the producer itself
+    // (COMPANY_MONITORING_WORKER_ACTIVATION_KEY in
+    // scripts/company-monitoring-worker.mjs); this only binds the config to it.
+    activationKey: 'seed-activated:company-monitoring:worker',
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 6386,
+      activationKey: 'seed-activated:company-monitoring:worker',
+    },
+  },
   earthquakes:      { key: 'seed-meta:seismology:earthquakes',  maxStaleMin: 30 },
   wildfires:        { key: 'seed-meta:wildfire:fires',          maxStaleMin: 360 }, // FIRMS NRT resets at midnight UTC; new-day data takes 3-6h to accumulate
   wildfiresBootstrap: { key: 'seed-meta:wildfire:fires-bootstrap', maxStaleMin: 360 }, // Compact CDN payload is a distinct publish target; monitor it so canonical fallback cannot hide transform/write failures.

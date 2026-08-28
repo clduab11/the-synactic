@@ -25,18 +25,6 @@
   "expiresAt": "2026-09-04",
   "acknowledged": [
     {
-      "name": "companyMonitoringWorker",
-      "status": "STALE_SEED",
-      "issue": 6386,
-      "expiresAt": "2026-08-29T17:00:00Z",
-      "cutover": {
-        "probeKey": "seed-meta:company-monitoring:worker",
-        "activatedAt": "2026-08-28T18:00:00Z",
-        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
-      },
-      "reason": "Upstream-sync-inherited probe (upstream #6386); producer not yet scheduled on the fork's stack. Bounded to the sync-PR review window."
-    },
-    {
       "name": "predictionPriceArchive",
       "status": "STALE_SEED",
       "issue": 1,

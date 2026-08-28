@@ -31,6 +31,11 @@ export const SUPPORTED_VARIANTS = new Set([
   'commodity',
   'energy',
   'happy',
+  // Added with the trader variant. Omitting it did not block anything at build
+  // time — the value is an identity hint, not an asset selector — but a trader
+  // user hitting /api/download got the unsupported-value redirect to the
+  // releases page instead of the binary every other variant resolves to.
+  'trader',
 ]);
 
 const DESKTOP_ASSET_IDENTIFIER = 'worldmonitor';

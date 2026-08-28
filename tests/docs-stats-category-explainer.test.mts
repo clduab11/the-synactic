@@ -34,6 +34,17 @@ const REAL_STATS = computeStats();
 const withCopy = (edit: (source: string) => string) => (p: string) =>
   p === CATEGORY_EXPLAINER_PATH ? edit(read(p)) : read(p);
 
+// The two mutation tests below edit the enumeration's tail. They used to name
+// `energy` literally, and when `trader` was appended the replace matched
+// nothing: the copy went in unmutated, the validator found no fault, and both
+// guards passed while proving nothing. Derive the tail instead, so adding the
+// next variant retargets the mutation rather than silently disarming it.
+const LAST_ENUMERATED_VARIANT = (() => {
+  const match = read(CATEGORY_EXPLAINER_PATH).match(/^- Dashboard variants \(registry keys\):.*, and `([a-z-]+)`/m);
+  assert.ok(match, 'could not read the trailing variant from the explainer enumeration');
+  return match[1];
+})();
+
 describe('category explainer contract', () => {
   it('passes on the real repo', () => {
     assert.deepEqual(validateCategoryExplainerCopy(REAL_STATS, read), []);
@@ -102,10 +113,10 @@ describe('dashboard variants', () => {
   it('fires when the enumeration loses a variant', () => {
     const failures = validateCategoryExplainerCopy(
       REAL_STATS,
-      withCopy((s) => s.replace(', and `energy`', '')),
+      withCopy((s) => s.replace(`, and \`${LAST_ENUMERATED_VARIANT}\``, '')),
     );
     assert.equal(failures.length, 1, failures.join('\n'));
-    assert.match(failures[0], /missing: energy/);
+    assert.match(failures[0], new RegExp(`missing: ${LAST_ENUMERATED_VARIANT}`));
   });
 
   it('fires when the enumeration is dropped entirely', () => {
@@ -120,7 +131,10 @@ describe('dashboard variants', () => {
   it('fires when prose invents a variant that is not in the registry', () => {
     const failures = validateCategoryExplainerCopy(
       REAL_STATS,
-      withCopy((s) => s.replace('and `energy`', '`energy`, and `legacy`')),
+      withCopy((s) => s.replace(
+        `and \`${LAST_ENUMERATED_VARIANT}\``,
+        `\`${LAST_ENUMERATED_VARIANT}\`, and \`legacy\``,
+      )),
     );
     assert.equal(failures.length, 1, failures.join('\n'));
     assert.match(failures[0], /extra: legacy/);

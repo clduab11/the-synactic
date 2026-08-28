@@ -76,10 +76,23 @@ describe('company monitoring worker deployment registration', () => {
 
   it('softens only the pre-activation window and registers strict worker freshness', () => {
     assert.equal(health.STANDALONE_KEYS.companyMonitoringWorker, 'company-monitoring:worker-health:v1');
+    // The cutover is marker-backed, binding the config to the marker the two
+    // assertions below already require. It arrived with the 2026-08 upstream
+    // sync, which makes the probe new versus this fork's base and so subject to
+    // the health-probe cutover gate; an expiring acknowledgement would have had
+    // to name a first scheduled run, and this deployment does not schedule the
+    // worker at all.
     assert.deepEqual(health.SEED_META.companyMonitoringWorker, {
       key: 'seed-meta:company-monitoring:worker',
       maxStaleMin: 5,
       workerControl: true,
+      activationKey: 'seed-activated:company-monitoring:worker',
+      cutover: {
+        mode: 'activation-marker',
+        fromKey: null,
+        issue: 6386,
+        activationKey: 'seed-activated:company-monitoring:worker',
+      },
     });
     assert.equal(health.ON_DEMAND_KEYS.has('companyMonitoringWorker'), true);
     assert.equal(
