@@ -47,8 +47,19 @@ RUN node docker/build-handlers.mjs
 # build:pro installs pro-test's own lockfile.
 RUN npm run build:pro
 
-# Build the Vite frontend (outputs to dist/)
-# Skip blog build — blog-site has its own deps not installed here
+# Self-host premium unlock (fork ADV-34). VITE_SELFHOST_PRO is a BUILD-TIME
+# boolean vite inlines into the bundle; .env is (correctly) dockerignored, so
+# without this ARG the image's bundle pads locks every premium surface on a
+# deployment that owns its own data. Default ON: this Dockerfile exists only
+# to build the self-host image (hosted builds run on Vercel and never read
+# it). It is a boolean, never a credential — the server-side credential is
+# nginx-injected at runtime (SELFHOST_PREMIUM_KEY, docker/entrypoint.sh).
+ARG VITE_SELFHOST_PRO=1
+ENV VITE_SELFHOST_PRO=${VITE_SELFHOST_PRO}
+
+# Build the Vite frontend (outputs to dist/; corpus + sitemap already built
+# above on the pristine tree). Skip blog build — blog-site has its own deps
+# not installed here.
 RUN npx tsc && npx vite build
 # Assert the /pro pages survived the public/ -> dist/ copy (#6898). build:pro
 # succeeding proves public/pro/ exists; it does NOT prove Vite copied it, and
