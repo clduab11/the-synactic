@@ -187,7 +187,9 @@
       "corporateDisclosures": "企業披露",
       "corridorConditions": "通道狀況",
       "activityNowcast": "活動即時預測",
-      "decisionSignalsUnavailable": "中國決策訊號快照當前不可用。"
+      "decisionSignalsUnavailable": "中國決策訊號快照當前不可用。",
+      "activeDisruptions_one": "{{count}} active disruption",
+      "activeSignals_one": "{{count}} active signal"
     },
     "foodStocks": "Food stocks",
     "foodStocksHelp": "USDA PSD commodity stocks-to-use by marketing year, with the world ratio alongside for context. FAOSTAT fills production only where PSD has no country coverage.",
@@ -310,7 +312,8 @@
     "panelCatCommodityEcon": "經濟與貿易",
     "panelCatHappyNews": "好訊息",
     "panelCatHappyPlanet": "地球與慈善",
-    "embed": "嵌入"
+    "embed": "嵌入",
+    "trader": "TRADER"
   },
   "panels": {
     "liveNews": "即時新聞",
@@ -565,7 +568,8 @@
       "flightMilitaryOnGround": "軍用 · {{type}} · 地面停靠",
       "flightSearchHint": "按 Enter 或點選檢視即時位置",
       "flightNotFound": "未找到 {{callsign}} 的即時位置",
-      "addPanel": "Add"
+      "addPanel": "Add",
+      "resultAnnouncement_one": "{{count}} result for {{query}}"
     },
     "signal": {
       "title": "情報發現",
@@ -1420,7 +1424,8 @@
       "compiledFrom": "編譯自 {{stories}} 條故事和 {{sources}} 個來源",
       "provenanceTitle": "覆蓋來源：此摘要選自多少條攝取的故事和不同的來源",
       "briefFreshness": "生成於 {{minutes}}m 前 · 最新來源 {{hours}}h 前",
-      "briefStoryDetails": "Story details ({{count}})"
+      "briefStoryDetails": "Story details ({{count}})",
+      "sources_one": "{{count}} source"
     },
     "settings": {
       "exportSettings": "匯出設定",
@@ -1856,7 +1861,8 @@
       "closePanel": "關閉面板",
       "collapsePanel": "摺疊面板",
       "expandPanel": "展開面板",
-      "addPanel": "新增面板"
+      "addPanel": "新增面板",
+      "focusPanel": "Focus panel"
     },
     "languageSelector": {
       "mapLabelsFallbackVi": "越南語地圖示籤目前回退為英語顯示。"
@@ -2035,12 +2041,17 @@
       "time": {
         "justNow": "剛才",
         "hoursAgo_other": "{{count}}小時前",
-        "daysAgo_other": "{{count}}天前"
+        "daysAgo_other": "{{count}}天前",
+        "hoursAgo_one": "{{count}}h ago",
+        "daysAgo_one": "{{count}}d ago"
       },
       "filters": {
         "alert_other": "{{count}} 條警報",
         "warning_other": "{{count}} 條警告",
-        "watch_other": "{{count}} 條監測"
+        "watch_other": "{{count}} 條監測",
+        "alert_one": "{{count}} Alert",
+        "warning_one": "{{count}} Warning",
+        "watch_one": "{{count}} Watch"
       },
       "errors": {
         "noData": "無可用的爆發資料",
@@ -2204,7 +2215,8 @@
       "appliesToNext": "適用於下一次AI重新生成",
       "signals_other": "{{count}}個訊號",
       "disclaimer": "AI生成的交易訊號僅供參考。非投資建議。請自行研究。",
-      "unavailable": "AI市場影響在每次預測執行後生成。請稍後檢視。"
+      "unavailable": "AI市場影響在每次預測執行後生成。請稍後檢視。",
+      "signals_one": "{{count}} signal"
     },
     "forecast": {
       "infoTooltip": "<strong>AI 預測</strong> AI 生成的地緣政治和經濟事件機率估計：<ul><li>跨域覆蓋：衝突、市場、供應鏈、網路安全、政治</li><li>每個預測顯示估計機率、置信度和時間範圍</li><li>根據預測市場基線進行校準（如可用）</li></ul>預測在新情報訊號到達時更新。使用上方標籤按域篩選。"
@@ -2437,7 +2449,8 @@
         "unattributed": "未歸屬",
         "program": "計劃",
         "undated": "無日期"
-      }
+      },
+      "designations_one": "{{count}} designation"
     },
     "radiationWatch": {
       "title": "輻射監測",
@@ -2470,7 +2483,9 @@
       },
       "observed": {
         "hoursAgo_other": "{{count}}h 前",
-        "daysAgo_other": "{{count}}d 前"
+        "daysAgo_other": "{{count}}d 前",
+        "hoursAgo_one": "{{count}}h ago",
+        "daysAgo_one": "{{count}}d ago"
       },
       "confidence": {
         "high": "高可信度",
@@ -2501,7 +2516,8 @@
       "empty": "未檢測到活躍收斂",
       "signals_other": "{{count}} 個訊號",
       "analyzing": "分析中...",
-      "viewOnMap": "在地圖上檢視"
+      "viewOnMap": "在地圖上檢視",
+      "signals_one": "{{count}} signal"
     },
     "thermalEscalation": {
       "title": "熱異常升級",
@@ -2530,8 +2546,13 @@
       "age": {
         "minutesAgo_other": "{{count}} 分鐘前",
         "hoursAgo_other": "{{count}} 小時前",
-        "daysAgo_other": "{{count}} 天前"
-      }
+        "daysAgo_other": "{{count}} 天前",
+        "minutesAgo_one": "{{count}}m ago",
+        "hoursAgo_one": "{{count}}h ago",
+        "daysAgo_one": "{{count}}d ago"
+      },
+      "observations_one": "{{count}} obs",
+      "sources_one": "{{count}} src"
     },
     "chokepointStrip": {
       "title": "瓶頸地點狀態",
@@ -2614,6 +2635,97 @@
       "upgradeCta": "升級獲取更多",
       "lockedAriaLabel": "新增標籤頁 — 已鎖定。{{reason}}",
       "unlockedAnnouncement": "儀表板標籤頁限制已解除。"
+    },
+    "panelFocus": {
+      "updated": "Updated",
+      "ageJustNow": "just now",
+      "ageUnknown": "Data age not published",
+      "noDetail": "No additional detail is available for this panel yet."
+    },
+    "predictionFocus": {
+      "poolGeopolitical": "Geopolitical",
+      "poolTech": "Technology",
+      "poolFinance": "Finance",
+      "shownInPanel": "shown in panel",
+      "marketsAcross": "markets across",
+      "pools": "pools",
+      "basisQuote": "live quote",
+      "basisLastTrade": "last trade",
+      "basisEventTotal": "event total",
+      "basisContract": "contract",
+      "volumeMissing": "volume not published",
+      "horizonUnknown": "no close date",
+      "longHorizon": "long horizon",
+      "closed": "closed",
+      "noTags": "no tags published",
+      "basisNote": "Volume and price are not comparable across venues: Polymarket reports an event-level volume with a live quote, Kalshi reports the selected contract volume with its last traded price.",
+      "liquidityNote": "Neither venue publishes order-book depth, so thin and deep markets cannot be distinguished beyond volume.",
+      "spread": "spread",
+      "spreadMissing": "no quote",
+      "topOfBook": "top of book",
+      "venueScore": "venue score",
+      "sizeMissing": "no size published",
+      "loading": "Loading market data…"
+    },
+    "stockBacktestFocus": {
+      "symbolsAvailable": "symbols with a completed backtest",
+      "winRate": "win rate",
+      "avgReturn": "avg return",
+      "sumReturn": "sum of returns",
+      "actionable": "actionable / run",
+      "window": "forward window",
+      "barsSuffix": " bars",
+      "latestSignal": "latest scored signal",
+      "engineNote": "Technical indicators only — no fundamentals, news or intelligence signals feed this engine. Returns are gross: no slippage, commission, dividends or position sizing, and the sum of returns is not a compounded equity curve.",
+      "sameMetricNote": "Win rate and direction accuracy are the same computation and will always match.",
+      "staleSignalNote": "The latest scored signal is at least one full forward window old — an evaluation only exists once its window has completed. It is not a call on today.",
+      "truncationNote": "Aggregates above cover every evaluation; the table shows only the most recent",
+      "unavailable": "No completed backtest for this symbol.",
+      "noTrades": "No simulated trades in range.",
+      "colDate": "Analysed",
+      "colSignal": "Signal",
+      "colEntry": "Entry",
+      "colExit": "Exit",
+      "colStop": "Stop",
+      "colTarget": "Target",
+      "colReturn": "Return",
+      "colOutcome": "Exit reason",
+      "colDir": "Dir",
+      "outcome_stop_loss": "stop",
+      "outcome_take_profit": "target",
+      "outcome_window_close": "window close"
+    },
+    "defcon": {
+      "title": "DEFCON Readiness Estimate",
+      "close": "Close DEFCON panel",
+      "badge": "DEFCON {{level}}",
+      "estMarker": "EST",
+      "disclaimer": "OSINT estimate, not an official status. The U.S. does not publish the current DEFCON level — the real one is classified.",
+      "commandsTitle": "Unified Combatant Commands",
+      "syntheticTitle": "Additional trackers",
+      "syntheticNote": "Publisher's own thematic trackers — not U.S. combatant commands.",
+      "diverging": "{{count}} of {{total}} commands assessed more severe than the headline level",
+      "source": "Source:",
+      "updated": "Source updated {{source}} · collected {{fetched}}",
+      "unknownTime": "unknown",
+      "justNow": "just now",
+      "minutesAgo": "{{m}}m ago",
+      "hoursAgo": "{{h}}h ago",
+      "daysAgo": "{{d}}d ago",
+      "levelNames": {
+        "1": "COCKED PISTOL",
+        "2": "FAST PACE",
+        "3": "ROUND HOUSE",
+        "4": "DOUBLE TAKE",
+        "5": "FADE OUT"
+      },
+      "levelDescs": {
+        "1": "Maximum readiness — nuclear war imminent or underway",
+        "2": "Armed forces ready to deploy and engage in under six hours",
+        "3": "Increased force readiness above normal",
+        "4": "Increased intelligence watch and strengthened security",
+        "5": "Lowest state of readiness — normal peacetime posture"
+      }
     },
     "fx": {
       "infoTooltip": "<strong>外匯匯率</strong> 貨幣壓力測試和即期匯率：<ul><li>外匯壓力測試根據過去24個月最大跌幅對45種貨幣進行排名，同時顯示12個月漲跌幅</li><li>覆蓋範圍包括ARS、TRY、EGP、NGN、PKR和UAH——BIS和ECB參考集合中遺漏的貨幣</li><li>即期匯率分別列示美元和ECB歐元參考匯率，因為兩者的報價基礎不同</li><li>RUB — 俄羅斯央行匯率，每單位盧布</li></ul> 資料來源：Yahoo Finance、歐洲中央銀行和俄羅斯央行。",
@@ -3335,7 +3447,6 @@
     "copyCoordinates": "複製座標"
   },
   "shell": {
-    "documentTitle": "World Monitor — 即時全球情報儀表板",
     "metaDescription": "即時全球情報平臺。刊登於 WIRED。全球 190 個國家 200 萬+ 使用者使用。衝突、市場、軍事、OSINT 資訊一覽無遺。",
     "offlineTitle": "您已離線",
     "offlineMessage": "World Monitor 需要網際網路連線來獲取即時情報資料。",
@@ -3401,7 +3512,9 @@
       "sortableTable": "具有搜尋篩選功能的可排序加密貨幣價格表",
       "animatedCounters": "主要經濟指標的動畫計數器",
       "tabbedComparison": "按地區分類的衝突事件選項卡式對比"
-    }
+    },
+    "evictedOldest": "Widget limit reached — removed the oldest to make room: {{title}}",
+    "streamEndedEarly": "The connection closed before the widget finished. Nothing was saved — please try again."
   },
   "connectivity": {
     "offlineCached": "離線——顯示來自 {{freshness}} 的快取資料。",
@@ -3457,7 +3570,10 @@
     "quickConnect": "快速連線",
     "or": "或輸入自訂伺服器",
     "generatingVisualization": "正在生成視覺化...",
-    "visualizationFailed": "視覺化失敗"
+    "visualizationFailed": "視覺化失敗",
+    "configuredOnServer": "Configured on this server",
+    "configuredOnServerHint": "Already configured on this server — leave blank to use it",
+    "configuredOnServerPlaceholder": "Using the server-side key (paste one here to override)"
   },
   "dashboardTabs": {
     "ariaLabel": "儀表板標籤頁",
