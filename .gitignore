@@ -169,6 +169,11 @@ tests/fixtures/oracle/acled/
 
 # TypeScript incremental build state (synactic workspaces)
 synactic/**/*.tsbuildinfo
+
+# Durable prediction-market price archive (filesystem sink when R2 is not
+# configured). History, not source — never committed.
+data/prediction-price-archive/
+
 # Generated at build time by scripts/generate-third-party-notices.mjs (3MB+).
 # Ships inside the desktop bundle; never committed. The directory itself IS
 # committed (.gitkeep) because tauri-build resolves bundle.resources paths at

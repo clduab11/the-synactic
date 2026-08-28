@@ -741,6 +741,10 @@ const STANDALONE_KEYS = {
   marketAlertLedger:             'correlation:market-alerts:ledger:v1',
   marketAlertScorecard:          'correlation:market-alerts:scorecard:v1',
   forecastBets:                  'forecast:bets:history:v1',
+  // Backtest lane: bounded coverage index for the durable price archive
+  // (objects live in R2/filesystem, keyed derivably — this string is the
+  // health-probeable map of recent windows and the gap-refusal input).
+  predictionPriceArchive:        'prediction:price-archive:coverage:v1',
   forecastFunnel:                'forecast:funnel:health:v1',
   researchArxivHnTrending:       'research:arxiv:v1:cs.AI::50',
   techEventsSeeder:              'research:tech-events:v1',
@@ -1516,6 +1520,7 @@ const SEED_META = {
     },
   },
   forecastBets:        { key: 'seed-meta:forecast:bets',            maxStaleMin: 2880 }, // #5233 shadow bet-engine seeder; daily cron (05:00 UTC), 48h = 2× interval
+  predictionPriceArchive: { key: 'seed-meta:prediction:price-archive', maxStaleMin: 180 }, // price archiver rides the self-host seed-loop (~45-75 min cycle); 180 = >2× worst cadence. Every silent window is unrecoverable history, so this is deliberately tight.
   forecastMarketsResolution: { key: 'seed-meta:prediction:markets-resolution', maxStaleMin: 2160 }, // #5525 market settlement feed; written every resolver run (even zero-due), so it shares the resolver's 36h window
   forecastFunnel:      { key: 'seed-meta:forecast:funnel:health:v1', maxStaleMin: 180 }, // funnel-diversity guardrail (#5233); written by seed-forecasts afterPublish each hourly run (3× cadence). A collapsed funnel (too few domains / mostly synthetic) is recorded as information and never sets status:'error' (#8990)
   sectors:          { key: 'seed-meta:market:sectors',             maxStaleMin: 30 },
@@ -2917,6 +2922,7 @@ const EMPTY_DATA_OK_KEYS = new Set([
   'resilienceStaticFao', // empty aggregate = no IPC Phase 3+ countries this year (possible in theory); the key must exist but count=0 is fine
   'cableHealth', // `cables: {}` = no active subsea cable disruptions per NGA NAVAREA warnings — all cables implicitly healthy. Also covers NGA-upstream-down windows where get-cable-health writes back the fallback response (empty cables); without this, those would alarm EMPTY_DATA.
   'forecastBets', // #5233 shadow bet-engine stream; absent before the cron ships it and empty on weeks the energy feed yields no bet — tolerate as STALE_SEED (warn), not EMPTY (crit).
+  'predictionPriceArchive', // price-archive coverage index; absent until the archiver's first run on a deployment — tolerate as STALE_SEED (warn), not EMPTY (crit). A running-but-failing archiver still alarms via its seed-meta failures field and the tight maxStaleMin.
   'forecastFunnel', // #5233 funnel guardrail is a new afterPublish side-write; before the first seed-forecasts run ships it the key is absent — tolerate as STALE_SEED (warn), not EMPTY (crit). Its producer never writes status:'error': a collapsed funnel is informational (#8990), so only freshness can degrade this check.
   'forecastCalibrationMap', // #7070 map; absent until the daily resolver first writes it, and seed-forecasts publishes raw while it is absent. A dead resolver still alarms through forecastResolutions/forecastScorecard.
   'marketAlertLedger', 'marketAlertScorecard', // #8867: an empty ledger means no market alert has fired yet, and the scorecard then carries four zero rows; a dead seeder still alarms through the 30-minute seed-meta gate.
