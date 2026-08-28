@@ -14,10 +14,25 @@ import { VARIANT_META } from '../src/config/variant-meta';
 const indexHtml = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
 const full = VARIANT_META.full;
 
+/**
+ * index.html stores these values HTML-escaped; VARIANT_META holds plain JS
+ * strings. Six of the seven variant titles contain an ampersand, so comparing
+ * the two raw asserts that index.html is malformed. Decode before comparing —
+ * and mirror htmlVariantPlugin's escapeHtml exactly, so the round trip is the
+ * property under test rather than an approximation of it.
+ */
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&gt;/g, '>')
+    .replace(/&lt;/g, '<')
+    .replace(/&amp;/g, '&');
+}
+
 function extract(label: string, pattern: RegExp): string {
   const m = indexHtml.match(pattern);
   assert.ok(m, `index.html anchor not found for ${label} (pattern: ${pattern}) — if the markup changed, htmlVariantPlugin's matching replace in vite.config.ts is now dead too`);
-  return m[1];
+  return decodeHtml(m[1]);
 }
 
 // Each case mirrors one .replace() in htmlVariantPlugin (vite.config.ts ~211-225).
