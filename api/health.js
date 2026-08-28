@@ -841,21 +841,29 @@ const SEED_META = {
   torontoRoads:     {
     key: 'seed-meta:infra:toronto-roads',
     maxStaleMin: 360, // seed-bundle-canada member interval 2h; 360 = 3× interval. At the old 45 (sized for a */15 cron) a healthy 2h publisher read STALE_SEED permanently, because normal data age reaches 120min.
+    activationKey: 'seed-activated:infra:toronto-roads',
+    // Marker-backed for the same reason as bcOpen511 above: the road-restriction
+    // test forbids an acknowledgement, and no seed-bundle-canada runs here.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6609,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:infra:toronto-roads',
     },
   },
   bcOpen511:        {
     key: 'seed-meta:infra:bc-open511',
     maxStaleMin: 90, // seed-bundle-canada member interval 30min; 90 = 3× interval, and matches this seeder's own 5400s TTL. At the old 45 a single missed tick tripped STALE_SEED.
+    activationKey: 'seed-activated:infra:bc-open511',
+    // Marker-backed: tests/open511.test.mjs forbids acknowledging this probe
+    // (an ack outliving its problem would absorb a future BC outage), and this
+    // fork schedules no seed-bundle-canada, so an ack could not name an honest
+    // first run either. The bundle runner writes this marker per section.
     cutover: {
-      mode: 'expiring-ack',
+      mode: 'activation-marker',
       fromKey: null,
       issue: 6611,
-      status: 'EMPTY',
+      activationKey: 'seed-activated:infra:bc-open511',
     },
   },
   canadaAlerts:     {
@@ -1227,10 +1235,13 @@ const SEED_META = {
     maxStaleMin: 36000, // 25d: static-ref refreshes every 20d; data TTL is 30d.
     minRecordCount: 150,
     activationKey: 'seed-activated:demographics:capability',
-    // This deployment schedules no producer for seed-meta:demographics:capability, so an expiring
-    // acknowledgement would assert a first scheduled run that never comes.
-    // The marker is written by this repo's producer on its first successful
-    // publish: pending until then, strict from then on.
+    // Same shape as the bundle-tick watchdogs: this fork schedules no
+    // static-ref bundle, so an expiring acknowledgement would name a first
+    // scheduled run that never comes, and the acceptance baseline forbids
+    // acknowledging this probe at all. The marker (written per section by
+    // _bundle-runner.mjs) makes the cutover evidence-backed instead. It is
+    // deliberately NOT in ACTIVATION_MARKERS and NOT on-demand: health stays
+    // STRICT here, so a fork with no demographics producer says so plainly.
     cutover: {
       mode: 'activation-marker',
       fromKey: null,
@@ -1518,13 +1529,14 @@ const ON_DEMAND_KEYS = new Set([
   // members' markers come from the bundle runner (per section, so a deferred
   // member never arms a key it did not publish), the union rebuild, and
   // seed-provincial-511's Manitoba publish path.
-  'demographicsCapability',
   'mineralProduction',
   'canadaAlerts',
   'canadaAlertsAbSource',
   'canadaAlertsBcSource',
   'canadaAlertsSkSource',
   'manitobaRoads',
+  'bcOpen511',
+  'torontoRoads',
   'riskScoresLive',
   'usniFleetStale', 'positiveEventsLive',
   'bisPolicy', 'bisExchange', 'bisCredit',
@@ -1609,9 +1621,10 @@ const ACTIVATION_MARKERS = {
   canadaAlertsAbSource: SEED_META.canadaAlertsAbSource.activationKey,
   canadaAlertsBcSource: SEED_META.canadaAlertsBcSource.activationKey,
   canadaAlertsSkSource: SEED_META.canadaAlertsSkSource.activationKey,
-  demographicsCapability: SEED_META.demographicsCapability.activationKey,
   mineralProduction: SEED_META.mineralProduction.activationKey,
   manitobaRoads: SEED_META.manitobaRoads.activationKey,
+  bcOpen511: SEED_META.bcOpen511.activationKey,
+  torontoRoads: SEED_META.torontoRoads.activationKey,
   // Both seeders already wrote these markers (BOC_VALET_ACTIVATION_KEY /
   // STATCAN_WDS_ACTIVATION_KEY); the entries moved here from literals above so
   // the registry reads its key from the config it gates and cannot drift.

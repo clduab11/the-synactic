@@ -85,30 +85,6 @@
       "reason": "Re-declared for the 2026-08 upstream-sync PR: upstream #6612 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
     },
     {
-      "name": "torontoRoads",
-      "status": "EMPTY",
-      "issue": 6609,
-      "expiresAt": "2026-08-29T17:00:00Z",
-      "cutover": {
-        "probeKey": "seed-meta:infra:toronto-roads",
-        "activatedAt": "2026-08-28T18:00:00Z",
-        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
-      },
-      "reason": "Re-declared for the 2026-08 upstream-sync PR: upstream #6609 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
-    },
-    {
-      "name": "bcOpen511",
-      "status": "EMPTY",
-      "issue": 6611,
-      "expiresAt": "2026-08-29T17:00:00Z",
-      "cutover": {
-        "probeKey": "seed-meta:infra:bc-open511",
-        "activatedAt": "2026-08-28T18:00:00Z",
-        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
-      },
-      "reason": "Re-declared for the 2026-08 upstream-sync PR: upstream #6611 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
-    },
-    {
       "name": "ttcAlerts",
       "status": "EMPTY",
       "issue": 6623,

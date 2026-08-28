@@ -267,12 +267,34 @@ describe('demographics partial-stage publication', () => {
 describe('demographics production registration', () => {
   it('registers strict data and seed-meta health with the issue cutover', () => {
     assert.equal(healthTesting.STANDALONE_KEYS.demographicsCapability, 'demographics:capability:v1');
+    // Marker-backed, not acknowledgement-backed: this fork schedules no
+    // static-ref bundle, so an expiring ack would have to name a first
+    // scheduled run that never comes — and the acceptance baseline forbids
+    // acknowledging this probe. The marker keeps the cutover evidence-backed
+    // while the two assertions below preserve STRICT health, which is what
+    // this test is really for.
     assert.deepEqual(healthTesting.SEED_META.demographicsCapability, {
       key: 'seed-meta:demographics:capability',
       maxStaleMin: 36000,
       minRecordCount: 150,
-      cutover: { mode: 'expiring-ack', fromKey: null, issue: 6437, status: 'EMPTY' },
+      activationKey: 'seed-activated:demographics:capability',
+      cutover: {
+        mode: 'activation-marker',
+        fromKey: null,
+        issue: 6437,
+        activationKey: 'seed-activated:demographics:capability',
+      },
     });
+    assert.equal(
+      healthTesting.ON_DEMAND_KEYS.has('demographicsCapability'),
+      false,
+      'demographicsCapability must stay strict — on-demand softening would hide a missing producer',
+    );
+    assert.equal(
+      healthTesting.ACTIVATION_MARKERS.demographicsCapability,
+      undefined,
+      'registering the marker would soften this probe via the activation sweep',
+    );
     assert.match(repoFile('api/seed-health.js'), /'demographics:capability':\s*\{ key: 'seed-meta:demographics:capability', intervalMin: 18000, minRecordCount: 150 \}/);
   });
 
