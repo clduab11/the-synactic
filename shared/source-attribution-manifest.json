@@ -940,6 +940,9 @@
         },
         {
           "path": "scripts/seed-prediction-markets.mjs"
+        },
+        {
+          "path": "scripts/seed-prediction-price-archive.mjs"
         }
       ]
     },
@@ -4807,6 +4810,9 @@
         },
         {
           "path": "scripts/seed-prediction-markets.mjs"
+        },
+        {
+          "path": "scripts/seed-prediction-price-archive.mjs"
         }
       ]
     },
