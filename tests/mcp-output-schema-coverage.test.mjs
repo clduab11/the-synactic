@@ -411,10 +411,12 @@ describe('api/mcp.ts — per-tool outputSchema coverage (v1.7.0)', () => {
   // has no OpenAPI operation to check against and cannot be listed here.
   const VERBATIM_PASSTHROUGH_TOOLS = [
     'analyze_situation',
+    'get_chokepoint_history',
     'get_country_risk',
     'get_defense_industrial_base',
     'get_demographics_capability',
     'get_food_stocks',
+    'get_gold_intelligence',
     'get_intel_timeline',
     'get_mineral_production',
     'get_similar_events',
@@ -422,6 +424,21 @@ describe('api/mcp.ts — per-tool outputSchema coverage (v1.7.0)', () => {
     'search_flights',
     'search_intel_history',
   ];
+
+  // Fields a verbatim tool's own `_execute` contributes, which therefore cannot
+  // appear on the wire. Same concept the spread-passthrough loop below already
+  // encodes; the verbatim loop needed it once a tool with an early return was
+  // enrolled.
+  //
+  // get_chokepoint_history returns `{ error }` for an unknown chokepoint_id
+  // BEFORE it fetches anything. The route cannot supply that signal: for an
+  // invalid id it answers 200 with `{chokepointId:'', history:[], fetchedAt:'0'}`,
+  // byte-identical to the shape a relay outage produces. Deleting `error` from
+  // the tool schema to clear this check would remove the only thing that tells a
+  // typo'd id apart from a broken pipeline.
+  const VERBATIM_EXECUTE_ADDS = new Map([
+    ['get_chokepoint_history', ['error']],
+  ]);
 
   // Pre-existing instances of the same defect, recorded rather than hidden.
   // Each entry pins the EXACT drift, not merely "drifts somehow": a bare
@@ -596,7 +613,18 @@ describe('api/mcp.ts — per-tool outputSchema coverage (v1.7.0)', () => {
         `${toolName}: OpenAPI response has unresolvable $refs, so these fields cannot be checked: ${JSON.stringify(wire.unresolved)}`,
       );
 
-      const drift = declaredButNotOnWire(tool.outputSchema, wire.properties);
+      const verbatimAdds = VERBATIM_EXECUTE_ADDS.get(toolName) ?? [];
+      // An `adds` entry the wire now carries is a stale carve-out exempting a
+      // real field — same staleness guard the spread loop applies.
+      const staleAdds = verbatimAdds.filter(name => name in wire.properties);
+      assert.deepEqual(
+        staleAdds, [],
+        `${toolName}: ${JSON.stringify(staleAdds)} now exist(s) on the wire, so listing them as _execute ` +
+          'additions exempts real fields from the check — remove them from VERBATIM_EXECUTE_ADDS.',
+      );
+
+      const drift = declaredButNotOnWire(tool.outputSchema, wire.properties)
+        .filter(name => !verbatimAdds.includes(name));
       const mismatches = declaredTypeMismatches(tool.outputSchema, wire.properties);
       // Safety flags are never part of a name/type exemption. A known drift
       // entry may pin legacy data fields, but it must not bypass the outage

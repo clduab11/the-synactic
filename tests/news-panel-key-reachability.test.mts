@@ -60,7 +60,12 @@ const layoutSrc = src('src/app/panel-layout.ts');
 // categories compete for one panel key today, but matching the order costs nothing
 // and removes a way for the replay to diverge from production later.
 const FEED_PRESETS = ['FULL_FEEDS', 'TECH_FEEDS', 'FINANCE_FEEDS', 'COMMODITY_FEEDS', 'ENERGY_FEEDS', 'HAPPY_FEEDS'];
-const PANEL_PRESETS = ['FULL_PANELS', 'TECH_PANELS', 'FINANCE_PANELS', 'HAPPY_PANELS', 'COMMODITY_PANELS', 'ENERGY_PANELS'];
+// TRADER_PANELS was added by e3caf512f without updating this list, which silently
+// shrank catalogPanelKeys: every trader-only key (kraken-markets, stock-backtest,
+// market-implications, ...) went unchecked. There is deliberately no TRADER_FEEDS —
+// the variant's only `-news` key is `live-news`, which panel-layout registers
+// directly, so it lands in dedicatedPanelKeys and is excluded from the orphan check.
+const PANEL_PRESETS = ['FULL_PANELS', 'TECH_PANELS', 'FINANCE_PANELS', 'HAPPY_PANELS', 'COMMODITY_PANELS', 'ENERGY_PANELS', 'TRADER_PANELS'];
 
 /**
  * Index just past the `{` that opens `const <name> ... = {`, and the index of

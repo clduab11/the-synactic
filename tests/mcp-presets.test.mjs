@@ -114,22 +114,35 @@ describe('MCP Presets — static validation', () => {
 
   it('expected free presets are present', () => {
     const names = new Set(presets.map(p => p.name));
-    for (const expected of ['Parallel Search', 'Robtex', 'Pyth Price Feeds', 'Weather Forensics']) {
+    // 'Weather Forensics' was renamed to 'NOAA Weather Records' by a60964756 and
+    // repointed at the Cloud Run origin, because weatherforensics.dev/mcp/free
+    // 308s cross-host and the stateless relay refuses cross-host redirects.
+    for (const expected of ['Parallel Search', 'Robtex', 'Pyth Price Feeds', 'NOAA Weather Records']) {
       assert.ok(names.has(expected), `Expected preset "${expected}" not found`);
     }
   });
 
   it('expected commercial presets are present', () => {
     const names = new Set(presets.map(p => p.name));
-    for (const expected of ['Exa Search', 'Tavily Search', 'Slack', 'GitHub', 'Stripe', 'Sentry', 'Datadog', 'Linear']) {
+    // This fork curates the catalog rather than shipping upstream's 22. Slack and
+    // Airtable were dropped as unwanted (1992f83db); Sentry and Notion because
+    // their hosted servers need OAuth-issued tokens and api/mcp-proxy.ts is a
+    // stateless relay that cannot perform OAuth (a60964756); Datadog was replaced
+    // by PostHog (6dbb8e022). Re-adding them here would demand presets that
+    // cannot authenticate.
+    for (const expected of ['Exa Search', 'Tavily Search', 'GitHub', 'Stripe', 'PostHog', 'Linear']) {
       assert.ok(names.has(expected), `Expected preset "${expected}" not found`);
     }
   });
 
-  it('Slack serverUrl points to mcp.slack.com (not cloudflare)', () => {
-    const slack = presets.find(p => p.name === 'Slack');
-    assert.ok(slack, 'Slack preset not found');
-    assert.equal(slack.serverUrl, 'https://mcp.slack.com/mcp');
+  // The Slack and Datadog URL checks went with their presets. PostHog is what
+  // replaced Datadog (6dbb8e022), so it inherits the contract check. Its live
+  // server exposes exactly one tool, hence `exec`.
+  it('PostHog serverUrl points to mcp.posthog.com and names its single tool', () => {
+    const ph = presets.find(p => p.name === 'PostHog');
+    assert.ok(ph, 'PostHog preset not found');
+    assert.equal(ph.serverUrl, 'https://mcp.posthog.com/mcp');
+    assert.equal(ph.defaultTool, 'exec');
   });
 
   it('Google Maps serverUrl points to mapstools.googleapis.com', () => {
@@ -145,21 +158,17 @@ describe('MCP Presets — static validation', () => {
     assert.equal(parallel.defaultTool, 'web_search');
   });
 
-  it('Datadog serverUrl includes /api/unstable/mcp-server/mcp', () => {
-    const dd = presets.find(p => p.name === 'Datadog');
-    assert.ok(dd, 'Datadog preset not found');
-    assert.ok(dd.serverUrl.includes('/api/unstable/mcp-server/mcp'), `Datadog URL is outdated: ${dd.serverUrl}`);
-  });
-
   it('Browser Fetch serverUrl points to browser.mcp.cloudflare.com', () => {
     const bf = presets.find(p => p.name === 'Browser Fetch');
     assert.ok(bf, 'Browser Fetch preset not found');
     assert.equal(bf.serverUrl, 'https://browser.mcp.cloudflare.com/mcp');
   });
 
-  it('WeatherForensics defaultTool is noaa_ncei_daily_weather_for_location_date (not get_current_weather)', () => {
-    const wf = presets.find(p => p.name === 'Weather Forensics');
-    assert.ok(wf, 'Weather Forensics preset not found');
+  // Renamed from 'Weather Forensics' by a60964756; only the NAME changed, so the
+  // defaultTool contract below is unchanged and still worth pinning.
+  it('NOAA Weather Records defaultTool is noaa_ncei_daily_weather_for_location_date (not get_current_weather)', () => {
+    const wf = presets.find(p => p.name === 'NOAA Weather Records');
+    assert.ok(wf, 'NOAA Weather Records preset not found');
     assert.equal(wf.defaultTool, 'noaa_ncei_daily_weather_for_location_date');
   });
 
@@ -169,10 +178,12 @@ describe('MCP Presets — static validation', () => {
     assert.equal(lc.defaultTool, 'Cryptocurrencies');
   });
 
-  it('Cloudflare Radar serverUrl points to radar.mcp.cloudflare.com/sse', () => {
+  // /mcp, not /sse: fc05ddedd measured the /sse endpoint returning HTTP 405, so
+  // the preset was green in the UI and broken in reality.
+  it('Cloudflare Radar serverUrl points to radar.mcp.cloudflare.com/mcp', () => {
     const cf = presets.find(p => p.name === 'Cloudflare Radar');
     assert.ok(cf, 'Cloudflare Radar preset not found');
-    assert.equal(cf.serverUrl, 'https://radar.mcp.cloudflare.com/sse');
+    assert.equal(cf.serverUrl, 'https://radar.mcp.cloudflare.com/mcp');
   });
 });
 
@@ -187,7 +198,7 @@ describe(`MCP Presets — live connectivity (${LIVE ? 'ENABLED' : 'SKIPPED — s
     { name: 'Parallel Search', url: 'https://search.parallel.ai/mcp' },
     { name: 'Robtex',          url: 'https://mcp.robtex.com/mcp' },
     { name: 'Pyth Price Feeds', url: 'https://mcp.pyth.network/mcp' },
-    { name: 'Weather Forensics', url: 'https://weatherforensics.dev/mcp/free' },
+    { name: 'NOAA Weather Records', url: 'https://noaa-mcp-free-bly45pyigq-uk.a.run.app/mcp' },
   ];
 
   // Auth-gated presets — expect 401 on initialize (not DNS failure / 404)
@@ -196,15 +207,11 @@ describe(`MCP Presets — live connectivity (${LIVE ? 'ENABLED' : 'SKIPPED — s
     { name: 'Tavily Search', url: 'https://mcp.tavily.com/mcp/' },
     { name: 'LunarCrush',   url: 'https://lunarcrush.ai/mcp' },
     { name: 'Alpha Vantage', url: 'https://mcp.alphavantage.co/mcp' },
-    { name: 'Slack',         url: 'https://mcp.slack.com/mcp' },
     { name: 'GitHub',        url: 'https://api.githubcopilot.com/mcp/' },
     { name: 'Linear',        url: 'https://mcp.linear.app/mcp' },
-    { name: 'Sentry',        url: 'https://mcp.sentry.dev/mcp' },
     { name: 'Stripe',        url: 'https://mcp.stripe.com/' },
-    { name: 'Notion',        url: 'https://mcp.notion.com/mcp' },
-    { name: 'Airtable',      url: 'https://mcp.airtable.com/mcp' },
     { name: 'Perigon News',  url: 'https://mcp.perigon.io/v1/mcp' },
-    { name: 'Datadog',       url: 'https://mcp.datadoghq.com/api/unstable/mcp-server/mcp' },
+    { name: 'PostHog',       url: 'https://mcp.posthog.com/mcp' },
   ];
 
   const TIMEOUT_MS = 15_000;
