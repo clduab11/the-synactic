@@ -24,8 +24,18 @@ import { fileURLToPath } from 'node:url';
 import { flattenKeys } from './_locale-keys.mjs';
 // Imported rather than restated: this file would otherwise be a third place
 // that has to be told zh-TW is generated, after translate-locales.mjs and the
-// catalogue test.
-import { GENERATED_LOCALES } from './translate-locales.mjs';
+// catalogue test. The plural helpers come from the same module so this check
+// can never disagree with the translation pass about which plural-category
+// keys a locale is supposed to carry — appending `_one` keys to a CLDR
+// other-only locale (ja/ko/th/vi/zh) just makes translate-locales prune them
+// back as orphans on its next run.
+import {
+  GENERATED_LOCALES,
+  expectedKeysForLocale,
+  findPluralBases,
+  flatten,
+  getPluralCategories,
+} from './translate-locales.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const LOCALES_DIR = join(__dirname, '..', 'src', 'locales');
@@ -104,9 +114,42 @@ function readJson(path, label) {
   }
 }
 
+/**
+ * Remove leaves that syncFromTemplate appended but the locale does not owe:
+ * a leaf that was not already in the locale (localeKeys) and is not in the
+ * allowed missing set gets deleted; empty objects left behind are dropped
+ * too. Mutates in place.
+ *
+ * @param {Record<string, unknown>} node
+ * @param {Set<string>} localeKeys
+ * @param {Set<string>} allowedMissing
+ * @param {string} prefix
+ */
+function pruneDisallowedAppends(node, localeKeys, allowedMissing, prefix) {
+  for (const [key, value] of Object.entries(node)) {
+    const dotted = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      pruneDisallowedAppends(value, localeKeys, allowedMissing, dotted);
+      if (Object.keys(value).length === 0 && !localeKeys.has(dotted)) delete node[key];
+      continue;
+    }
+    if (!localeKeys.has(dotted) && !allowedMissing.has(dotted)) delete node[key];
+  }
+}
+
+// Mirrors translate-locales.mjs isPrivateKey (module-private there): dotted
+// path segments starting with `_` are translator-instruction keys that stay
+// in English by design. expectedKeysForLocale excludes them, but they must
+// still mirror en.json, so the missing-key filter re-admits them here.
+function isPrivateKey(key) {
+  return key.split('.').some((seg) => seg.startsWith('_'));
+}
+
 function main() {
   const en = readJson(EN_PATH, 'en.json');
   const enKeys = new Set(flattenKeys(en));
+  const enFlat = flatten(en);
+  const pluralBases = findPluralBases(enFlat);
   const localeFiles = readdirSync(LOCALES_DIR)
     .filter((name) => name.endsWith('.json') && name !== 'en.json' && !name.endsWith('.shell.json'))
     .sort();
@@ -120,7 +163,17 @@ function main() {
     const localeCode = file.replace(/\.json$/, '');
     const locale = readJson(path, file);
     const localeKeys = new Set(flattenKeys(locale));
-    const missing = [...enKeys].filter((key) => !localeKeys.has(key));
+    // A key is only "missing" when this locale is supposed to carry it: en's
+    // plural pair fans out to the locale's own CLDR categories, so an
+    // other-only locale never owes a `_one` form. Richer locale-only forms
+    // (e.g. Arabic `_few`) stay the translation pass's job — sync never
+    // fabricates keys en does not have.
+    const expected = new Set(
+      Object.keys(expectedKeysForLocale(enFlat, pluralBases, getPluralCategories(localeCode))),
+    );
+    const missing = [...enKeys].filter(
+      (key) => !localeKeys.has(key) && (expected.has(key) || isPrivateKey(key)),
+    );
 
     if (missing.length === 0) {
       console.log(`${file}: up to date (${localeKeys.size} keys)`);
@@ -144,6 +197,12 @@ function main() {
 
     if (!CHECK_ONLY) {
       const synced = syncFromTemplate(en, locale);
+      // syncFromTemplate appends every en key; drop appended keys this locale
+      // does not owe (same predicate as the missing-key filter above), so a
+      // sync run never plants keys the translation pass would prune as
+      // orphans. Keys the locale already had are never touched.
+      const missingSet = new Set(missing);
+      pruneDisallowedAppends(synced, localeKeys, missingSet, '');
       writeFileSync(path, `${JSON.stringify(synced, null, 2)}\n`, 'utf8');
     }
   }
@@ -156,12 +215,12 @@ function main() {
       }
       process.exit(1);
     }
-    console.log(`All ${localeFiles.length} locale files match en.json (${enKeys.size} keys each).`);
+    console.log(`All ${localeFiles.length} locale files carry every key they owe (en.json: ${enKeys.size} keys; other-only plural locales legitimately hold fewer).`);
     return;
   }
 
   if (totalMissing === 0) {
-    console.log(`All locale files already match en.json (${enKeys.size} keys).`);
+    console.log(`All locale files already carry every key they owe (en.json: ${enKeys.size} keys).`);
     return;
   }
 
