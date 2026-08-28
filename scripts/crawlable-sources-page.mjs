@@ -140,6 +140,12 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
   ['identity.dataspace.copernicus.eu', 'environment'],
   ['sh.dataspace.copernicus.eu', 'environment'],
   ['British Geological Survey World Mineral Statistics', 'energy'],
+  // Fork provider (2026-08 sync): OSINT readiness estimates; the military
+  // matcher regex predates the defcon vocabulary.
+  ['DEFCONLevel.com', 'military'],
+  // Fork provider: UK OFSI/FATF listings source after the web.archive.org
+  // retirement (seed-fatf-listing.mjs) — sanctions data is finance-domain.
+  ['www.nationalarchives.gov.uk', 'finance'],
   ['Bank of Canada', 'finance'],
   ['bothsidesofthetable.com', 'technology'],
   ['City of Toronto Open Data', 'infrastructure'],
