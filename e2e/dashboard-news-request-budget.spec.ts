@@ -39,7 +39,18 @@ const RSS_PROXY_GLOB = '**/api/rss-proxy*';
 // Time to let a SECOND news load land if one is coming. Production saw the two
 // digest requests 1.2 s apart; the local dev server is faster, so this is a wide
 // margin over the interval being guarded.
-const SECOND_LOAD_SETTLE_MS = 8_000;
+//
+// Raised from 8s after `a news load that landed nothing recovers on the next
+// trigger` failed CI with attempts:1 — the retry was late, not missing. Do NOT
+// "fix" that by swapping these sleeps for expect.poll on the request count:
+// several assertions AFTER the count depend on the digest having been consumed,
+// not merely requested, and a poll that returns the instant the count is met
+// runs them too early. That was tried and it broke `a partial digest is used
+// for the load but does not shrink the persisted last-good digest`, which
+// expects two acceptance log lines and saw one. Widening the window keeps every
+// settle relationship intact; only the negative assertions get slower, and a
+// longer window makes those strictly stronger.
+const SECOND_LOAD_SETTLE_MS = 15_000;
 
 // src/app/data-loader.ts `perFeedFallbackCategoryFeedLimit`. Every per-feed
 // fallback is capped at this many feeds per category, custom categories included.
@@ -377,17 +388,15 @@ test.describe('dashboard news request budget (#5376)', () => {
       () => document.documentElement.dataset.wmEventHandlersReady === 'true',
     );
     await firstDigest;
-
-    // Polled, not slept — a lower bound on fetched feeds is a condition, and a
-    // fixed settle window makes it a race under parallel CI load.
-    await expect.poll(() => distinctProxiedFeeds(log.rssProxyUrls).length, {
-      message:
-        'an enabled cross-variant news panel must still have its feeds fetched — a custom ' +
-        'category is never in the per-variant digest, so direct fetch is its only path (#3687)',
-      timeout: SECOND_LOAD_SETTLE_MS * 2,
-    }).toBeGreaterThan(0);
+    await page.waitForTimeout(SECOND_LOAD_SETTLE_MS);
 
     const feeds = distinctProxiedFeeds(log.rssProxyUrls);
+
+    expect(
+      feeds.length,
+      `an enabled cross-variant news panel must still have its feeds fetched — a custom ` +
+        `category is never in the per-variant digest, so direct fetch is its only path (#3687)`,
+    ).toBeGreaterThan(0);
 
     // Exactly the cap, not merely under it. `toBeLessThanOrEqual` alone would pass
     // with the uncapped code restored the moment the category's feed list shrank to
@@ -600,13 +609,13 @@ test.describe('dashboard news request budget (#5376)', () => {
     await page.waitForFunction(
       () => document.documentElement.dataset.wmEventHandlersReady === 'true',
     );
-    // Polled, not slept — same reason as the 503-recovery case above: a lower
-    // bound on requests is a condition to wait for, and a fixed window turns a
-    // merely-late request into a failure under parallel CI load.
-    await expect.poll(() => log.digestUrls.length, {
-      message: 'the reload must issue its own digest request for the partial body to be delivered',
-      timeout: SECOND_LOAD_SETTLE_MS * 2,
-    }).toBeGreaterThanOrEqual(2);
+    await page.waitForTimeout(SECOND_LOAD_SETTLE_MS);
+
+    expect(
+      log.digestUrls.length,
+      `the reload must issue its own digest request for the partial body to be delivered ` +
+        `(attempts: ${log.digestUrls.length})`,
+    ).toBeGreaterThanOrEqual(2);
 
     // The partial digest must be ACCEPTED — this is what separates it from the
     // empty-200 case. Without this the test would pass if the partial digest were
@@ -718,21 +727,17 @@ test.describe('dashboard news request budget (#5376)', () => {
       () => document.documentElement.dataset.wmEventHandlersReady === 'true',
     );
     await firstDigest;
+    await page.waitForTimeout(SECOND_LOAD_SETTLE_MS);
 
     // Attempt 1 was served 503, so that load rendered every category empty. A
     // second attempt is the whole point: it is served 200 and the dashboard
     // recovers within the page load instead of waiting out the refresh interval.
-    //
-    // Polled rather than slept: the assertion is unchanged (>= 2 attempts), but
-    // a fixed settle window made it a race the CI runner could lose under
-    // parallel load, reporting attempts:1 for a retry that was merely late.
-    // Same idiom as bootstrap-hydration-request-budget.spec.ts.
-    await expect.poll(() => log.digestUrls.length, {
-      message:
-        'a news load that landed nothing must stay retryable — the first digest was 503, ' +
-        'so a later trigger has to try again rather than be skipped as already-loaded',
-      timeout: SECOND_LOAD_SETTLE_MS * 2,
-    }).toBeGreaterThanOrEqual(2);
+    expect(
+      log.digestUrls.length,
+      `a news load that landed nothing must stay retryable — the first digest was 503, ` +
+        `so a later trigger has to try again rather than be skipped as already-loaded ` +
+        `(attempts: ${log.digestUrls.length})`,
+    ).toBeGreaterThanOrEqual(2);
 
     // ...and having recovered, it must settle: the successful load records the
     // work-list, so the gate stops the retries rather than looping every trigger.
