@@ -24,15 +24,12 @@
     {
       "host": "24.hu",
       "provider": "24.hu",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit 24.hu and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -72,15 +69,12 @@
     {
       "host": "444.hu",
       "provider": "444.hu",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit 444.hu and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -200,12 +194,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/conflict/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
           "path": "scripts/_acled-auth.mjs"
         },
         {
@@ -286,9 +274,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-aviation.mjs"
         },
         {
@@ -353,9 +338,6 @@
       "attribution": "Credit airlinegeeks.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
         {
           "path": "scripts/seed-aviation.mjs"
         },
@@ -561,108 +543,6 @@
           "path": "api/_usage-telemetry.js"
         },
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
-          "path": "api/batch/v1/[rpc].js"
-        },
-        {
-          "path": "api/climate/v1/[rpc].js"
-        },
-        {
-          "path": "api/conflict/v1/[rpc].js"
-        },
-        {
-          "path": "api/consumer-prices/v1/[rpc].js"
-        },
-        {
-          "path": "api/cyber/v1/[rpc].js"
-        },
-        {
-          "path": "api/displacement/v1/[rpc].js"
-        },
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/forecast/v1/[rpc].js"
-        },
-        {
-          "path": "api/giving/v1/[rpc].js"
-        },
-        {
-          "path": "api/health/v1/[rpc].js"
-        },
-        {
-          "path": "api/imagery/v1/[rpc].js"
-        },
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
-        {
-          "path": "api/maritime/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
-        {
-          "path": "api/natural/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
-          "path": "api/positive-events/v1/[rpc].js"
-        },
-        {
-          "path": "api/prediction/v1/[rpc].js"
-        },
-        {
-          "path": "api/radiation/v1/[rpc].js"
-        },
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
-          "path": "api/resilience/v1/[rpc].js"
-        },
-        {
-          "path": "api/sanctions/v1/[rpc].js"
-        },
-        {
-          "path": "api/scenario/v1/[rpc].js"
-        },
-        {
-          "path": "api/seismology/v1/[rpc].js"
-        },
-        {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
-          "path": "api/thermal/v1/[rpc].js"
-        },
-        {
-          "path": "api/trade/v1/[rpc].js"
-        },
-        {
-          "path": "api/unrest/v1/[rpc].js"
-        },
-        {
-          "path": "api/webcam/v1/[rpc].js"
-        },
-        {
-          "path": "api/wildfire/v1/[rpc].js"
-        },
-        {
           "path": "scripts/lib/llm-telemetry.cjs"
         },
         {
@@ -676,15 +556,12 @@
     {
       "host": "api.axios.com",
       "provider": "api.axios.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit api.axios.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -702,108 +579,6 @@
       "attribution": "Excluded from the provider count: identity-control-plane request.",
       "status": "excluded",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
-          "path": "api/batch/v1/[rpc].js"
-        },
-        {
-          "path": "api/climate/v1/[rpc].js"
-        },
-        {
-          "path": "api/conflict/v1/[rpc].js"
-        },
-        {
-          "path": "api/consumer-prices/v1/[rpc].js"
-        },
-        {
-          "path": "api/cyber/v1/[rpc].js"
-        },
-        {
-          "path": "api/displacement/v1/[rpc].js"
-        },
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/forecast/v1/[rpc].js"
-        },
-        {
-          "path": "api/giving/v1/[rpc].js"
-        },
-        {
-          "path": "api/health/v1/[rpc].js"
-        },
-        {
-          "path": "api/imagery/v1/[rpc].js"
-        },
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
-        {
-          "path": "api/maritime/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
-        {
-          "path": "api/natural/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
-          "path": "api/positive-events/v1/[rpc].js"
-        },
-        {
-          "path": "api/prediction/v1/[rpc].js"
-        },
-        {
-          "path": "api/radiation/v1/[rpc].js"
-        },
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
-          "path": "api/resilience/v1/[rpc].js"
-        },
-        {
-          "path": "api/sanctions/v1/[rpc].js"
-        },
-        {
-          "path": "api/scenario/v1/[rpc].js"
-        },
-        {
-          "path": "api/seismology/v1/[rpc].js"
-        },
-        {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
-          "path": "api/thermal/v1/[rpc].js"
-        },
-        {
-          "path": "api/trade/v1/[rpc].js"
-        },
-        {
-          "path": "api/unrest/v1/[rpc].js"
-        },
-        {
-          "path": "api/webcam/v1/[rpc].js"
-        },
-        {
-          "path": "api/wildfire/v1/[rpc].js"
-        },
         {
           "path": "server/auth-session.ts"
         }
@@ -956,12 +731,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -1067,10 +836,15 @@
       "host": "api.groq.com",
       "provider": "api.groq.com",
       "kind": "structured",
-      "observed": false,
+      "observed": true,
       "license": "Excluded: first-party, control-plane, UI, or rendering transport",
       "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
-      "status": "excluded"
+      "status": "excluded",
+      "references": [
+        {
+          "path": "server/_shared/llm-health.ts"
+        }
+      ]
     },
     {
       "host": "api.hyperliquid.xyz",
@@ -1186,9 +960,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/sanctions/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/sanctions/v1/lookup-entity.ts"
         }
       ]
@@ -1216,9 +987,6 @@
       "attribution": "Credit api.planespotters.net and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/military/v1/get-wingbits-live-flight.ts"
         }
@@ -1256,9 +1024,6 @@
       "attribution": "Excluded from the provider count: transactional email delivery.",
       "status": "excluded",
       "references": [
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/leads/v1/register-interest.ts"
         },
@@ -1318,12 +1083,6 @@
       "attribution": "Brave Search; link to the result and original publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
         {
           "path": "scripts/ais-relay.cjs"
         },
@@ -1401,9 +1160,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/aviation/v1/_providers/travelpayouts_data.ts"
         }
       ]
@@ -1431,9 +1187,6 @@
       "attribution": "Credit api.unhcr.org and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/displacement/v1/[rpc].js"
-        },
         {
           "path": "scripts/seed-displacement-summary.mjs"
         },
@@ -1525,9 +1278,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/webcam/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-webcams.mjs"
         },
         {
@@ -1544,9 +1294,6 @@
       "attribution": "World Bank Open Data. For education indicators: UNESCO Institute for Statistics via World Bank WDI; include the UIS source URL and extraction date.",
       "status": "reviewed",
       "references": [
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
         {
           "path": "scripts/_defense-industrial-source.mjs"
         },
@@ -1972,18 +1719,10 @@
       "host": "aviationstack.com",
       "provider": "aviationstack.com",
       "kind": "structured",
-      "observed": true,
+      "observed": false,
       "license": "Provider terms for this upstream API/dataset; verify before redistribution",
       "attribution": "Credit aviationstack.com and link to the original upstream API/dataset.",
-      "status": "terms-review",
-      "references": [
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        }
-      ]
+      "status": "excluded"
     },
     {
       "host": "ayibopost.com",
@@ -2022,15 +1761,12 @@
     {
       "host": "azure.status.microsoft",
       "provider": "azure.status.microsoft",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit azure.status.microsoft and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -2039,15 +1775,12 @@
     {
       "host": "balkaninsight.com",
       "provider": "balkaninsight.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit balkaninsight.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -2169,15 +1902,12 @@
     {
       "host": "bitbucket.status.atlassian.com",
       "provider": "bitbucket.status.atlassian.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit bitbucket.status.atlassian.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -2186,15 +1916,12 @@
     {
       "host": "bitcoinmagazine.com",
       "provider": "bitcoinmagazine.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit bitcoinmagazine.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -2240,15 +1967,12 @@
     {
       "host": "breakingdefense.com",
       "provider": "breakingdefense.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit breakingdefense.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -2514,9 +2238,6 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/leads/v1/[rpc].js"
-        },
-        {
           "path": "server/_shared/turnstile.ts"
         }
       ]
@@ -2530,9 +2251,6 @@
       "attribution": "Credit changelog.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -2617,9 +2335,6 @@
       "references": [
         {
           "path": "api/_notification-webhook-ssrf.ts"
-        },
-        {
-          "path": "api/leads/v1/[rpc].js"
         },
         {
           "path": "api/mcp-proxy.ts"
@@ -2738,9 +2453,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -2760,9 +2472,6 @@
       "attribution": "Credit collisionconf.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
         {
           "path": "scripts/ais-relay.cjs"
         },
@@ -2801,9 +2510,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-comtrade-bilateral-hs4.mjs"
         },
         {
@@ -2823,15 +2529,12 @@
     {
       "host": "confluence.status.atlassian.com",
       "provider": "confluence.status.atlassian.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit confluence.status.atlassian.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -2840,15 +2543,12 @@
     {
       "host": "conservationoptimism.org",
       "provider": "conservationoptimism.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit conservationoptimism.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -2874,15 +2574,12 @@
     {
       "host": "correctiv.org",
       "provider": "correctiv.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit correctiv.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -2925,15 +2622,12 @@
     {
       "host": "cryptoslate.com",
       "provider": "cryptoslate.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit cryptoslate.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -2982,9 +2676,6 @@
       "attribution": "Credit customer-api.wingbits.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
         {
           "path": "scripts/ais-relay.cjs"
         },
@@ -3119,9 +2810,6 @@
       "status": "reviewed",
       "references": [
         {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
           "path": "server/_shared/sec-edgar.ts"
         }
       ]
@@ -3209,9 +2897,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -3253,15 +2938,12 @@
     {
       "host": "decrypt.co",
       "provider": "decrypt.co",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit decrypt.co and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -3294,9 +2976,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -3319,9 +2998,6 @@
       "attribution": "Credit dev.to and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -3353,15 +3029,12 @@
     {
       "host": "dfrlab.org",
       "provider": "dfrlab.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit dfrlab.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -3435,15 +3108,12 @@
     {
       "host": "discordstatus.com",
       "provider": "discordstatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit discordstatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -3574,9 +3244,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/imagery/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/imagery/v1/search-imagery.ts"
         }
       ]
@@ -3662,9 +3329,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/military/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/military/v1/get-wingbits-live-flight.ts"
         }
       ]
@@ -3726,9 +3390,6 @@
       "attribution": "U.S. Securities and Exchange Commission (SEC) EDGAR full-text search.",
       "status": "reviewed",
       "references": [
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
         {
           "path": "server/_shared/sec-edgar.ts"
         }
@@ -3817,12 +3478,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-supply-chain-trade.mjs"
         }
       ]
@@ -3836,9 +3491,6 @@
       "attribution": "Credit en.wikipedia.org and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
         {
           "path": "scripts/seed-sovereign-wealth.mjs"
         },
@@ -4131,9 +3783,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-research.mjs"
         },
         {
@@ -4230,9 +3879,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -4246,15 +3892,12 @@
     {
       "host": "feeds.abcnews.com",
       "provider": "feeds.abcnews.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit feeds.abcnews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4273,9 +3916,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -4289,15 +3929,12 @@
     {
       "host": "feeds.bbci.co.uk",
       "provider": "BBC",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit feeds.bbci.co.uk and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4309,15 +3946,12 @@
     {
       "host": "feeds.content.dowjones.io",
       "provider": "feeds.content.dowjones.io",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit feeds.content.dowjones.io and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4349,9 +3983,6 @@
       "attribution": "Credit feeds.feedburner.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4409,15 +4040,12 @@
     {
       "host": "feeds.nbcnews.com",
       "provider": "feeds.nbcnews.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit feeds.nbcnews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4429,15 +4057,12 @@
     {
       "host": "feeds.news24.com",
       "provider": "feeds.news24.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit feeds.news24.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4449,15 +4074,12 @@
     {
       "host": "feeds.nos.nl",
       "provider": "feeds.nos.nl",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit feeds.nos.nl and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4469,15 +4091,12 @@
     {
       "host": "feeds.npr.org",
       "provider": "feeds.npr.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit feeds.npr.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4558,15 +4177,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -4606,12 +4216,6 @@
       "attribution": "Credit finnhub.io and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
         {
           "path": "api/symbol-search.ts"
         },
@@ -4689,15 +4293,12 @@
     {
       "host": "foreignpolicy.com",
       "provider": "foreignpolicy.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit foreignpolicy.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4819,15 +4420,12 @@
     {
       "host": "gcaptain.com",
       "provider": "gcaptain.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit gcaptain.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4898,15 +4496,12 @@
     {
       "host": "github.blog",
       "provider": "github.blog",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit github.blog and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -4970,15 +4565,12 @@
     {
       "host": "globalinitiative.net",
       "provider": "globalinitiative.net",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit globalinitiative.net and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -5224,15 +4816,12 @@
     {
       "host": "health.aws.amazon.com",
       "provider": "health.aws.amazon.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit health.aws.amazon.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -5282,9 +4871,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -5329,15 +4915,12 @@
     {
       "host": "humanprogress.org",
       "provider": "humanprogress.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit humanprogress.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -5349,15 +4932,12 @@
     {
       "host": "hvg.hu",
       "provider": "hvg.hu",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit hvg.hu and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -5424,9 +5004,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -5440,15 +5017,12 @@
     {
       "host": "index.hu",
       "provider": "index.hu",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit index.hu and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -5502,15 +5076,12 @@
     {
       "host": "insightcrime.org",
       "provider": "insightcrime.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit insightcrime.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -5753,15 +5324,12 @@
     {
       "host": "jira-software.status.atlassian.com",
       "provider": "jira-software.status.atlassian.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit jira-software.status.atlassian.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -5889,9 +5457,6 @@
       "attribution": "Credit krebsonsecurity.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -6022,15 +5587,12 @@
     {
       "host": "linearstatus.com",
       "provider": "linearstatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit linearstatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -6203,9 +5765,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -6225,96 +5784,6 @@
       "attribution": "Excluded from the provider count: local-only URL.",
       "status": "excluded",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
-          "path": "api/climate/v1/[rpc].js"
-        },
-        {
-          "path": "api/conflict/v1/[rpc].js"
-        },
-        {
-          "path": "api/consumer-prices/v1/[rpc].js"
-        },
-        {
-          "path": "api/cyber/v1/[rpc].js"
-        },
-        {
-          "path": "api/displacement/v1/[rpc].js"
-        },
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/forecast/v1/[rpc].js"
-        },
-        {
-          "path": "api/giving/v1/[rpc].js"
-        },
-        {
-          "path": "api/imagery/v1/[rpc].js"
-        },
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/maritime/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
-        {
-          "path": "api/natural/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
-          "path": "api/prediction/v1/[rpc].js"
-        },
-        {
-          "path": "api/radiation/v1/[rpc].js"
-        },
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
-          "path": "api/resilience/v1/[rpc].js"
-        },
-        {
-          "path": "api/sanctions/v1/[rpc].js"
-        },
-        {
-          "path": "api/scenario/v1/[rpc].js"
-        },
-        {
-          "path": "api/seismology/v1/[rpc].js"
-        },
-        {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
-          "path": "api/thermal/v1/[rpc].js"
-        },
-        {
-          "path": "api/trade/v1/[rpc].js"
-        },
-        {
-          "path": "api/unrest/v1/[rpc].js"
-        },
-        {
-          "path": "api/webcam/v1/[rpc].js"
-        },
-        {
-          "path": "api/wildfire/v1/[rpc].js"
-        },
         {
           "path": "scripts/ais-relay.cjs"
         },
@@ -6473,15 +5942,12 @@
     {
       "host": "meduza.io",
       "provider": "meduza.io",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit meduza.io and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -6703,15 +6169,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
-        {
-          "path": "api/maritime/v1/[rpc].js"
-        },
-        {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/infrastructure/v1/get-cable-health.ts"
         },
         {
@@ -6736,15 +6193,12 @@
     {
       "host": "n1info.hr",
       "provider": "n1info.hr",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit n1info.hr and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -6842,9 +6296,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -6881,15 +6332,6 @@
       "attribution": "Credit news.google.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "scripts/source-catalog-identity.mjs"
         },
@@ -6934,15 +6376,12 @@
     {
       "host": "news.mongabay.com",
       "provider": "news.mongabay.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit news.mongabay.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -6968,15 +6407,12 @@
     {
       "host": "news.un.org",
       "provider": "news.un.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit news.un.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -7014,9 +6450,6 @@
       "attribution": "Credit news.ycombinator.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -7096,9 +6529,6 @@
       "attribution": "Credit nominatim.openstreetmap.org and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "api/reverse-geocode.js"
         },
@@ -7246,9 +6676,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-energy-intelligence.mjs"
         },
         {
@@ -7285,9 +6712,6 @@
       "attribution": "Credit onemileatatime.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
         {
           "path": "scripts/seed-aviation.mjs"
         },
@@ -7360,9 +6784,6 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
           "path": "scripts/lib/brief-dedup-consts.mjs"
         },
         {
@@ -7382,12 +6803,6 @@
       "attribution": "Credit opensky-network.org and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
         {
           "path": "scripts/ais-relay.cjs"
         },
@@ -7695,15 +7110,12 @@
     {
       "host": "portfolio.hu",
       "provider": "portfolio.hu",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit portfolio.hu and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -7721,12 +7133,6 @@
       "attribution": "Credit portwatch.imf.org and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
         {
           "path": "scripts/build-chokepoint-transit-snapshot.mjs"
         },
@@ -7970,9 +7376,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/intelligence/v1/get-country-facts.ts"
         }
       ]
@@ -7986,9 +7389,6 @@
       "attribution": "Credit query1.finance.yahoo.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
         {
           "path": "scripts/_seed-utils.mjs"
         },
@@ -8062,15 +7462,12 @@
     {
       "host": "railway.instatus.com",
       "provider": "railway.instatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit railway.instatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -8100,108 +7497,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
-          "path": "api/batch/v1/[rpc].js"
-        },
-        {
-          "path": "api/climate/v1/[rpc].js"
-        },
-        {
-          "path": "api/conflict/v1/[rpc].js"
-        },
-        {
-          "path": "api/consumer-prices/v1/[rpc].js"
-        },
-        {
-          "path": "api/cyber/v1/[rpc].js"
-        },
-        {
-          "path": "api/displacement/v1/[rpc].js"
-        },
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/forecast/v1/[rpc].js"
-        },
-        {
-          "path": "api/giving/v1/[rpc].js"
-        },
-        {
-          "path": "api/health/v1/[rpc].js"
-        },
-        {
-          "path": "api/imagery/v1/[rpc].js"
-        },
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
-        {
-          "path": "api/maritime/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
-        {
-          "path": "api/natural/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
-          "path": "api/positive-events/v1/[rpc].js"
-        },
-        {
-          "path": "api/prediction/v1/[rpc].js"
-        },
-        {
-          "path": "api/radiation/v1/[rpc].js"
-        },
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
-          "path": "api/resilience/v1/[rpc].js"
-        },
-        {
-          "path": "api/sanctions/v1/[rpc].js"
-        },
-        {
-          "path": "api/scenario/v1/[rpc].js"
-        },
-        {
-          "path": "api/seismology/v1/[rpc].js"
-        },
-        {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
-          "path": "api/thermal/v1/[rpc].js"
-        },
-        {
-          "path": "api/trade/v1/[rpc].js"
-        },
-        {
-          "path": "api/unrest/v1/[rpc].js"
-        },
-        {
-          "path": "api/webcam/v1/[rpc].js"
-        },
-        {
-          "path": "api/wildfire/v1/[rpc].js"
-        },
-        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -8227,15 +7522,12 @@
     {
       "host": "reasonstobecheerful.world",
       "provider": "reasonstobecheerful.world",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit reasonstobecheerful.world and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -8308,9 +7600,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/intelligence/v1/get-country-facts.ts"
         }
       ]
@@ -8355,9 +7644,6 @@
       "attribution": "Credit review.firstround.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -8431,15 +7717,12 @@
     {
       "host": "rss.dw.com",
       "provider": "rss.dw.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit rss.dw.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -8471,9 +7754,6 @@
       "attribution": "Credit rss.politico.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -8801,9 +8081,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -8857,12 +8134,6 @@
       "attribution": "SerpAPI; link to the result and original publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/market/v1/stock-news-search.ts"
         }
@@ -8963,9 +8234,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -8986,9 +8254,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-aviation.mjs"
         },
         {
@@ -8999,15 +8264,12 @@
     {
       "host": "singularityhub.com",
       "provider": "singularityhub.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit singularityhub.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9028,15 +8290,12 @@
     {
       "host": "slack-status.com",
       "provider": "slack-status.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit slack-status.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9136,15 +8395,12 @@
     {
       "host": "status.circleci.com",
       "provider": "status.circleci.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.circleci.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9153,15 +8409,12 @@
     {
       "host": "status.claude.com",
       "provider": "status.claude.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.claude.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9170,15 +8423,12 @@
     {
       "host": "status.cloud.google.com",
       "provider": "status.cloud.google.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.cloud.google.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9187,15 +8437,12 @@
     {
       "host": "status.datadoghq.com",
       "provider": "status.datadoghq.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.datadoghq.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9204,15 +8451,12 @@
     {
       "host": "status.digitalocean.com",
       "provider": "status.digitalocean.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.digitalocean.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9221,15 +8465,12 @@
     {
       "host": "status.gitlab.com",
       "provider": "status.gitlab.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.gitlab.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9238,15 +8479,12 @@
     {
       "host": "status.npmjs.org",
       "provider": "status.npmjs.org",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.npmjs.org and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9255,15 +8493,12 @@
     {
       "host": "status.openai.com",
       "provider": "status.openai.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.openai.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9272,15 +8507,12 @@
     {
       "host": "status.render.com",
       "provider": "status.render.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.render.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9289,15 +8521,12 @@
     {
       "host": "status.sentry.io",
       "provider": "status.sentry.io",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.sentry.io and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9306,15 +8535,12 @@
     {
       "host": "status.stripe.com",
       "provider": "status.stripe.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.stripe.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9323,15 +8549,12 @@
     {
       "host": "status.supabase.com",
       "provider": "status.supabase.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.supabase.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9340,15 +8563,12 @@
     {
       "host": "status.twilio.com",
       "provider": "status.twilio.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit status.twilio.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -9383,9 +8603,6 @@
       "attribution": "Credit stratechery.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9483,9 +8700,6 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/leads/v1/[rpc].js"
-        },
-        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -9547,15 +8761,12 @@
     {
       "host": "taskandpurpose.com",
       "provider": "taskandpurpose.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit taskandpurpose.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9605,9 +8816,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -9645,9 +8853,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -9667,9 +8872,6 @@
       "attribution": "Credit techcrunch.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9712,15 +8914,12 @@
     {
       "host": "telex.hu",
       "provider": "telex.hu",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit telex.hu and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9842,15 +9041,12 @@
     {
       "host": "thedefiant.io",
       "provider": "thedefiant.io",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit thedefiant.io and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9862,15 +9058,12 @@
     {
       "host": "thediplomat.com",
       "provider": "thediplomat.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit thediplomat.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9899,15 +9092,12 @@
     {
       "host": "thehill.com",
       "provider": "thehill.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit thehill.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -9991,9 +9181,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -10028,9 +9215,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-aviation.mjs"
         },
         {
@@ -10058,15 +9242,12 @@
     {
       "host": "thesentry.org",
       "provider": "thesentry.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit thesentry.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -10222,15 +9403,12 @@
     {
       "host": "trumpstruth.org",
       "provider": "trumpstruth.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit trumpstruth.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -10307,15 +9485,12 @@
     {
       "host": "tvn24.pl",
       "provider": "tvn24.pl",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit tvn24.pl and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -10420,15 +9595,12 @@
     {
       "host": "unchainedcrypto.com",
       "provider": "unchainedcrypto.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit unchainedcrypto.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -10549,9 +9721,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -10571,9 +9740,6 @@
       "attribution": "Credit viewfromthewing.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
         {
           "path": "scripts/seed-aviation.mjs"
         },
@@ -10616,15 +9782,12 @@
     {
       "host": "vsquare.org",
       "provider": "vsquare.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit vsquare.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -10642,9 +9805,6 @@
       "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
       "status": "excluded",
       "references": [
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/leads/v1/register-interest.ts"
         },
@@ -10670,15 +9830,12 @@
     {
       "host": "warontherocks.com",
       "provider": "warontherocks.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit warontherocks.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -10747,9 +9904,6 @@
       "attribution": "Credit websummit.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
         {
           "path": "scripts/ais-relay.cjs"
         },
@@ -10824,10 +9978,15 @@
       "host": "workos.com",
       "provider": "workos.com",
       "kind": "structured",
-      "observed": false,
+      "observed": true,
       "license": "Excluded: first-party, control-plane, UI, or rendering transport",
       "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
-      "status": "excluded"
+      "status": "excluded",
+      "references": [
+        {
+          "path": "api/oauth-authorization-server.ts"
+        }
+      ]
     },
     {
       "host": "worldmonitor.app",
@@ -10848,70 +10007,10 @@
           "path": "api/ask.ts"
         },
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
-          "path": "api/batch/v1/[rpc].js"
-        },
-        {
-          "path": "api/climate/v1/[rpc].js"
-        },
-        {
-          "path": "api/conflict/v1/[rpc].js"
-        },
-        {
-          "path": "api/consumer-prices/v1/[rpc].js"
-        },
-        {
-          "path": "api/cyber/v1/[rpc].js"
-        },
-        {
-          "path": "api/displacement/v1/[rpc].js"
-        },
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/forecast/v1/[rpc].js"
-        },
-        {
           "path": "api/fwdstart.js"
         },
         {
-          "path": "api/giving/v1/[rpc].js"
-        },
-        {
-          "path": "api/health/v1/[rpc].js"
-        },
-        {
-          "path": "api/imagery/v1/[rpc].js"
-        },
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
-        {
-          "path": "api/maritime/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
           "path": "api/mcp/skill-extension/generated.ts"
-        },
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
-        {
-          "path": "api/natural/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
         },
         {
           "path": "api/not-found.ts"
@@ -10926,55 +10025,13 @@
           "path": "api/opensky.js"
         },
         {
-          "path": "api/positive-events/v1/[rpc].js"
-        },
-        {
-          "path": "api/prediction/v1/[rpc].js"
-        },
-        {
-          "path": "api/radiation/v1/[rpc].js"
-        },
-        {
           "path": "api/referral/me.ts"
-        },
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
-          "path": "api/resilience/v1/[rpc].js"
         },
         {
           "path": "api/reverse-geocode.js"
         },
         {
-          "path": "api/sanctions/v1/[rpc].js"
-        },
-        {
-          "path": "api/scenario/v1/[rpc].js"
-        },
-        {
-          "path": "api/seismology/v1/[rpc].js"
-        },
-        {
           "path": "api/story.js"
-        },
-        {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
-          "path": "api/thermal/v1/[rpc].js"
-        },
-        {
-          "path": "api/trade/v1/[rpc].js"
-        },
-        {
-          "path": "api/unrest/v1/[rpc].js"
-        },
-        {
-          "path": "api/webcam/v1/[rpc].js"
-        },
-        {
-          "path": "api/wildfire/v1/[rpc].js"
         },
         {
           "path": "scripts/_upstash-rest.mjs"
@@ -11087,108 +10144,6 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
-          "path": "api/batch/v1/[rpc].js"
-        },
-        {
-          "path": "api/climate/v1/[rpc].js"
-        },
-        {
-          "path": "api/conflict/v1/[rpc].js"
-        },
-        {
-          "path": "api/consumer-prices/v1/[rpc].js"
-        },
-        {
-          "path": "api/cyber/v1/[rpc].js"
-        },
-        {
-          "path": "api/displacement/v1/[rpc].js"
-        },
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/forecast/v1/[rpc].js"
-        },
-        {
-          "path": "api/giving/v1/[rpc].js"
-        },
-        {
-          "path": "api/health/v1/[rpc].js"
-        },
-        {
-          "path": "api/imagery/v1/[rpc].js"
-        },
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
-        },
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
-        {
-          "path": "api/maritime/v1/[rpc].js"
-        },
-        {
-          "path": "api/market/v1/[rpc].js"
-        },
-        {
-          "path": "api/military/v1/[rpc].js"
-        },
-        {
-          "path": "api/natural/v1/[rpc].js"
-        },
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
-          "path": "api/positive-events/v1/[rpc].js"
-        },
-        {
-          "path": "api/prediction/v1/[rpc].js"
-        },
-        {
-          "path": "api/radiation/v1/[rpc].js"
-        },
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
-          "path": "api/resilience/v1/[rpc].js"
-        },
-        {
-          "path": "api/sanctions/v1/[rpc].js"
-        },
-        {
-          "path": "api/scenario/v1/[rpc].js"
-        },
-        {
-          "path": "api/seismology/v1/[rpc].js"
-        },
-        {
-          "path": "api/supply-chain/v1/[rpc].js"
-        },
-        {
-          "path": "api/thermal/v1/[rpc].js"
-        },
-        {
-          "path": "api/trade/v1/[rpc].js"
-        },
-        {
-          "path": "api/unrest/v1/[rpc].js"
-        },
-        {
-          "path": "api/webcam/v1/[rpc].js"
-        },
-        {
-          "path": "api/wildfire/v1/[rpc].js"
-        },
-        {
           "path": "src/shared/public-rpc-cache.ts"
         }
       ]
@@ -11268,9 +10223,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -11298,15 +10250,12 @@
     {
       "host": "www.aajtak.in",
       "provider": "www.aajtak.in",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.aajtak.in and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11346,15 +10295,12 @@
     {
       "host": "www.africanews.com",
       "provider": "www.africanews.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.africanews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11428,15 +10374,12 @@
     {
       "host": "www.aljazeera.com",
       "provider": "www.aljazeera.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.aljazeera.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11499,15 +10442,12 @@
     {
       "host": "www.amarujala.com",
       "provider": "www.amarujala.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.amarujala.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11519,15 +10459,12 @@
     {
       "host": "www.ansa.it",
       "provider": "www.ansa.it",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.ansa.it and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11556,15 +10493,12 @@
     {
       "host": "www.atlanticcouncil.org",
       "provider": "www.atlanticcouncil.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.atlanticcouncil.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11576,15 +10510,12 @@
     {
       "host": "www.atv.hu",
       "provider": "www.atv.hu",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.atv.hu and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11596,15 +10527,12 @@
     {
       "host": "www.australianmining.com.au",
       "provider": "www.australianmining.com.au",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.australianmining.com.au and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11623,9 +10551,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-aviation.mjs"
         },
         {
@@ -11642,9 +10567,6 @@
       "attribution": "Credit www.aviationweek.com and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
         {
           "path": "scripts/seed-aviation.mjs"
         },
@@ -11853,15 +10775,12 @@
     {
       "host": "www.cbsnews.com",
       "provider": "www.cbsnews.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.cbsnews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11887,15 +10806,12 @@
     {
       "host": "www.channelnewsasia.com",
       "provider": "www.channelnewsasia.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.channelnewsasia.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -11959,9 +10875,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -11975,15 +10888,12 @@
     {
       "host": "www.clarin.com",
       "provider": "www.clarin.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.clarin.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12009,15 +10919,12 @@
     {
       "host": "www.cloudflarestatus.com",
       "provider": "www.cloudflarestatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.cloudflarestatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -12032,9 +10939,6 @@
       "attribution": "Credit www.cnbc.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12067,9 +10971,6 @@
       "attribution": "Credit www.coindesk.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12112,15 +11013,12 @@
     {
       "host": "www.crisisgroup.org",
       "provider": "www.crisisgroup.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.crisisgroup.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12132,15 +11030,12 @@
     {
       "host": "www.csis.org",
       "provider": "www.csis.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.csis.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         }
@@ -12204,9 +11099,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -12251,15 +11143,12 @@
     {
       "host": "www.defensenews.com",
       "provider": "www.defensenews.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.defensenews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12271,15 +11160,12 @@
     {
       "host": "www.defenseone.com",
       "provider": "www.defenseone.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.defenseone.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12339,15 +11225,12 @@
     {
       "host": "www.dockerstatus.com",
       "provider": "www.dockerstatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.dockerstatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -12460,15 +11343,12 @@
     {
       "host": "www.eluniverso.com",
       "provider": "www.eluniverso.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.eluniverso.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12521,9 +11401,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -12540,9 +11417,6 @@
       "attribution": "Credit www.euronews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12578,9 +11452,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-fao-food-price-index.mjs"
         },
         {
@@ -12615,9 +11486,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-economic-calendar.mjs"
         },
         {
@@ -12644,9 +11512,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/aviation/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-aviation.mjs"
         },
         {
@@ -12657,15 +11522,12 @@
     {
       "host": "www.foreignaffairs.com",
       "provider": "www.foreignaffairs.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.foreignaffairs.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12691,15 +11553,12 @@
     {
       "host": "www.france24.com",
       "provider": "www.france24.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.france24.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12711,15 +11570,12 @@
     {
       "host": "www.ft.com",
       "provider": "www.ft.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.ft.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -12797,9 +11653,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -12813,15 +11666,12 @@
     {
       "host": "www.githubstatus.com",
       "provider": "www.githubstatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.githubstatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -12889,15 +11739,12 @@
     {
       "host": "www.goodnewsnetwork.org",
       "provider": "www.goodnewsnetwork.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.goodnewsnetwork.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13048,15 +11895,12 @@
     {
       "host": "www.iaea.org",
       "provider": "www.iaea.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.iaea.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13133,15 +11977,12 @@
     {
       "host": "www.index.hr",
       "provider": "www.index.hr",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.index.hr and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13153,15 +11994,12 @@
     {
       "host": "www.infobae.com",
       "provider": "www.infobae.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.infobae.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13238,15 +12076,12 @@
     {
       "host": "www.jeuneafrique.com",
       "provider": "www.jeuneafrique.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.jeuneafrique.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13292,15 +12127,12 @@
     {
       "host": "www.jutarnji.hr",
       "provider": "www.jutarnji.hr",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.jutarnji.hr and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13360,15 +12192,12 @@
     {
       "host": "www.lemonde.fr",
       "provider": "www.lemonde.fr",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.lemonde.fr and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13406,15 +12235,12 @@
     {
       "host": "www.lighthousereports.com",
       "provider": "www.lighthousereports.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.lighthousereports.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13432,9 +12258,6 @@
       "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
       "status": "excluded",
       "references": [
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/leads/v1/register-interest.ts"
         },
@@ -13519,15 +12342,12 @@
     {
       "host": "www.militarytimes.com",
       "provider": "www.militarytimes.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.militarytimes.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13539,15 +12359,12 @@
     {
       "host": "www.mining-technology.com",
       "provider": "www.mining-technology.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.mining-technology.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13559,15 +12376,12 @@
     {
       "host": "www.mining.com",
       "provider": "www.mining.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.mining.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13678,15 +12492,12 @@
     {
       "host": "www.nature.com",
       "provider": "www.nature.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.nature.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13712,15 +12523,12 @@
     {
       "host": "www.netlifystatus.com",
       "provider": "www.netlifystatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.netlifystatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -13785,15 +12593,12 @@
     {
       "host": "www.notion-status.com",
       "provider": "www.notion-status.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.notion-status.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -13833,15 +12638,12 @@
     {
       "host": "www.occrp.org",
       "provider": "www.occrp.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.occrp.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13853,15 +12655,12 @@
     {
       "host": "www.omanobserver.om",
       "provider": "www.omanobserver.om",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.omanobserver.om and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13887,15 +12686,12 @@
     {
       "host": "www.optimistdaily.com",
       "provider": "www.optimistdaily.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.optimistdaily.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13921,15 +12717,12 @@
     {
       "host": "www.oryxspioenkop.com",
       "provider": "www.oryxspioenkop.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.oryxspioenkop.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -13955,15 +12748,12 @@
     {
       "host": "www.pbs.org",
       "provider": "www.pbs.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.pbs.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14009,15 +12799,12 @@
     {
       "host": "www.positive.news",
       "provider": "www.positive.news",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.positive.news and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14029,15 +12816,12 @@
     {
       "host": "www.premiumtimesng.com",
       "provider": "www.premiumtimesng.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.premiumtimesng.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14049,15 +12833,12 @@
     {
       "host": "www.primicias.ec",
       "provider": "www.primicias.ec",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.primicias.ec and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14075,9 +12856,6 @@
       "attribution": "Credit www.producthunt.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14205,15 +12983,12 @@
     {
       "host": "www.replicatestatus.com",
       "provider": "www.replicatestatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.replicatestatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -14253,15 +13028,12 @@
     {
       "host": "www.rigzone.com",
       "provider": "www.rigzone.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.rigzone.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14273,15 +13045,12 @@
     {
       "host": "www.rp.pl",
       "provider": "www.rp.pl",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.rp.pl and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14383,15 +13152,12 @@
     {
       "host": "www.sciencedaily.com",
       "provider": "www.sciencedaily.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.sciencedaily.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14423,9 +13189,6 @@
       "attribution": "U.S. Securities and Exchange Commission (SEC).",
       "status": "reviewed",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "scripts/openapi-inject-examples.mjs"
         },
@@ -14459,9 +13222,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -14478,9 +13238,6 @@
       "attribution": "Credit www.sequoiacap.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "src/config/variants/tech.ts"
         }
@@ -14506,15 +13263,12 @@
     {
       "host": "www.shareable.net",
       "provider": "www.shareable.net",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.shareable.net and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14672,15 +13426,12 @@
     {
       "host": "www.svt.se",
       "provider": "www.svt.se",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.svt.se and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14720,15 +13471,12 @@
     {
       "host": "www.tagesschau.de",
       "provider": "www.tagesschau.de",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.tagesschau.de and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14764,9 +13512,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -14783,9 +13528,6 @@
       "attribution": "Credit www.techmeme.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/research/v1/[rpc].js"
-        },
         {
           "path": "scripts/ais-relay.cjs"
         },
@@ -14812,9 +13554,6 @@
       "attribution": "Credit www.technologyreview.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14898,9 +13637,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "scripts/seed-climate-news.mjs"
         },
         {
@@ -14914,15 +13650,12 @@
     {
       "host": "www.thehindu.com",
       "provider": "www.thehindu.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.thehindu.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14934,15 +13667,12 @@
     {
       "host": "www.themoscowtimes.com",
       "provider": "www.themoscowtimes.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.themoscowtimes.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -14954,15 +13684,12 @@
     {
       "host": "www.thenationalnews.com",
       "provider": "www.thenationalnews.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.thenationalnews.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         }
@@ -15012,9 +13739,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -15052,9 +13776,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/research/v1/[rpc].js"
-        },
-        {
           "path": "scripts/ais-relay.cjs"
         },
         {
@@ -15074,9 +13795,6 @@
       "attribution": "Credit www.tomshardware.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -15136,15 +13854,12 @@
     {
       "host": "www.twz.com",
       "provider": "www.twz.com",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.twz.com and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -15201,15 +13916,12 @@
     {
       "host": "www.vercel-status.com",
       "provider": "www.vercel-status.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.vercel-status.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -15249,15 +13961,12 @@
     {
       "host": "www.war.gov",
       "provider": "www.war.gov",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.war.gov and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         }
@@ -15297,15 +14006,12 @@
     {
       "host": "www.whitehouse.gov",
       "provider": "www.whitehouse.gov",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.whitehouse.gov and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -15323,9 +14029,6 @@
       "attribution": "Credit www.who.int and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "scripts/seed-disease-outbreaks.mjs"
         },
@@ -15351,9 +14054,6 @@
       "references": [
         {
           "path": "api/mcp/skill-extension/generated.ts"
-        },
-        {
-          "path": "api/webcam/v1/[rpc].js"
         },
         {
           "path": "server/worldmonitor/webcam/v1/get-webcam-image.ts"
@@ -15411,12 +14111,6 @@
         },
         {
           "path": "api/ask.ts"
-        },
-        {
-          "path": "api/economic/v1/[rpc].js"
-        },
-        {
-          "path": "api/intelligence/v1/[rpc].js"
         },
         {
           "path": "api/mcp/skill-extension/generated.ts"
@@ -15484,9 +14178,6 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/news/v1/[rpc].js"
-        },
-        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -15500,15 +14191,12 @@
     {
       "host": "www.yesmagazine.org",
       "provider": "www.yesmagazine.org",
-      "kind": "feed+structured",
+      "kind": "feed",
       "observed": true,
       "license": "Provider terms for this feed publisher; verify before redistribution",
       "attribution": "Credit www.yesmagazine.org and link to the original feed publisher.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/news/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
@@ -15560,9 +14248,6 @@
       "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
       "status": "excluded",
       "references": [
-        {
-          "path": "api/aviation/v1/[rpc].js"
-        },
         {
           "path": "api/youtube/embed.js"
         },
@@ -15620,15 +14305,12 @@
     {
       "host": "www.zoomstatus.com",
       "provider": "www.zoomstatus.com",
-      "kind": "operational-status+structured",
+      "kind": "operational-status",
       "observed": true,
       "license": "Provider terms for this service-status endpoint; verify before redistribution",
       "attribution": "Credit www.zoomstatus.com and link to the original service-status endpoint.",
       "status": "terms-review",
       "references": [
-        {
-          "path": "api/infrastructure/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/infrastructure/v1/list-service-statuses.ts"
         }
@@ -15688,9 +14370,6 @@
       "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
       "status": "excluded",
       "references": [
-        {
-          "path": "api/leads/v1/[rpc].js"
-        },
         {
           "path": "server/worldmonitor/leads/v1/register-interest.ts"
         }
