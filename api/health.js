@@ -576,7 +576,12 @@ const SEED_META = {
   chinaCoverage:   { key: 'seed-meta:health:china-coverage',   maxStaleMin: 180 },
   // Always-on loop publishes every few seconds. Five minutes tolerates deploy
   // churn while still detecting a stopped worker well before leases age out.
-  companyMonitoringWorker: { key: 'seed-meta:company-monitoring:worker', maxStaleMin: 5, workerControl: true },
+  companyMonitoringWorker: { key: 'seed-meta:company-monitoring:worker', maxStaleMin: 5, workerControl: true,
+    // Arrived via the 2026-08 upstream sync (#6386 upstream); new-vs-base only on
+    // this fork's PR, so the cutover is re-declared here per the sync-PR clause
+    // in .github/workflows/test.yml. Producer unscheduled on self-host until the
+    // company-monitoring worker ships in the compose loop.
+    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6386, status: 'STALE_SEED' } },
   earthquakes:      { key: 'seed-meta:seismology:earthquakes',  maxStaleMin: 30 },
   wildfires:        { key: 'seed-meta:wildfire:fires',          maxStaleMin: 360 }, // FIRMS NRT resets at midnight UTC; new-day data takes 3-6h to accumulate
   wildfiresBootstrap: { key: 'seed-meta:wildfire:fires-bootstrap', maxStaleMin: 360 }, // Compact CDN payload is a distinct publish target; monitor it so canonical fallback cannot hide transform/write failures.
@@ -853,7 +858,10 @@ const SEED_META = {
     maxStaleMin: 45, // union rebuilds on the */15 Alberta tick; 45 = 3× interval
     cutover: {
       mode: 'expiring-ack',
-      fromKey: 'seed-meta:alerts:alberta-aea',
+      // null on the fork's sync PR: this probe is new versus the fork base, so
+      // the transition is <new> -> canada-union here; upstream's repoint from
+      // alberta-aea is upstream history that never existed on this base.
+      fromKey: null,
       issue: 6659,
       status: 'EMPTY',
     },
@@ -917,14 +925,20 @@ const SEED_META = {
   researchArxivHnTrending: { key: 'seed-meta:research:arxiv-hn-trending', maxStaleMin: 150 },
   gdeltIntel:       { key: 'seed-meta:intelligence:gdelt-intel',   maxStaleMin: 45 }, // 15min bulk materializer; 45min = 3× cadence and expires before the 24h canonical key.
   telegramFeed:     { key: 'seed-meta:intelligence:telegram-feed:v1', maxStaleMin: 10 }, // 60s poll interval; 10min grace catches poll failures before they go stale in the panel
-  xFeed:            { key: 'seed-meta:intelligence:x-feed:v1', maxStaleMin: 45 }, // 5–15min ais-relay poll; 45min = 3× max cadence. Cutover complete (#6654): X_BEARER_TOKEN is on ais-relay and the producer serves the key, so EMPTY here is now a real fault, not a deploy window.
+  xFeed:            { key: 'seed-meta:intelligence:x-feed:v1', maxStaleMin: 45, // 5–15min ais-relay poll; 45min = 3× max cadence. Cutover complete upstream (#6654): X_BEARER_TOKEN is on ais-relay and the producer serves the key, so EMPTY here is now a real fault, not a deploy window.
+    // Re-declared for the fork's 2026-08 sync PR: the probe is new versus the
+    // fork base, so the completed upstream cutover re-litigates here.
+    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6654, status: 'STALE_SEED' } },
   digestNotifications: { key: 'seed-meta:digest:last-run',          maxStaleMin: 90 }, // Railway digest-notifications cron runs every 30min; 90 = 3x cadence and detects a dead cron before daily digests are missed.
   forecasts:        { key: 'seed-meta:forecast:predictions',       maxStaleMin: 90 },
   forecastsBootstrap: { key: 'seed-meta:forecast:predictions-bootstrap', maxStaleMin: 90 }, // Same cron. Monitored separately: the fast tier now hydrates from the dashboard list, and a transform/write failure there must not hide behind a healthy canonical key (#5300).
   forecastResolutions: { key: 'seed-meta:forecast:resolutions',     maxStaleMin: 2160 }, // daily Bet-2 resolver; 36h catches a missed cron without flapping on normal daily jitter
   forecastScorecard:   { key: 'seed-meta:forecast:scorecard',       maxStaleMin: 2160 }, // scorecard extra key written by seed-forecast-resolutions
   forecastBets:        { key: 'seed-meta:forecast:bets',            maxStaleMin: 2880 }, // #5233 shadow bet-engine seeder; daily cron (05:00 UTC), 48h = 2× interval
-  predictionPriceArchive: { key: 'seed-meta:prediction:price-archive', maxStaleMin: 180 }, // price archiver rides the self-host seed-loop (~45-75 min cycle); 180 = >2× worst cadence. Every silent window is unrecoverable history, so this is deliberately tight.
+  predictionPriceArchive: { key: 'seed-meta:prediction:price-archive', maxStaleMin: 180,
+    // New probe (backtest lane, PR #1). Producer already live in the self-host
+    // seed-loop; hosted deployments pend as STALE_SEED until scheduled there.
+    cutover: { mode: 'expiring-ack', fromKey: null, issue: 1, status: 'STALE_SEED' } }, // price archiver rides the self-host seed-loop (~45-75 min cycle); 180 = >2× worst cadence. Every silent window is unrecoverable history, so this is deliberately tight.
   forecastMarketsResolution: { key: 'seed-meta:prediction:markets-resolution', maxStaleMin: 2160 }, // #5525 market settlement feed; written every resolver run (even zero-due), so it shares the resolver's 36h window
   forecastFunnel:      { key: 'seed-meta:forecast:funnel:health:v1', maxStaleMin: 180 }, // funnel-diversity guardrail (#5233); written by seed-forecasts afterPublish each hourly run (3× cadence). status:'error' → SEED_ERROR when the published funnel collapses (too few domains / mostly synthetic)
   sectors:          { key: 'seed-meta:market:sectors',             maxStaleMin: 30 },
@@ -1025,11 +1039,18 @@ const SEED_META = {
   // already gone. 420 = the 6h cron plus one hour of grace, so health reaches
   // STALE_SEED an hour BEFORE the keys it vouches for lapse. Same shape as the
   // meta-only comtradeBilateralHs4 entry above (35d budget, 40d payload TTL).
-  tradeFlows:          { key: 'seed-meta:trade:flows',                        maxStaleMin: 420, minRecordCount: 200, dominantFailureMode: true },
+  tradeFlows:          { key: 'seed-meta:trade:flows',                        maxStaleMin: 420, minRecordCount: 200, dominantFailureMode: true,
+    // Re-declared for the fork's 2026-08 sync PR (upstream #6322): new versus the
+    // fork base, so the long-completed upstream cutover re-litigates here.
+    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6322, status: 'STALE_SEED' } },
   // Same meta-only shape as tradeFlows above (#6316 moved tariffs off the
   // single-key US years=10 probe). maxStaleMin 420 sits inside TARIFF_TTL
   // (480min); minRecordCount 150 leaves headroom under a ~200+ reporter fleet.
-  tariffTrendsUs:      { key: 'seed-meta:trade:tariffs',                      maxStaleMin: 420, minRecordCount: 150 },
+  tariffTrendsUs:      { key: 'seed-meta:trade:tariffs',                      maxStaleMin: 420, minRecordCount: 150,
+    // Re-declared for the fork's 2026-08 sync PR: upstream repointed this probe
+    // (#6349) long ago; the old key is still what the fork base carries, so the
+    // repoint re-litigates on this PR.
+    cutover: { mode: 'expiring-ack', fromKey: 'seed-meta:trade:tariffs:v1:840:all:10', issue: 6349, status: 'STALE_SEED' } },
   // publish.ts runs once daily (02:30 UTC); seed-meta TTL=52h — maxStaleMin must cover the full 24h cycle
   consumerPricesOverview:   { key: 'seed-meta:consumer-prices:overview:ae',     maxStaleMin: 1500, minSuccessRate: 0.5 }, // 25h = 24h cadence + 1h grace; warn when <50% snapshots succeeded
   consumerPricesCategories: { key: 'seed-meta:consumer-prices:categories:ae:30d',            maxStaleMin: 1500 },
@@ -1042,7 +1063,10 @@ const SEED_META = {
   aiTokens:          { key: 'seed-meta:market:token-panels', maxStaleMin: 90 },
   otherTokens:       { key: 'seed-meta:market:token-panels', maxStaleMin: 90 },
   fredBatch:         { key: 'seed-meta:economic:fred:v1:FEDFUNDS:0', maxStaleMin: 1500 }, // daily cron
-  fredRatesSeeder:   { key: 'seed-meta:economic:fred-rates', maxStaleMin: 180, minRecordCount: 24 }, // independent hourly FRED/rates seeder; publication accepts 18/24, but health requires full consumer coverage
+  fredRatesSeeder:   { key: 'seed-meta:economic:fred-rates', maxStaleMin: 180, minRecordCount: 24, // independent hourly FRED/rates seeder; publication accepts 18/24, but health requires full consumer coverage
+    // Re-declared for the fork's 2026-08 sync PR (upstream #6339): new versus
+    // the fork base, so the completed upstream cutover re-litigates here.
+    cutover: { mode: 'expiring-ack', fromKey: null, issue: 6339, status: 'STALE_SEED' } },
   forecastFredWalcl:      { key: 'seed-meta:economic:fred:v1:WALCL:0',      maxStaleMin: 1500 },
   forecastFredT10y2y:     { key: 'seed-meta:economic:fred:v1:T10Y2Y:0',     maxStaleMin: 1500 },
   forecastFredUnrate:     { key: 'seed-meta:economic:fred:v1:UNRATE:0',     maxStaleMin: 1500 },

@@ -22,6 +22,343 @@
     "Softening fault statuses is the marketImplications blind spot the ON_DEMAND_KEYS policy",
     "block in api/health.js exists to prevent."
   ],
-  "expiresAt": "2026-08-27",
-  "acknowledged": []
+  "expiresAt": "2026-09-04",
+  "acknowledged": [
+    {
+      "name": "companyMonitoringWorker",
+      "status": "STALE_SEED",
+      "issue": 6386,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:company-monitoring:worker",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Upstream-sync-inherited probe (upstream #6386); producer not yet scheduled on the fork's stack. Bounded to the sync-PR review window."
+    },
+    {
+      "name": "predictionPriceArchive",
+      "status": "STALE_SEED",
+      "issue": 1,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:prediction:price-archive",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Backtest-lane price archiver (PR #1); producer live in the self-host seed-loop, hosted scheduling pending. Bounded to the first hosted cron window."
+    },
+    {
+      "name": "flightDelays",
+      "status": "STALE_SEED",
+      "issue": 6987,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:aviation:delays-bootstrap",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6987 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition per the test.yml sync-PR clause."
+    },
+    {
+      "name": "canadaRoads",
+      "status": "EMPTY",
+      "issue": 6608,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:ontario-511",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6608 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition per the test.yml sync-PR clause."
+    },
+    {
+      "name": "albertaRoads",
+      "status": "EMPTY",
+      "issue": 6612,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:alberta-511",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6612 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "manitobaRoads",
+      "status": "EMPTY",
+      "issue": 6622,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:manitoba-511",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6622 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "torontoRoads",
+      "status": "EMPTY",
+      "issue": 6609,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:toronto-roads",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6609 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "bcOpen511",
+      "status": "EMPTY",
+      "issue": 6611,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:bc-open511",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6611 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "canadaAlerts",
+      "status": "EMPTY",
+      "issue": 6659,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:canada-union",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6659 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "canadaAlertsAbSource",
+      "status": "EMPTY",
+      "issue": 6659,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:alberta-aea",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6659 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "canadaAlertsBcSource",
+      "status": "EMPTY",
+      "issue": 6659,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:bc-emergency-info",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6659 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "canadaAlertsSkSource",
+      "status": "STALE_SEED",
+      "issue": 6659,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:saskalert",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6659 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "ttcAlerts",
+      "status": "EMPTY",
+      "issue": 6623,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:transit:ttc-alerts",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6623 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "tpsMci",
+      "status": "EMPTY",
+      "issue": 7035,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:safety:tps-mci",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #7035 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "tpsCallsAttended",
+      "status": "EMPTY",
+      "issue": 7036,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:safety:tps-calls-attended",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #7036 landed this probe with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "xFeed",
+      "status": "STALE_SEED",
+      "issue": 6654,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:intelligence:x-feed:v1",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6654 completed this cutover with a since-pruned acknowledgement; the sync PR re-litigates the transition."
+    },
+    {
+      "name": "tradeFlows",
+      "status": "STALE_SEED",
+      "issue": 6322,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:trade:flows",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR: upstream #6322 landed this probe; new versus the fork base, so the transition re-litigates."
+    },
+    {
+      "name": "tariffTrendsUs",
+      "status": "STALE_SEED",
+      "issue": 6349,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:trade:tariffs",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Upstream repoint (#6349) re-litigated on the fork sync PR; old key is what the fork base carries."
+    },
+    {
+      "name": "fredRatesSeeder",
+      "status": "STALE_SEED",
+      "issue": 6339,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:economic:fred-rates",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6339): new versus the fork base, so the transition re-litigates."
+    },
+    {
+      "name": "marketCorrelationSeries",
+      "status": "EMPTY",
+      "issue": 6418,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:market:correlation-series",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6418): new versus the fork base, so the transition re-litigates."
+    },
+    {
+      "name": "bocValet",
+      "status": "EMPTY",
+      "issue": 6616,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:economic:boc-valet",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6616): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    },
+    {
+      "name": "statcanWds",
+      "status": "EMPTY",
+      "issue": 6676,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:economic:statcan-wds",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6676): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    },
+    {
+      "name": "foodStocks",
+      "status": "EMPTY",
+      "issue": 6440,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:resilience:food-stocks",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6440): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    },
+    {
+      "name": "demographicsCapability",
+      "status": "EMPTY",
+      "issue": 6437,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:demographics:capability",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6437): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    },
+    {
+      "name": "mineralProduction",
+      "status": "EMPTY",
+      "issue": 6439,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:supply-chain:mineral-production",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6439): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    },
+    {
+      "name": "staticRefBundleTick",
+      "status": "EMPTY",
+      "issue": 6691,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "bundle:heartbeat:static-ref",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6691): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    },
+    {
+      "name": "staticRefHeavyBundleTick",
+      "status": "EMPTY",
+      "issue": 6806,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "bundle:heartbeat:static-ref-heavy",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6806): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    },
+    {
+      "name": "viarailLive",
+      "status": "STALE_SEED",
+      "issue": 6615,
+      "expiresAt": "2026-08-29T17:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:transit:viarail-live",
+        "activatedAt": "2026-08-28T18:00:00Z",
+        "firstScheduledRunAt": "2026-08-29T17:00:00Z"
+      },
+      "$comment": "Re-declared for the 2026-08 upstream-sync PR (upstream #6615): probe transition is new versus the fork base, so the completed upstream cutover re-litigates on this PR."
+    }
+  ]
 }
