@@ -112,7 +112,9 @@ Three doors, all typed, all provenance-carrying. The instrument is a tool
 the interesting engineering is in keeping those three from leaking into each
 other.
 
-**Outbound — what agents call.** 70 typed MCP tools over one endpoint, plus 25
+**Outbound — what agents call.** A registry-derived catalog of typed MCP tools
+over one endpoint (the registry is the count; prose that hard-codes it goes
+stale), plus 25
 [Agent Skills](public/.well-known/agent-skills/) published at
 `/.well-known/agent-skills/` against the agentskills.io discovery schema. A tool
 surface tells an agent *what it can call*; a skill directory tells it *when the
@@ -143,6 +145,38 @@ weaker claim than it looks, and two connectors sat green while returning 401 and
 showing a lock that could never be opened: two hosted servers accept only
 OAuth-issued tokens, which a stateless relay cannot obtain, and one pointed at a
 hostname that no longer resolves.
+
+## The trader console
+
+There is a purpose-built launcher for the markets work, and it is easy to miss
+because it ships as a *variant*, not a separate app:
+
+```bash
+npm run dev:trader
+```
+
+That starts the same instrument with the trader panel registry —
+`TRADER_PANELS` in [src/config/panels.ts](src/config/panels.ts) — in place of
+the full geopolitical layout. Hosted, the same variant answers at
+trader.worldmonitor.app; self-hosted, it is `VITE_VARIANT=trader` on the build.
+Today it slots Kraken spot, the prediction-market board (Kalshi + Polymarket),
+stock backtesting, market regime, macro stress, sector heat, and the OSINT
+layers a price feed cannot reconstruct — supply chain, chokepoints, conflict.
+
+Its scope is a hard line, owner-ruled and written at the top of the registry:
+**dashboard + MCP surface only.** This variant renders intelligence and serves
+it over MCP to the downstream repos that hold their own venue accounts,
+licences, and trading authorization. *Those* repos execute. No order
+placement, no transfers, no position management here — not stubbed, not "for
+testing."
+
+It is also the blank tab new market modules slot into. The pattern is
+mechanical (AGENTS.md "Adding a New Panel"): a panel component, a
+`panels.ts` registration, a line in the variant config, data-loader wiring —
+and an MCP registry entry when downstream agents should see the same surface.
+The backtesting lane's deliverables (price-archive health, calibration
+scorecard, venue cost-of-stake, the paper ledger) land here as panels, not as
+a new shell.
 
 ## The scarce good
 
