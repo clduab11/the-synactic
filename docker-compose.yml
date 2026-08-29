@@ -670,7 +670,12 @@ services:
       # from the host is the published mapping).
       API_BASE_URL: "http://the-synactic:8080"
       WS_RELAY_URL: "http://ais-relay:3004"
-      RELAY_SHARED_SECRET: "${RELAY_SHARED_SECRET:-}"
+      # Fail-closed like the-synactic and ais-relay. The `:-` default let this
+      # container start with an EMPTY shared secret, which is the bypass
+      # tests/docker-compose-no-default-secrets.test.mts forbids. Operationally
+      # identical: both other consumers already use `:?`, so the stack cannot
+      # come up without the variable in the first place.
+      RELAY_SHARED_SECRET: "${RELAY_SHARED_SECRET:?RELAY_SHARED_SECRET required — generate with: openssl rand -hex 32}"
       # seed-infra warm-pings three gateway routes (list-service-statuses,
       # get-cable-health, list-temporal-anomalies) and presents this as the
       # internal-caller credential (scripts/seed-infra.mjs:39). Unset, it fell

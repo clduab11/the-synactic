@@ -345,6 +345,11 @@ if (DIRECT_RUN) {
     } else {
       console.error(`[seed] prediction/price-archive ${result.exitCode === 1 ? 'FAILED' : 'DEGRADED'} (exit ${result.exitCode}) — ${result.failures.join('; ')}`);
     }
+    // Terminal marker, and genuinely the last act before exit. This archiver
+    // does not go through runSeed(), so nothing else prints one — without it the
+    // crash diagnostic cannot tell a completed cycle from a silent death
+    // mid-run, which for an archiver means a coverage gap nobody notices.
+    console.log(`\n=== Done (${Date.now() - runStartedAt}ms) ===`);
     process.exit(result.exitCode);
   }).catch((err) => {
     console.error(`FATAL: ${err?.message || err}`);

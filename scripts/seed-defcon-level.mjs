@@ -158,7 +158,13 @@ runSeed('intelligence', 'defcon-level', CANONICAL_KEY, fetchDefconLevel, {
   recordCount: (data) => (Array.isArray(data?.commands) ? data.commands.length : 0),
   declareRecords,
   schemaVersion: 1,
-  maxStaleMin: 180,
+  // 135, matching api/health.js — NOT 180. CACHE_TTL is 10800s, i.e. exactly
+  // 180 minutes, so declaring 180 here made the TTL equal to the staleness gate
+  // rather than strictly greater: a merely-late seeder would have had its data
+  // key expire to EMPTY (crit) at the same instant the gate would have reported
+  // STALE_SEED, losing the distinction between "late" and "gone". health.js has
+  // carried the correct 135 (3x the 45-min seed-loop cycle) all along.
+  maxStaleMin: 135,
 }).catch((err) => {
   console.error('FATAL:', err.message || err);
   process.exit(1);

@@ -32,6 +32,13 @@ async function read(rel: string): Promise<string> {
   return (await readFile(new URL(rel, REPO_ROOT), 'utf8')).replace(/\r\n/g, '\n');
 }
 
+// The fork's app service is `the-synactic`; upstream's is `worldmonitor`. This
+// file arrived with the 696-commit merge still naming upstream's, so the lookup
+// returned undefined and the guard reported a MISSING relay secret on a compose
+// file that wires it correctly. Named once here rather than inline, so the
+// rename cannot half-land again.
+const APP_SERVICE = 'the-synactic';
+
 function serviceBlock(compose: string, serviceName: string): string {
   const normalizedCompose = compose.replaceAll('\r\n', '\n');
   const match = normalizedCompose.match(
@@ -52,7 +59,7 @@ interface ComposeConfig {
 function assertRequiredRelaySecretWiring(compose: string): void {
   const parsed = parse(compose) as ComposeConfig;
   const requiredSecret = /^\$\{RELAY_SHARED_SECRET:\?[^}\r\n]+\}$/;
-  const worldmonitorSecret = parsed.services?.worldmonitor?.environment?.RELAY_SHARED_SECRET;
+  const worldmonitorSecret = parsed.services?.[APP_SERVICE]?.environment?.RELAY_SHARED_SECRET;
   const relaySecret = parsed.services?.['ais-relay']?.environment?.RELAY_SHARED_SECRET;
   const allRelaySecretExpansions = compose.match(/\$\{RELAY_SHARED_SECRET[^}\r\n]*\}/g) ?? [];
 
@@ -81,10 +88,20 @@ function assertRequiredRelaySecretWiring(compose: string): void {
     relaySecret,
     'worldmonitor and ais-relay must receive the same required secret expansion',
   );
+  // Asserts the PROPERTY (every expansion is fail-closed) rather than a fixed
+  // consumer count. The old form pinned exactly two and broke the moment this
+  // fork added a third consumer — seed-loop-fast — which is a normal thing to
+  // do, while the bypass it actually guards against is the `:-` default form.
+  // Counting also made the diagnostic unhelpful: it reported "two mappings
+  // expected" rather than naming the offending expansion.
   assert.deepEqual(
-    allRelaySecretExpansions,
-    [worldmonitorSecret, relaySecret],
-    'the two consumer mappings must be the only RELAY_SHARED_SECRET expansions, with no bare or defaulted bypass',
+    allRelaySecretExpansions.filter((expansion) => !requiredSecret.test(expansion)),
+    [],
+    'every RELAY_SHARED_SECRET expansion must use the ${RELAY_SHARED_SECRET:?...} guard — a bare or `:-` defaulted form lets a container start with an empty shared secret',
+  );
+  assert.ok(
+    allRelaySecretExpansions.length >= 2,
+    'both the app and ais-relay must still consume RELAY_SHARED_SECRET',
   );
 }
 
@@ -230,9 +247,12 @@ describe('docker self-hosting — no default credentials (#3804)', () => {
 
   it('rejects a relay secret guard outside a service environment mapping', () => {
     const misplacedSecret = '${RELAY_SHARED_SECRET:?RELAY_SHARED_SECRET required}';
+    // Must use APP_SERVICE. With upstream's name the helper would throw because
+    // the service is ABSENT, so this control would pass without ever exercising
+    // the misplaced-secret path it exists to check.
     const compose = [
       'services:',
-      '  worldmonitor:',
+      `  ${APP_SERVICE}:`,
       '    environment:',
       '      LOCAL_API_MODE: docker',
       '    labels:',
