@@ -801,11 +801,27 @@ type DashboardScrollResult = {
   after: ScrollMetrics;
   before: ScrollMetrics;
   hydrationMarksBefore: number;
+  /**
+   * Whether the slow-tier wait had ALREADY ended at the instant of the scroll.
+   *
+   * The early-scroll test below asserts that a scroll delivered before
+   * readiness schedules no viewport trigger. That is only meaningful while the
+   * app has not yet registered its scroll listener (src/App.ts registers it
+   * after `await slowTierReady`). Readiness has a second trigger the test
+   * cannot hold: waitForBootstrapSlowTier's 3.5s wall-clock timeout fires
+   * whether or not the stubbed route was released. On a starved runner the
+   * listener can therefore be live before the scroll lands — at which point one
+   * trigger is CORRECT behaviour, not the violation the assertion reports.
+   * Captured here, in the same evaluate as the scroll, so it describes the
+   * moment that matters rather than a later snapshot.
+   */
+  readinessSettledBeforeScroll: boolean;
   scrollCount: number;
 };
 
 const VIEWPORT_HYDRATION_MARK = 'wm:hydration:viewport-trigger';
 const INITIAL_FANOUT_COMPLETE_MARK = 'wm:data:initial-fanout-complete';
+const SLOW_TIER_WAIT_END_MARK = 'wm:data:slow-tier-wait-end';
 
 async function seedScrollableDashboard(page: Page): Promise<void> {
   await seedFreshAnonymousFullVariant(page, {
@@ -885,7 +901,7 @@ async function readScrollMetrics(page: Page): Promise<ScrollMetrics> {
 }
 
 async function scrollDashboardAndCollect(page: Page): Promise<DashboardScrollResult> {
-  return page.evaluate((hydrationMark) => {
+  return page.evaluate(([hydrationMark, readinessMark]) => {
     const main = document.querySelector('.main-content');
     const grid = document.querySelector('.panels-grid');
     const target = document.querySelector('[data-panel="stablecoins"]');
@@ -913,8 +929,11 @@ async function scrollDashboardAndCollect(page: Page): Promise<DashboardScrollRes
     const debug = (window as typeof window & {
       __wmLcpDebug?: { getSnapshot?: () => { marks: Array<{ name: string }> } };
     }).__wmLcpDebug;
+    const marksNow = debug?.getSnapshot?.().marks ?? [];
     const hydrationMarksBefore =
-      debug?.getSnapshot?.().marks.filter((mark) => mark.name === hydrationMark).length ?? 0;
+      marksNow.filter((mark) => mark.name === hydrationMark).length;
+    const readinessSettledBeforeScroll =
+      marksNow.some((mark) => mark.name === readinessMark);
     const before = metrics();
 
     return new Promise<DashboardScrollResult>((resolve) => {
@@ -923,14 +942,20 @@ async function scrollDashboardAndCollect(page: Page): Promise<DashboardScrollRes
         if (event.target !== scroller) return;
         scrollCount += 1;
         window.removeEventListener('scroll', onScroll, true);
-        resolve({ after: metrics(), before, hydrationMarksBefore, scrollCount });
+        resolve({
+          after: metrics(),
+          before,
+          hydrationMarksBefore,
+          readinessSettledBeforeScroll,
+          scrollCount,
+        });
       };
       window.addEventListener('scroll', onScroll, { capture: true });
       const targetTopInScroller =
         target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
       scroller.scrollTop = Math.max(1, targetTopInScroller - scroller.clientHeight + 200);
     });
-  }, VIEWPORT_HYDRATION_MARK);
+  }, [VIEWPORT_HYDRATION_MARK, SLOW_TIER_WAIT_END_MARK] as const);
 }
 
 async function lcpMarkCount(page: Page, name: string): Promise<number> {
@@ -1112,6 +1137,29 @@ test.describe('dashboard container scroll hydration (#5876)', () => {
 
       const stablecoins = page.locator('[data-panel="stablecoins"]');
       const dashboardScroll = await scrollDashboardAndCollect(page);
+
+      // Precondition, asserted rather than assumed. This test only means
+      // something while the app has NOT yet registered its viewport-prime
+      // listener, which src/App.ts does after `await slowTierReady`. Holding
+      // the slow-tier route does not guarantee that: waitForBootstrapSlowTier
+      // also settles on a 3.5s wall-clock timeout the test cannot reach. When a
+      // starved runner spends that budget on the goto plus the element waits
+      // above, readiness wins, the listener is live, and the scroll below
+      // SHOULD produce exactly one trigger — correct behaviour that the
+      // assertion at the end of this test would report as a violation.
+      //
+      // Skipping rather than failing is the honest outcome: the run could not
+      // establish the conditions the invariant is about. It stays a real guard
+      // on every run that wins the race, which is all of them on unloaded
+      // hardware. Making this deterministic needs either a test-settable
+      // readiness bound in the app or moving the scroll into an init script so
+      // it lands before the timer starts — both are design calls, not flake fixes.
+      test.skip(
+        dashboardScroll.readinessSettledBeforeScroll,
+        'slow-tier readiness settled before the scroll landed, so the viewport listener was '
+          + 'already live — this runner cannot establish the early-scroll precondition',
+      );
+
       expect(
         dashboardScroll.before.scrollTop,
         'the test must start before any dashboard scroll',
