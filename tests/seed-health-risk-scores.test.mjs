@@ -96,9 +96,16 @@ test('relay CII warm-ping delegates risk-score health count to the RPC handler',
     /_wm_warm_ping=/,
     'CII warm-ping URL must carry a private cache-busting query parameter',
   );
+  // `acled.rows`, not `acled`. ac128abb4 ("break the cold-start deadlock — an
+  // ACLED failure must degrade the score, not abort it") made fetchACLEDEvents
+  // return a result object carrying the rows plus a degraded flag, so the row
+  // list is what both this counter and computeCIIScores now take. The function
+  // signature agrees: its first parameter is typed as the event-row array. This
+  // assertion arrived with the upstream merge still naming the pre-ac128abb4
+  // call shape.
   assert.match(
     handler,
-    /countCiiRealtimeSignalDensityCoverage\(acled,\s*aux,\s*nowMs\)/,
+    /countCiiRealtimeSignalDensityCoverage\(\s*acled\.rows\s*,\s*aux\s*,\s*nowMs\s*\)/,
     'get-risk-scores handler must derive riskScores recordCount from real-time CII signal-density coverage using the request clock',
   );
   assert.match(
