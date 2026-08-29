@@ -15034,13 +15034,19 @@ function getForecastLlmCallOptions(stage = 'default') {
         // primary uses, so one nemotron rate-limit on the free tier took out the
         // general chain AND the probability-coupled stage's fallback together —
         // a fallback whose failure is perfectly correlated with the primary is
-        // not a fallback. poolside is the only non-NVIDIA entry in the free
-        // chain, and it is US-hosted, which matters more here than elsewhere:
-        // this stage scores geopolitical risk, so the alternative free models
-        // that declare structured outputs (z-ai/glm-5.2, minimax, inclusionai)
-        // are all Chinese-origin. Weights-vs-hosting is already settled by
-        // OPENROUTER_PROVIDER_ROUTING, but for THIS stage the owner should pick
-        // deliberately rather than inherit it from a decorrelation choice.
+        // not a fallback.
+        //
+        // OWNER RULING (2026-08-29), and it is narrower than the repo-wide
+        // OPENROUTER_PROVIDER_ROUTING policy: that one blocks China-HOSTED
+        // providers while accepting the weights. For THIS stage the concern is
+        // the weights themselves — a Mainland-China-guardrailed model must not
+        // skew a geopolitical-risk score, and relocating inference to Singapore
+        // does not change what the model was trained to refuse or soften. So the
+        // free models that declare structured outputs (z-ai/glm-5.2, minimax,
+        // inclusionai) are all excluded here despite being otherwise better
+        // fits, and poolside — the only non-NVIDIA, non-Chinese entry in the
+        // free chain — takes the slot. Revisit only if a non-Chinese free model
+        // gains structured-output support.
         openrouter: process.env.FORECAST_LLM_CRITICAL_MODEL_OPENROUTER || 'poolside/laguna-xs-2.1:free',
       },
       // Legacy request-body parity: the pinned models predate the
