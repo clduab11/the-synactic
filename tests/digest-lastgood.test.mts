@@ -853,7 +853,17 @@ describe('durable last-good wiring (#7084)', () => {
       'unavailable',
     );
     assert.equal(result, 'unavailable');
-    assert.ok(Date.now() - started < 150, 'the absolute deadline must bound every unresolved tail');
+    // 1s, not 150ms. The property under test is that an absolute deadline
+    // BOUNDS a tail that never resolves on its own — the awaited promise here
+    // is `new Promise(() => {})`, so an unbounded implementation does not
+    // finish late, it hangs until the test runner kills it. Any finite bound
+    // proves the point, and 1s is still 50x the 20ms deadline being enforced.
+    // 150ms did not survive CI: `npm run test:data` runs at
+    // --test-concurrency=16 on a runner measured ~2.2x slower than this
+    // machine, where scheduling a 20ms timer and resuming the continuation can
+    // alone exceed it. That made a contended runner, not the deadline logic,
+    // decide the verdict.
+    assert.ok(Date.now() - started < 1_000, 'the absolute deadline must bound every unresolved tail');
   });
 
   it('fresh and cached serving fail CLOSED when revocations are unreadable', async () => {
