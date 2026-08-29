@@ -66,13 +66,21 @@ async function expectPopulatedEnergyMapLayers(page: Page): Promise<void> {
     const harness = (window as EnergyMapHarnessWindow).__mapHarness;
     return harness?.ready && harness.variant === 'energy';
   }), { timeout: 45_000 }).toBe(true);
+  // 45s, matching the readiness poll above rather than under-budgeting at 20s.
+  // Both wait on the same harness finishing the same work, and this one starts
+  // only after readiness has already consumed wall clock. On a contended runner
+  // that made "the layers are still filling" indistinguishable from "the layers
+  // never filled": the CI failure was a bare predicate timeout, and the same
+  // suite passes 78/78 in 3.7 minutes on hardware that runs it 2.2x faster than
+  // the runner does. Only the waiting budget changes — the assertion is
+  // untouched, so layers that genuinely never populate still fail.
   await expect.poll(() => page.evaluate(() => {
     const harness = (window as EnergyMapHarnessWindow).__mapHarness;
     return {
       pipelines: harness?.getLayerDataCount('pipelines-layer') ?? 0,
       storage: harness?.getLayerDataCount('storage-facilities-layer') ?? 0,
     };
-  }), { timeout: 20_000 }).toEqual({ pipelines: 2, storage: 1 });
+  }), { timeout: 45_000 }).toEqual({ pipelines: 2, storage: 1 });
 }
 
 test.describe('bootstrap request budget (#7046)', () => {
