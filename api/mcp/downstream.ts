@@ -146,6 +146,14 @@ export function buildMcpDownstreamHeaders(
   if (target.origin !== expected.origin || !isLoopbackHostname(target.hostname)) return headers;
   const token = process.env.LOCAL_API_TOKEN?.trim();
   if (!token) return headers;
+  // Idempotent: a caller that already stamped the token gets it back unchanged.
+  // Appending unconditionally produced two values for the same header, which the
+  // loopback sidecar rejects — a self-hosted get_world_brief 401'd on its own
+  // credential. Matched case-insensitively because HTTP header names are, and
+  // the two setters in this repo disagree on casing.
+  if (Object.keys(headers).some((name) => name.toLowerCase() === 'x-worldmonitor-local-token')) {
+    return headers;
+  }
   return { ...headers, 'X-WorldMonitor-Local-Token': token };
 }
 

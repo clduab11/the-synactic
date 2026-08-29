@@ -15,6 +15,9 @@ import {
   OPENROUTER_FREE_BACKUP_MODEL,
   OPENROUTER_FREE_PRIMARY_MODEL,
 } from '../scripts/_llm-model-timeouts.mjs';
+// The weekly brief's first provider is single-sourced from this chain rather
+// than named inline, so read it from the same place the source does.
+import { FREE_MODEL_CHAIN } from '../scripts/_openrouter-model.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
@@ -894,13 +897,18 @@ describe('news digest methodology parity', () => {
       OPENROUTER_FREE_BACKUP_MODEL,
       OPENROUTER_FREE_PRIMARY_MODEL,
     };
-    const providerModels = [...weeklyBriefSrc.matchAll(/model:\s*(?:'([^']+)'|([A-Z_]+))/g)]
-      .map((m) => m[1] || sharedModels[m[2]]);
+    // The third alternative is load-bearing. 00cd72dd4 changed the first entry
+    // from a quoted literal to `model: openrouterModel()`, which matched
+    // NEITHER of the original two alternatives — so the entry silently vanished
+    // from this list and the assertion compared 3 models against 4. A stale
+    // expectation is loud; an extractor that stops seeing a provider is not.
+    const providerModels = [...weeklyBriefSrc.matchAll(/model:\s*(?:'([^']+)'|([A-Z_]+)|openrouterModel\(\))/g)]
+      .map((m) => m[1] ?? (m[2] ? sharedModels[m[2]] : FREE_MODEL_CHAIN[0]));
     const weeklyTemperature = extractNumericConst(weeklyBriefSrc, 'BRIEF_TEMPERATURE');
 
     assert.deepEqual(providerNames, ['openrouter', 'openrouter-free', 'openrouter-free-backup', 'groq']);
     assert.deepEqual(providerModels, [
-      'deepseek/deepseek-v4-flash',
+      FREE_MODEL_CHAIN[0],
       'google/gemma-4-26b-a4b-it:free',
       'openai/gpt-oss-20b:free',
       'openai/gpt-oss-20b',
@@ -908,7 +916,11 @@ describe('news digest methodology parity', () => {
     assert.equal(weeklyTemperature, 0.3);
 
     assertDocMatches(
-      /Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*`deepseek\/deepseek-v4-flash`[\s\S]*`google\/gemma-4-26b-a4b-it:free`[\s\S]*`openai\/gpt-oss-20b:free`[\s\S]*Groq `openai\/gpt-oss-20b`[\s\S]*temperature\s+`0\.3`/,
+      new RegExp(
+        String.raw`Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*\`` +
+          FREE_MODEL_CHAIN[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+          String.raw`\`[\s\S]*\`google/gemma-4-26b-a4b-it:free\`[\s\S]*\`openai/gpt-oss-20b:free\`[\s\S]*Groq \`openai/gpt-oss-20b\`[\s\S]*temperature\s+\`0\.3\``,
+      ),
       'regional weekly brief provider order, models, and temperature',
     );
     assertDocMatches(

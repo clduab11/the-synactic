@@ -8,6 +8,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PREMIUM_RPC_PATHS } from '../src/shared/premium-paths.ts';
+// Derived, not hardcoded: 00cd72dd4 moved the weekly brief onto the
+// single-sourced free chain, and the merge brought back upstream's test still
+// naming the paid model it replaced. Reading the head of the chain keeps this
+// assertion honest if the chain is ever reordered.
+import { FREE_MODEL_CHAIN } from '../scripts/_openrouter-model.mjs';
 
 import {
   generateWeeklyBrief,
@@ -175,7 +180,7 @@ describe('generateWeeklyBrief', () => {
     assert.equal(brief.provider, 'openrouter-free-backup');
     assert.equal(brief.model, 'openai/gpt-oss-20b:free:resolved');
     assert.deepEqual(bodies.map(body => body.model), [
-      'deepseek/deepseek-v4-flash',
+      FREE_MODEL_CHAIN[0],
       'google/gemma-4-26b-a4b-it:free',
       'openai/gpt-oss-20b:free',
     ]);
