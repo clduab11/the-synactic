@@ -277,8 +277,11 @@ describe('api/mcp.ts — per-tool outputSchema coverage (v1.7.0)', () => {
     // Serves `locationName` (+ latitude/longitude) -- scripts/seed-iran-events.mjs.
     'get_conflict_events.data.iran-events.events[].country',
     'get_conflict_events.data.iran-events.events[].location',
-    // Serves staticBaseline/dynamicScore/combinedScore, never a flat `score`.
-    'get_conflict_events.data.scores.ciiScores[].score',
+    // `ciiScores[].score` was here for a schema field that no longer exists —
+    // the schema now declares staticBaseline/dynamicScore/combinedScore and no
+    // flat `score`, so the carve-out exempted nothing. The allowlist's own
+    // staleness guard says to delete such entries; it could not fire while the
+    // phantom-field assertion above it was already failing.
     // Baseline rows serve id/name/mbd/lat/lon; `relayId` is also read by the
     // tool's own `chokepoint` filter, so aligning it is a behaviour decision,
     // not a rename.

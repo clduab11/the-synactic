@@ -1765,7 +1765,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "SY",
@@ -1779,7 +1783,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.7,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "YE",
@@ -1793,7 +1801,11 @@
             "geoConvergence": 0,
             "militaryActivity": 0
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.7,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "MM",
@@ -1807,7 +1819,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "AF",
@@ -1821,7 +1837,11 @@
             "geoConvergence": 0,
             "militaryActivity": 30
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "LB",
@@ -1835,7 +1855,11 @@
             "geoConvergence": 0,
             "militaryActivity": 10
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "IR",
@@ -1849,7 +1873,11 @@
             "geoConvergence": 50,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 2,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "IL",
@@ -1863,7 +1891,11 @@
             "geoConvergence": 0,
             "militaryActivity": 7
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.7,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "reconsider",
+          "advisoryProvenance": "live"
         },
         {
           "region": "PK",
@@ -1877,7 +1909,11 @@
             "geoConvergence": 0,
             "militaryActivity": 30
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "reconsider",
+          "advisoryProvenance": "live"
         },
         {
           "region": "VE",
@@ -1891,7 +1927,11 @@
             "geoConvergence": 0,
             "militaryActivity": 30
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "reconsider",
+          "advisoryProvenance": "live"
         },
         {
           "region": "CU",
@@ -1905,7 +1945,11 @@
             "geoConvergence": 0,
             "militaryActivity": 15
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 2,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "MX",
@@ -1919,7 +1963,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "IQ",
@@ -1933,7 +1981,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.2,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "RU",
@@ -1947,7 +1999,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 2,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "do-not-travel",
+          "advisoryProvenance": "live"
         },
         {
           "region": "CN",
@@ -1961,7 +2017,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 2.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "",
+          "advisoryProvenance": "absent"
         },
         {
           "region": "TR",
@@ -1975,7 +2035,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.2,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "IN",
@@ -1989,7 +2053,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "KP",
@@ -2003,7 +2071,11 @@
             "geoConvergence": 0,
             "militaryActivity": 5
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 3,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "",
+          "advisoryProvenance": "absent"
         },
         {
           "region": "US",
@@ -2017,7 +2089,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.3,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "",
+          "advisoryProvenance": "absent"
         },
         {
           "region": "EG",
@@ -2031,7 +2107,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "BR",
@@ -2045,7 +2125,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.6,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "TW",
@@ -2059,7 +2143,11 @@
             "geoConvergence": 0,
             "militaryActivity": 0
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "",
+          "advisoryProvenance": "absent"
         },
         {
           "region": "SA",
@@ -2073,7 +2161,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 2,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "reconsider",
+          "advisoryProvenance": "live"
         },
         {
           "region": "AE",
@@ -2087,7 +2179,11 @@
             "geoConvergence": 8,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 1.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "reconsider",
+          "advisoryProvenance": "live"
         },
         {
           "region": "KR",
@@ -2101,7 +2197,11 @@
             "geoConvergence": 0,
             "militaryActivity": 5
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "",
+          "advisoryProvenance": "absent"
         },
         {
           "region": "FR",
@@ -2115,7 +2215,11 @@
             "geoConvergence": 0,
             "militaryActivity": 0
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.6,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "PL",
@@ -2129,7 +2233,11 @@
             "geoConvergence": 0,
             "militaryActivity": 15
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "",
+          "advisoryProvenance": "absent"
         },
         {
           "region": "JP",
@@ -2143,7 +2251,11 @@
             "geoConvergence": 0,
             "militaryActivity": 35
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "",
+          "advisoryProvenance": "absent"
         },
         {
           "region": "DE",
@@ -2157,7 +2269,11 @@
             "geoConvergence": 0,
             "militaryActivity": 0
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         },
         {
           "region": "QA",
@@ -2171,7 +2287,11 @@
             "geoConvergence": 0,
             "militaryActivity": 10
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.8,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "reconsider",
+          "advisoryProvenance": "live"
         },
         {
           "region": "GB",
@@ -2185,7 +2305,11 @@
             "geoConvergence": 0,
             "militaryActivity": 0
           },
-          "computedAt": 1779013428197
+          "computedAt": 1779013428197,
+          "eventMultiplier": 0.5,
+          "methodologyVersion": "v8",
+          "advisoryLevel": "caution",
+          "advisoryProvenance": "live"
         }
       ],
       "strategicRisks": [
