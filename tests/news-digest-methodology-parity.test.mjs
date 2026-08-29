@@ -910,7 +910,7 @@ describe('news digest methodology parity', () => {
     assert.deepEqual(providerModels, [
       FREE_MODEL_CHAIN[0],
       'google/gemma-4-26b-a4b-it:free',
-      'openai/gpt-oss-20b:free',
+      'openrouter/free',
       'openai/gpt-oss-20b',
     ]);
     assert.equal(weeklyTemperature, 0.3);
@@ -919,7 +919,7 @@ describe('news digest methodology parity', () => {
       new RegExp(
         String.raw`Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*\`` +
           FREE_MODEL_CHAIN[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
-          String.raw`\`[\s\S]*\`google/gemma-4-26b-a4b-it:free\`[\s\S]*\`openai/gpt-oss-20b:free\`[\s\S]*Groq \`openai/gpt-oss-20b\`[\s\S]*temperature\s+\`0\.3\``,
+          String.raw`\`[\s\S]*\`google/gemma-4-26b-a4b-it:free\`[\s\S]*\`openrouter/free\`[\s\S]*Groq \`openai/gpt-oss-20b\`[\s\S]*temperature\s+\`0\.3\``,
       ),
       'regional weekly brief provider order, models, and temperature',
     );

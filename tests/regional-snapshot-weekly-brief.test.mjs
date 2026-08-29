@@ -163,11 +163,11 @@ describe('generateWeeklyBrief', () => {
         }
         const body = JSON.parse(String(init.body || '{}'));
         bodies.push(body);
-        const isBackup = body.model === 'openai/gpt-oss-20b:free';
+        const isBackup = body.model === 'openrouter/free';
         return {
           ok: true,
           json: async () => ({
-            model: isBackup ? 'openai/gpt-oss-20b:free:resolved' : body.model,
+            model: isBackup ? 'openrouter/free:resolved' : body.model,
             choices: [{ message: { content: isBackup ? validPayload : 'not valid JSON' } }],
             usage: { total_tokens: 10 },
           }),
@@ -178,11 +178,11 @@ describe('generateWeeklyBrief', () => {
     const brief = await generateWeeklyBrief(mena, snapshotFixture, transitionsFixture);
 
     assert.equal(brief.provider, 'openrouter-free-backup');
-    assert.equal(brief.model, 'openai/gpt-oss-20b:free:resolved');
+    assert.equal(brief.model, 'openrouter/free:resolved');
     assert.deepEqual(bodies.map(body => body.model), [
       FREE_MODEL_CHAIN[0],
       'google/gemma-4-26b-a4b-it:free',
-      'openai/gpt-oss-20b:free',
+      'openrouter/free',
     ]);
     for (const body of bodies) {
       assert.deepEqual(body.reasoning, { enabled: false });

@@ -103,7 +103,7 @@ test('llm-chain: reaches both fixed OpenRouter free models with routing intact',
     if (raw.includes('openrouter.ai')) {
       const body = JSON.parse(String(init.body || '{}'));
       attempted.push(body);
-      const content = body.model === 'openai/gpt-oss-20b:free' ? 'backup free answer' : '';
+      const content = body.model === 'openrouter/free' ? 'backup free answer' : '';
       return { ok: true, json: async () => llmJson(content) };
     }
     throw new Error(`unexpected fetch: ${raw}`);
@@ -117,7 +117,7 @@ test('llm-chain: reaches both fixed OpenRouter free models with routing intact',
   assert.deepEqual(attempted.map(body => body.model), [
     'nvidia/nemotron-3-ultra-550b-a55b:free',
     'google/gemma-4-26b-a4b-it:free',
-    'openai/gpt-oss-20b:free',
+    'openrouter/free',
   ]);
   for (const body of attempted.slice(1)) {
     assert.deepEqual(body.reasoning, { enabled: false });

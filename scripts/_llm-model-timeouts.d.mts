@@ -5,7 +5,7 @@ export const OPENROUTER_FREE_PRIMARY_MODEL: string;
 export const OPENROUTER_FREE_BACKUP_MODEL: string;
 export const GROQ_DEFAULT_MODEL: string;
 export const DEEPSEEK_V4_FLASH_COMPLETION_TIMEOUT_MS: number;
-export const DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS: number;
+export const LONG_COMPLETION_TIMEOUT_MS: number;
 
 export const OPENROUTER_BLOCKED_PROVIDERS: readonly string[];
 export const OPENROUTER_PROVIDER_ROUTING: {
