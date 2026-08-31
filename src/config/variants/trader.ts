@@ -18,10 +18,39 @@
 // this repo — not stubbed, not "for testing". That line is unchanged and
 // non-negotiable (CONTEXT.md boundary 1).
 //
-// It also wires NO new market-data upstream. Every panel here is an existing
-// panel and every layer is an existing layer. OANDA, Binance, Coinbase and Pyth
-// stay unwired; Kraken is the one authorized venue (boundary 1 v4 amendment),
-// already integrated, and its quota condition is binding.
+// AMENDED 2026-08-31 by the owner (boundary 1 v5). The paragraph below is the
+// superseded v4 text, kept so the change is legible rather than silent:
+//
+//   "It also wires NO new market-data upstream. Every panel here is an existing
+//    panel and every layer is an existing layer. OANDA, Binance, Coinbase and
+//    Pyth stay unwired; Kraken is the one authorized venue (boundary 1 v4
+//    amendment), already integrated, and its quota condition is binding."
+//
+// v5 REPLACES that paragraph. New market-data upstreams ARE now authorized, for
+// operator visibility — so the trader view shows the venues actually being
+// traded next to the macro and OSINT layers, in one place:
+//
+//   - OANDA     — authorized (read-only market data)
+//   - Binance    — authorized (read-only market data)
+//   - Coinbase   — authorized (read-only market data)
+//   - MetaMask   — authorized (read-only wallet / on-chain balances)
+//   - Kraken     — already integrated; its quota condition remains binding
+//   - Pyth       — authorized, SECONDARY priority (on-chain price oracle)
+//
+// Two things this amendment does NOT change:
+//
+//   1. The no-execution boundary above is untouched and still non-negotiable.
+//      Wiring a venue here means READING it. Order placement, transfers and
+//      position management remain oanda-autobot's job, and that repo holds its
+//      own venue accounts and authorization. A downstream repo does not and
+//      cannot execute through this one: it opens its own venue connections.
+//      Wiring a feed here is therefore never a prerequisite for trading that
+//      venue — it is a visibility feature.
+//
+//   2. Kalshi and Polymarket stay READ-ONLY (owner ruling, reaffirmed
+//      2026-08-30). The prediction panel already deep-links each market via
+//      PredictionPanel.ts, and the operator places those wagers by hand. No
+//      order path to either venue, here or downstream.
 // ─────────────────────────────────────────────────────────────────────────────
 import type { PanelConfig, MapLayers } from '@/types';
 import type { VariantConfig } from './base';
