@@ -8,12 +8,14 @@ Pure functions only: no I/O, no network, no side effects. ESM (NodeNext).
 ## API
 
 ### `createEvent(input, options?)`
+
 Builds a `SynacticEvent` — fills `id` (`node:crypto` `randomUUID`),
 `timestamp` (`options.now()`, ISO 8601) and pins `version` to
 `ENVELOPE_VERSION` — then runs full validation before returning.
 Non-throwing for validation failures.
 
 ### `validateEvent(data, options?)`
+
 Strictly validates unknown data: contracts schema parse (`z.strictObject`
 at every level, so unknown fields are rejected everywhere), secret-guard
 re-check, payload size limit, future-timestamp limit. Returns
@@ -21,10 +23,12 @@ re-check, payload size limit, future-timestamp limit. Returns
 validation failures.
 
 ### `serializeEvent(event)` / `deserializeEvent(json, options?)`
+
 JSON round-trip. `deserializeEvent` re-validates strictly (full
 `validateEvent`).
 
 ### `EnvelopeOptions`
+
 | option | default | effect |
 | --- | --- | --- |
 | `maxPayloadBytes` | `64 * 1024` | serialized payload byte limit (`payload_too_large`) |
@@ -32,6 +36,7 @@ JSON round-trip. `deserializeEvent` re-validates strictly (full
 | `now` | `() => new Date()` | injectable clock for deterministic testing |
 
 ## Policy enforcement
+
 - **Secrets** (tool-policy principle c): payloads are guarded by the
   contracts secret guard on every ingress path (create / validate /
   deserialize) — REJECT, never redact.

@@ -1,10 +1,11 @@
 import { build } from 'esbuild';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createBrowserEnvironment } from './mini-dom.mts';
+import { createTempDir, removeTempDir } from './temp-dir.mjs';
 
 export { createBrowserEnvironment };
 
@@ -37,7 +38,7 @@ function createRuntimeState() {
 }
 
 async function loadRuntimeConfigPanel() {
-  const tempDir = mkdtempSync(join(tmpdir(), 'wm-runtime-config-panel-'));
+  const tempDir = createTempDir('wm-runtime-config-panel-');
   const outfile = join(tempDir, 'RuntimeConfigPanel.bundle.mjs');
 
   const stubModules = new Map([
@@ -104,6 +105,7 @@ async function loadRuntimeConfigPanel() {
     ['i18n-stub', `
       export function t(key) { return key; }
       export function getCurrentLanguage() { return 'en'; }
+      export function getCurrentLanguageTag() { return 'en'; }
     `],
     ['dom-utils-stub', `
       function append(parent, child) {
@@ -166,7 +168,7 @@ async function loadRuntimeConfigPanel() {
         return document.createDocumentFragment();
       }
     `],
-    ['analytics-stub', `export function trackPanelResized() {} export function trackFeatureToggle() {}`],
+    ['analytics-stub', `export function trackLayoutCustomized() {} export function trackFeatureToggle() {}`],
     ['ai-flow-settings-stub', `export function getAiFlowSettings() { return { badgeAnimation: false }; }`],
     ['sanitize-stub', `
       export function escapeHtml(value) { return String(value); }
@@ -245,7 +247,7 @@ async function loadRuntimeConfigPanel() {
   return {
     RuntimeConfigPanel: mod.RuntimeConfigPanel,
     cleanupBundle() {
-      rmSync(tempDir, { recursive: true, force: true });
+      removeTempDir(tempDir);
     },
   };
 }

@@ -66,6 +66,7 @@ function coverage(timeoutMs) {
 // the stage/global provider-order envs steer resolution — so both must be
 // controlled here, or the reservation silently computes against an empty chain.
 const ENV_KEYS = [
+  'OPENROUTER_MODEL',
   'OPENROUTER_API_KEY',
   'GROQ_API_KEY',
   'FORECAST_LLM_PROVIDER_ORDER',
@@ -106,6 +107,9 @@ test('the Flash completion timeout clears the measured p90 (the 15s clamp made t
 });
 
 test('the provider-level timeout does not re-clamp Flash below its completion budget', () => {
+  // Fork: the primary slot resolves through openrouterModel() (free-tier default);
+  // this test is about the Flash-specific budget, so pin Flash for its duration.
+  process.env.OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
   // getLlmAttemptTimeoutMs takes min(providerTimeout, flashCap). A provider
   // timeout below the cap silently reinstates the bug, which is exactly what
   // the old 25s provider timeout did to a 40s cap.
@@ -153,6 +157,9 @@ test('market_implications does not depend on groq', () => {
 });
 
 test('the market_implications admission reservation covers exactly its own chain', () => {
+  // Fork: the primary slot resolves through openrouterModel() (free-tier default);
+  // this test is about the Flash-specific budget, so pin Flash for its duration.
+  process.env.OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
   // market_implications runs LAST (afterPublish) on the SAME run budget as every
   // upstream stage, and afterPublish is INSIDE the seed lock — so the tail cannot
   // simply be handed its own budget without risking a lock overrun.

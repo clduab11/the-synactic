@@ -10,8 +10,10 @@
  * Contract under test (pure module, no Clerk/Dodo imports so it runs
  * under the tsx --test harness):
  *   1. Every attempt carries the SAME Idempotency-Key (server dedupe).
- *   2. Retryable statuses (502/503/504) get exactly ONE retry after a
- *      delay; the second response is returned as-is.
+ *   2. Retryable statuses (the gateway trio plus the Cloudflare 520-525
+ *      origin-reachability family) get exactly ONE retry after a delay; the
+ *      second response is returned as-is. The Cloudflare statuses that no
+ *      retry can clear (526/530) are excluded.
  *   3. Non-retryable statuses (including application/provider 500s) return immediately.
  *   4. Fast network failures (fetch rejects with TypeError) retry once.
  *   5. Timeout/abort failures do NOT retry — the user already waited a
@@ -22,10 +24,14 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   postCreateCheckout,
+  createDefaultCheckoutTransportDeps,
   RETRYABLE_CHECKOUT_STATUSES,
   CHECKOUT_RETRY_DELAY_MS,
   type CreateCheckoutTransportDeps,
 } from '../src/services/checkout-transport';
+import {
+  createDefaultCheckoutTransportDeps as createProCheckoutTransportDeps,
+} from '../pro-test/src/services/checkout-transport.ts';
 
 type FetchOutcome = { response: Response } | { throws: Error };
 
@@ -141,11 +147,31 @@ describe('postCreateCheckout transport', () => {
     assert.deepEqual(delays, []);
   });
 
-  it('retryable set is exactly {502, 503, 504} — pinned, not read back from the code', () => {
+  it('retryable set is exactly the gateway trio + Cloudflare 520-525 — pinned, not read back from the code', () => {
     // #5380: iterating RETRYABLE_CHECKOUT_STATUSES in the test below is
     // tautological on its own — shrinking or widening the set would silently
     // reshape the loop. Pin the literal contents here.
-    assert.deepEqual([...RETRYABLE_CHECKOUT_STATUSES].sort(), [502, 503, 504]);
+    assert.deepEqual(
+      [...RETRYABLE_CHECKOUT_STATUSES].sort((a, b) => a - b),
+      [502, 503, 504, 520, 521, 522, 523, 525],
+    );
+  });
+
+  it('does NOT retry the Cloudflare statuses a retry cannot help (524/526/530)', async () => {
+    // 526 is an invalid origin certificate and 530 wraps an origin DNS/Worker
+    // error: both are standing misconfigurations, so a retry only adds
+    // CHECKOUT_RETRY_DELAY_MS of dead wait before the same failure copy. 524
+    // is excluded for the opposite reason — Cloudflare emits it at its 100s
+    // origin deadline, so CHECKOUT_ATTEMPT_TIMEOUT_MS has aborted this client
+    // ~85s before it could arrive. Pinned so nobody "completes the family".
+    for (const status of [524, 526, 530]) {
+      const cfConfig = new Response('<!DOCTYPE html>', { status });
+      const { deps, calls, delays } = makeDeps([{ response: cfConfig }]);
+      const resp = await postCreateCheckout(deps, ARGS);
+      assert.equal(resp.status, status);
+      assert.equal(calls.length, 1, `status ${status} must not retry`);
+      assert.deepEqual(delays, [], `status ${status} must not pay the retry delay`);
+    }
   });
 
   it('treats every status in RETRYABLE_CHECKOUT_STATUSES as retryable', async () => {
@@ -220,4 +246,71 @@ describe('postCreateCheckout transport', () => {
     assert.equal(calls.length, 2);
     assert.equal(signalsIssued, 2, 'each attempt needs its own timeout budget');
   });
+});
+
+/**
+ * WORLDMONITOR-109: Chrome Mobile 101 (and the other Baseline-2024 gaps) has
+ * AbortSignal but not AbortSignal.timeout, and calling timeout() throws
+ * TypeError before fetch runs. `tests/pro-timeout-signal.test.mts` covers the
+ * helper directly; this covers the WIRING — that each root's real
+ * `createDefaultCheckoutTransportDeps()` actually reaches the fallback, rather
+ * than the helper being correct while a deps factory still closes over a bare
+ * `AbortSignal.timeout`.
+ */
+async function withMissingAbortSignalTimeout<T>(fn: () => T | Promise<T>): Promise<T> {
+  const original = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout');
+  Object.defineProperty(AbortSignal, 'timeout', {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: undefined,
+  });
+  try {
+    return await fn();
+  } finally {
+    if (original) Object.defineProperty(AbortSignal, 'timeout', original);
+    else delete (AbortSignal as { timeout?: unknown }).timeout;
+  }
+}
+
+const TIMEOUT_HELPERS = [
+  { label: 'src checkout-transport', create: createDefaultCheckoutTransportDeps },
+  { label: '/pro checkout-transport', create: createProCheckoutTransportDeps },
+] as const;
+
+describe('createTimeoutSignal wiring without AbortSignal.timeout (WORLDMONITOR-109)', () => {
+  for (const { label, create } of TIMEOUT_HELPERS) {
+    it(`${label} does not throw when AbortSignal.timeout is missing`, async () => {
+      await withMissingAbortSignalTimeout(() => {
+        const signal = create().createTimeoutSignal(5_000);
+        assert.equal(signal.aborted, false);
+        assert.equal(typeof signal.addEventListener, 'function');
+      });
+    });
+
+    it(`${label} still aborts after the timeout budget without AbortSignal.timeout`, async () => {
+      await withMissingAbortSignalTimeout(async () => {
+        const signal = create().createTimeoutSignal(25);
+        assert.equal(signal.aborted, false);
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        assert.equal(signal.aborted, true);
+      });
+    });
+
+    it(`${label} uses native AbortSignal.timeout when it is a function`, () => {
+      const original = AbortSignal.timeout;
+      const seen: number[] = [];
+      AbortSignal.timeout = (ms) => {
+        seen.push(ms);
+        return original.call(AbortSignal, ms);
+      };
+      try {
+        const signal = create().createTimeoutSignal(1_234);
+        assert.deepEqual(seen, [1_234]);
+        assert.equal(signal.aborted, false);
+      } finally {
+        AbortSignal.timeout = original;
+      }
+    });
+  }
 });

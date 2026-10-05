@@ -1,6 +1,41 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { after, before, describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import YAML from 'yaml';
+
+import { WEB_DASHBOARD_VARIANTS } from '../src/config/variant-dashboard-html.ts';
+
+/**
+ * The web-served variant registry, which is what the app actually deploys — not
+ * the sitemap, and not the IndexNow config derived from it. Both of those are
+ * downstream of this list, so comparing them to each other proves nothing
+ * (#6563). Same source and same reason as tests/sentry-allow-urls.test.mts.
+ */
+const SERVED_VARIANT_HOSTS = WEB_DASHBOARD_VARIANTS
+  .map((variant) => `${variant}.worldmonitor.app`)
+  .sort();
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const WORKFLOW_PATH = resolve(repoRoot, '.github/workflows/indexnow-submit.yml');
+const workflowSource = readFileSync(WORKFLOW_PATH, 'utf8');
+const workflowDoc = YAML.parse(workflowSource);
+const workflowSteps = workflowDoc.jobs['submit-indexnow'].steps;
+
+function runStep(script, env) {
+  return new Promise((resolvePromise) => {
+    const child = spawn('bash', ['-e', '-c', script], { cwd: repoRoot, env });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.on('close', (status) => resolvePromise({ stdout, stderr, status }));
+  });
+}
 
 const originalFetch = globalThis.fetch;
 const importFetchCalls = [];
@@ -40,8 +75,8 @@ describe('IndexNow submission', () => {
     );
   });
 
-  it('keeps IndexNow coverage aligned with the committed root sitemap and blog corpus', () => {
-    const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+  it('keeps IndexNow coverage aligned with the committed root sitemap and blog corpus', async () => {
+    const sitemap = readFileSync(new URL('../public/sitemap-main.xml', import.meta.url), 'utf8');
     const sitemapUrls = [...sitemap.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/g)]
       .map((match) => match[1].trim());
     const wwwSitemapUrls = sitemapUrls.filter((url) => new URL(url).hostname === 'www.worldmonitor.app');
@@ -59,8 +94,42 @@ describe('IndexNow submission', () => {
     ]) {
       assert.ok(wwwBatch.urls.includes(url), `${url} must be submitted`);
     }
+    const { MACHINE_READABLE_URLS } = await import('../scripts/build-sitemap.mjs');
+    for (const url of MACHINE_READABLE_URLS) {
+      assert.ok(!sitemapUrls.includes(url), `${url} must stay out of the sitemap (#8608)`);
+      assert.ok(wwwBatch.urls.includes(url), `${url} must still be announced to IndexNow`);
+    }
     assert.equal(new Set(wwwBatch.urls).size, wwwBatch.urls.length, 'www batch must not contain duplicates');
     assert.equal(new Set(apexBatch.urls).size, apexBatch.urls.length, 'apex batch must not contain duplicates');
+  });
+
+  it('submits every web variant the app actually serves', () => {
+    // Anchored to the served-variant registry, NOT to the sitemap the batches
+    // are derived from — comparing the sitemap to a list built out of it is a
+    // tautology with no falsifying input, and would stay green through the very
+    // regression #6563 reported (a variant dropped from build-sitemap.mjs).
+    assert.ok(SERVED_VARIANT_HOSTS.length >= 5, `expected at least 5 web variant hosts, got ${SERVED_VARIANT_HOSTS.length}`);
+    assert.deepEqual(
+      [...indexNow.INDEXNOW_VARIANT_HOSTS],
+      SERVED_VARIANT_HOSTS,
+      'every served variant needs an IndexNow batch, and no other host may acquire one',
+    );
+  });
+
+  it('submits every canonical URL the sitemap publishes, for every host', () => {
+    const sitemap = readFileSync(new URL('../public/sitemap-main.xml', import.meta.url), 'utf8');
+    const sitemapUrls = [...sitemap.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/g)].map((match) => match[1].trim());
+    assert.ok(sitemapUrls.length > 0, 'sitemap parse produced no URLs');
+
+    for (const url of sitemapUrls) {
+      const host = new URL(url).hostname;
+      const batch = indexNow.INDEXNOW_BATCHES.find((candidate) => candidate.host === host);
+      assert.ok(batch, `${host} appears in public/sitemap-main.xml but has no INDEXNOW_BATCHES entry`);
+      assert.ok(
+        batch.urls.includes(url),
+        `${url} is published in the sitemap but is not in the ${host} batch, so it is never submitted`,
+      );
+    }
   });
 
   it('keeps every submitted URL and key location on the declared host', () => {
@@ -77,6 +146,29 @@ describe('IndexNow submission', () => {
       for (const url of batch.urls) {
         assert.equal(new URL(url).hostname, batch.host, `${url} must match ${batch.host}`);
       }
+    }
+  });
+
+  it('bounds every request so one stalled endpoint cannot consume the job', async () => {
+    // fetch has no default deadline, and seven hosts are submitted sequentially
+    // inside one job — without this, a hung endpoint strands the later hosts.
+    const requests = [];
+    const apexBatch = indexNow.INDEXNOW_BATCHES.find(({ host }) => host === 'worldmonitor.app');
+    const fetchImpl = async (url, init) => {
+      requests.push({ url: String(url), init });
+      if (String(url) === apexBatch.keyLocation) return new Response(apexBatch.key, { status: 200 });
+      return new Response(null, { status: 202 });
+    };
+
+    await indexNow.submitIndexNowBatch(apexBatch, {
+      endpoints: ['https://api.indexnow.org/IndexNow'],
+      fetchImpl,
+    });
+
+    assert.equal(requests.length, 2, 'expected the key verification plus one submission');
+    for (const { url, init } of requests) {
+      assert.ok(init.signal, `${url} must carry an abort signal`);
+      assert.equal(typeof init.signal.aborted, 'boolean', `${url} signal must be an AbortSignal`);
     }
   });
 
@@ -177,18 +269,178 @@ describe('IndexNow submission', () => {
     assert.match(workflow, /github\.event\.deployment_status\.state == 'success'/);
     assert.match(workflow, /github\.event\.deployment\.environment == 'Production'/);
     assert.match(workflow, /github\.event\.deployment\.creator\.login == 'vercel\[bot\]'/);
-    assert.match(workflow, /api\/mcp/);
-    assert.match(workflow, /public\/mcp-server\\\.md/);
-    assert.match(workflow, /public\/sitemap\\\.xml/);
-    assert.match(workflow, /scripts\/build-sitemap\\.mjs/);
-    assert.match(workflow, /blog-site\/src\/\.\*/);
-    assert.match(workflow, /api\/mcp\/\.\*/);
-    assert.match(workflow, /INDEXNOW_BATCHES\.find/);
-    assert.match(workflow, /grep -Fxq "public\/\$\{APEX_KEY_PATH\}"/);
-    assert.match(workflow, /grep -Fxq "public\/\$\{WWW_KEY_PATH\}"/);
-    assert.match(workflow, /submit_apex/);
-    assert.match(workflow, /submit_www/);
-    assert.match(workflow, /node scripts\/seo-indexnow-submit\.mjs --host worldmonitor\.app/);
-    assert.match(workflow, /node scripts\/seo-indexnow-submit\.mjs --host www\.worldmonitor\.app/);
+
   });
+
+  it('isolates concurrency by deployment environment before eligibility filtering', () => {
+    assert.equal(workflowDoc.concurrency?.['cancel-in-progress'], false);
+    assert.equal(
+      workflowDoc.concurrency?.group,
+      "indexnow-${{ github.event_name == 'deployment_status' && github.event.deployment.environment || github.event_name }}",
+    );
+  });
+});
+
+describe('IndexNow root-index indirection', () => {
+  it('resolves page URLs through the local urlset member, never index-member URLs', async () => {
+    const { getRootSitemapUrls, readLocalIndexMember } = await import('../scripts/seo-indexnow-submit.mjs');
+    const urls = getRootSitemapUrls();
+    assert.ok(urls.length > 0, 'must resolve a non-empty page URL list');
+    assert.ok(urls.every((url) => !url.endsWith('sitemap.xml') && !url.endsWith('sitemap-main.xml')));
+    assert.ok(urls.some((url) => url === 'https://www.worldmonitor.app/dashboard'));
+  });
+
+  it('fails closed when the root index lists no local urlset member', async () => {
+    const { readLocalIndexMember } = await import('../scripts/seo-indexnow-submit.mjs');
+    assert.throws(
+      () => readLocalIndexMember('<?xml version="1.0"?><sitemapindex><sitemap><loc>https://www.worldmonitor.app/blog/sitemap-index.xml</loc></sitemap></sitemapindex>'),
+      /no local sitemap-main\.xml member/,
+    );
+  });
+});
+
+describe('IndexNow published inventory (#8071)', () => {
+  const origin = 'https://www.worldmonitor.app';
+  const flagged = `${origin}/docs/methodology/resilience-indicators`;
+  const xml = (kind, urls) => `<${kind}>${urls.map(url => `<${kind === 'urlset' ? 'url' : 'sitemap'}><loc>${url}</loc></${kind === 'urlset' ? 'url' : 'sitemap'}>`).join('')}</${kind}>`;
+  function publishedDocuments() {
+    return new Map([
+      [`${origin}/sitemap.xml`, xml('sitemapindex', [`${origin}/sitemap-main.xml`, `${origin}/blog/sitemap-index.xml`, `${origin}/docs/sitemap.xml`])],
+      [`${origin}/sitemap-main.xml`, xml('urlset', [
+        ...indexNow.INDEXNOW_BATCHES.flatMap(batch => batch.urls.filter(url => !url.includes('/blog/'))),
+        `${origin}/compare/new-comparison/`,
+      ])],
+      [`${origin}/blog/sitemap-index.xml`, xml('sitemapindex', [`${origin}/blog/sitemap-0.xml`])],
+      [`${origin}/blog/sitemap-0.xml`, xml('urlset', [`${origin}/blog/new-published-post/`])],
+      [`${origin}/docs/sitemap.xml`, xml('urlset', [flagged, `${origin}/docs/zh/methodology/resilience-indicators`])
+        .replace('<urlset>', `<urlset><!-- <url><loc>${origin}/docs/commented-out</loc></url> -->`)],
+    ]);
+  }
+
+  it('posts published main, nested blog and docs pages, including URLs absent from the checkout', async () => {
+    const documents = publishedDocuments();
+    const posts = [];
+    const fetchImpl = async (url, init) => {
+      assert.ok(init.signal);
+      assert.ok(init.headers['User-Agent']);
+      if (init.method === 'POST') {
+        posts.push(JSON.parse(init.body));
+        return new Response(null, { status: 200 });
+      }
+      const config = indexNow.INDEXNOW_BATCHES.find(batch => batch.keyLocation === url);
+      return new Response(config?.key ?? documents.get(url), { status: 200 });
+    };
+    await indexNow.runIndexNowSubmission({ fetchImpl, endpoints: ['https://www.bing.com/IndexNow'], logger: { log() {}, error() {} } });
+    assert.deepEqual(posts.map(post => post.host), indexNow.INDEXNOW_BATCHES.map(batch => batch.host));
+    const expectedPages = [
+      ...indexNow.INDEXNOW_BATCHES.flatMap(batch => batch.urls.filter(url => !url.includes('/blog/'))),
+      `${origin}/compare/new-comparison/`, `${origin}/blog/new-published-post/`,
+      flagged, `${origin}/docs/zh/methodology/resilience-indicators`,
+    ];
+    assert.deepEqual(new Set(posts.flatMap(post => post.urlList)), new Set(expectedPages));
+    const www = posts.find(post => post.host === 'www.worldmonitor.app');
+    for (const url of [flagged, `${origin}/compare/new-comparison/`, `${origin}/accuracy/`, `${origin}/blog/new-published-post/`]) {
+      assert.ok(www.urlList.includes(url), `${url} must reach the search engine`);
+    }
+    assert.ok(!www.urlList.includes(`${origin}/blog/authors/elie-habib/`), 'unpublished checkout URLs must not replace the published inventory');
+    assert.ok(!www.urlList.includes(`${origin}/docs/commented-out`), 'comments must not contribute page URLs');
+    assert.ok(posts.every(post => post.urlList.every(url => new URL(url).hostname === post.host && !url.endsWith('.xml'))));
+  });
+
+  it('attempts every host after an endpoint rejects an earlier host and still fails the run', async () => {
+    const hosts = [];
+    await assert.rejects(indexNow.runIndexNowSubmission({
+      batches: indexNow.INDEXNOW_BATCHES,
+      endpoints: ['https://www.bing.com/IndexNow'],
+      logger: { log() {}, error() {} },
+      fetchImpl: async (url, init) => {
+        if (init.method === 'POST') {
+          hosts.push(JSON.parse(init.body).host);
+          return new Response(null, { status: hosts.length === 1 ? 503 : 200 });
+        }
+        return new Response(indexNow.INDEXNOW_BATCHES.find(batch => batch.keyLocation === url).key);
+      },
+    }), /one or more IndexNow submissions failed/);
+    assert.deepEqual(hosts, indexNow.INDEXNOW_BATCHES.map(batch => batch.host));
+  });
+
+  it('fails before any POST when a child sitemap is unavailable, empty, or untrusted', async () => {
+    for (const [broken, expectedError] of [
+      [new Response(null, { status: 503 }), /returned 503/],
+      [new Response(null, { status: 301 }), /returned 301/],
+      [new Response('<urlset></urlset>'), /empty sitemap/],
+      [new Response('<html>unavailable</html>'), /invalid sitemap document/],
+      [new Response(xml('sitemapindex', ['https://example.com/sitemap.xml'])), /invalid sitemap location/],
+      [new Response(xml('sitemapindex', [`${origin}/sitemap.xml`])), /no docs pages/],
+      [new Response(xml('urlset', ['https://example.com/page'])), /invalid published page URL/],
+      [new Response('<urlset><url><loc>https://www.worldmonitor.app/docs/valid</loc></url><url></url></urlset>'), /one location per sitemap entry/],
+    ]) {
+      const documents = publishedDocuments();
+      let posts = 0;
+      await assert.rejects(indexNow.runIndexNowSubmission({
+        fetchImpl: async (url, init) => {
+          if (init.method === 'POST') posts++;
+          if (url === `${origin}/docs/sitemap.xml`) return broken;
+          assert.ok(documents.has(url), `unexpected request ${url}`);
+          return new Response(documents.get(url));
+        },
+        logger: { log() {}, error() {} },
+      }), expectedError);
+      assert.equal(posts, 0);
+    }
+  });
+
+  it('prints every published host batch from the real CLI without posting in dry-run mode', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'indexnow-cli-'));
+    try {
+      const preload = join(dir, 'fetch.mjs');
+      writeFileSync(preload, `const documents = new Map(${JSON.stringify([...publishedDocuments()])});
+globalThis.fetch = async (url, init) => {
+  if (init.method !== 'GET' || !documents.has(url)) throw new Error('unexpected request ' + url);
+  return new Response(documents.get(url));
+};`);
+      const { stdout, stderr, status } = await runStep(
+        'node --import "$INDEXNOW_TEST_PRELOAD" scripts/seo-indexnow-submit.mjs --dry-run',
+        { ...process.env, INDEXNOW_TEST_PRELOAD: preload },
+      );
+      assert.equal(status, 0, stderr);
+      const batches = JSON.parse(stdout);
+      assert.deepEqual(batches.map(batch => batch.host), indexNow.INDEXNOW_BATCHES.map(batch => batch.host));
+      const www = batches.find(batch => batch.host === 'www.worldmonitor.app');
+      assert.ok(www.urls.includes(flagged));
+      assert.ok(www.urls.includes(`${origin}/compare/new-comparison/`));
+      assert.ok(www.urls.includes(`${origin}/llms.txt`), 'the published run must keep announcing the machine-readable files');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('catches independently published docs on a scheduled run', async () => {
+    assert.ok(workflowDoc.on.schedule?.length, 'docs-only publication needs a catch-up trigger because Vercel can skip docs changes');
+    assert.match(workflowDoc.jobs['submit-indexnow'].if, /github.event_name == 'schedule'/);
+  });
+
+  it('rejects missing or extra direct root sitemap members before reading children', async () => {
+    for (const members of [
+      [`${origin}/sitemap-main.xml`, `${origin}/blog/sitemap-index.xml`],
+      [`${origin}/sitemap-main.xml`, `${origin}/blog/sitemap-index.xml`, `${origin}/docs/sitemap.xml`, `${origin}/extra.xml`],
+    ]) {
+      const requests = [];
+      await assert.rejects(indexNow.getPublishedBatches({ fetchImpl: async (url) => {
+        requests.push(url);
+        return new Response(xml('sitemapindex', members));
+      } }), /root sitemap members/);
+      assert.deepEqual(requests, [`${origin}/sitemap.xml`]);
+    }
+  });
+
+  it('runs the full published inventory on every eligible trigger without host or file filters', () => {
+    const submissions = workflowSteps.filter(step => String(step.run ?? '').includes('node scripts/seo-indexnow-submit.mjs'));
+    assert.equal(submissions.length, 1);
+    assert.equal(submissions[0].run.trim(), 'node scripts/seo-indexnow-submit.mjs');
+    assert.equal(submissions[0].if, undefined);
+    assert.ok(!workflowSteps.some(step => String(step.run ?? '').includes('diff-tree')));
+  });
+
+
 });

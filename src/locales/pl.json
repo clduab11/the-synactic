@@ -77,6 +77,19 @@
       "activeStrikes": "Wykryto {{count}} aktywnych strajków"
     },
     "militaryActivity": "Aktywność wojskowa",
+    "defenseIndustrial": {
+      "title": "Defense Industrial Base",
+      "expenditure": "Military spend",
+      "personnel": "Personnel",
+      "armsImports": "Arms imports",
+      "concentration": "Supplier HHI",
+      "suppliers": "Arms suppliers ({{start}}–{{end}})",
+      "source": "Sources: World Bank and SIPRI Arms Transfers Database. TIV measures transfer volume, not financial value.",
+      "sourceWorldBank": "Source: World Bank.",
+      "unavailable": "Not available",
+      "coverage": "Mapped coverage",
+      "supplierRetained": "Supplier data retained from the last successful importer refresh."
+    },
     "economicIndicators": "Wskaźniki ekonomiczne",
     "ownFlights": "Własne loty",
     "foreignFlights": "Zagraniczne loty",
@@ -116,7 +129,8 @@
       "activeSirens": "Aktywne syreny",
       "sirens24h": "Syreny / 24h",
       "aviationDisruptions": "Zakłócenia lotnicze",
-      "gpsJammingZones": "Strefy zakłóceń GPS"
+      "gpsJammingZones": "Strefy zakłóceń GPS",
+      "temporalUnavailable": "Obserwacje czasowe niedostępne"
     },
     "countryFacts": "Fakty o kraju",
     "loadingFacts": "Ładowanie faktów o kraju...",
@@ -181,6 +195,113 @@
       "corridorConditions": "Warunki korytarza",
       "activityNowcast": "Nowcast aktywności",
       "decisionSignalsUnavailable": "Migawka sygnałów decyzyjnych Chin jest obecnie niedostępna."
+    },
+    "foodStocks": "Food stocks",
+    "foodStocksHelp": "USDA PSD commodity stocks-to-use by marketing year, with the world ratio alongside for context. FAOSTAT Food Balances supplies production and domestic supply when PSD has no complete country balance.",
+    "loadingFoodStocks": "Loading food stocks…",
+    "foodStocksUnavailable": "Food stocks unavailable.",
+    "foodStocksProLocked": "Upgrade to PRO for commodity stocks-to-use",
+    "foodStocksCommodity": "Commodity",
+    "foodStocksMarketingYear": "Marketing year",
+    "foodStocksRatio": "Stocks-to-use",
+    "foodStocksWorld": "World",
+    "commodities": {
+      "wheat": "Wheat",
+      "corn": "Corn",
+      "rice": "Rice",
+      "soybeans": "Soybeans",
+      "barley": "Barley",
+      "palmOil": "Palm oil"
+    },
+    "demographicsCapability": {
+      "title": "Demographics & Workforce",
+      "help": "Age structure, education pipeline, and industrial workforce capacity from UN WPP, UNESCO UIS and World Bank WDI, and ILOSTAT.",
+      "loading": "Loading demographics and workforce data…",
+      "unavailable": "Demographics and workforce data unavailable.",
+      "proLocked": "Upgrade to PRO for demographics and workforce data",
+      "notAvailable": "Not available",
+      "ageStructure": "Age structure",
+      "education": "Education pipeline",
+      "industrialWorkforce": "Industrial workforce",
+      "medianAge": "Median age",
+      "oldAgeDependency": "Old-age dependency",
+      "totalDependency": "Total dependency",
+      "workingAgePopulation": "Working-age population",
+      "workingAgeProjection": "Working-age population (+10 years)",
+      "tertiaryEnrollment": "Tertiary enrollment",
+      "stemGraduates": "STEM graduates",
+      "researchers": "Researchers",
+      "craftTrades": "Craft and trades workers",
+      "plantOperators": "Plant and machine operators",
+      "trainedIndustrialWorkforce": "Combined industrial workforce",
+      "manufacturingShare": "Manufacturing employment",
+      "source": "Sources: {{sources}}.",
+      "retained": "{{stage}} data retained from the last successful refresh."
+    },
+    "fiveFactorScorecard": {
+      "title": "Karta oceny odporności – pięć czynników",
+      "help": "Zamrożone oceny dowodów v1 dla żywności, energii, demografii, technologii i obronności. Rozwiń wiersz, aby sprawdzić dane wejściowe, pochodzenie źródeł i powody brakujących danych.",
+      "loading": "Ładowanie karty oceny pięciu czynników…",
+      "unavailable": "Karta oceny pięciu czynników niedostępna.",
+      "proLocked": "Przejdź na PRO, aby uzyskać kartę oceny odporności pięciu czynników",
+      "insufficient": "Niewystarczające dane",
+      "notAvailable": "Niedostępne",
+      "noEvidence": "Brak dostępnych dowodów dla tego filaru.",
+      "score": "{{score}}/5",
+      "coverage": "Zasięg: {{coverage}}%",
+      "methodologyVersion": "Metodologia v{{version}}",
+      "methodologyLink": "Zobacz metodologię",
+      "pillars": {
+        "food": "Jedzenie",
+        "energy": "Energia",
+        "demographics": "Demografia",
+        "technology": "Technologia",
+        "defense": "Obrona"
+      },
+      "reasons": {
+        "source-unavailable": "Źródło niedostępne",
+        "country-unavailable": "Kraj niedostępny",
+        "invalid-value": "Nieprawidłowa wartość źródła",
+        "stale": "Dane są nieaktualne",
+        "coverage-below-floor": "Nakrycie poniżej progu punktacji",
+        "required-group-missing": "Brak wymaganej grupy dowodów",
+        "missing-population": "Dane o populacji niedostępne",
+        "redistribution-blocked": "Redystrybucja źródła jest niedozwolona",
+        "pillar-unavailable": "Słupek niedostępny"
+      },
+      "inputs": {
+        "population": "Population",
+        "food_productionBalance": "Bilans produkcji",
+        "food_stocksToUse": "Zapas do wykorzystania",
+        "food_waterSecurity": "Bezpieczeństwo wodne",
+        "food_importDiversity": "Dywersyfikacja importu",
+        "energy_productionBalance": "Bilans produkcji",
+        "energy_lowCarbonShare": "Udział energii niskoemisyjnej",
+        "energy_gridEfficiency": "Skuteczność sieci energetycznej",
+        "demographics_totalDependency": "Łączny wskaźnik zależności",
+        "demographics_oldAgeDependency": "Wskaźnik zależności osób starszych",
+        "demographics_workingAgeProjection": "Prognoza populacji w wieku produkcyjnym",
+        "demographics_tertiaryEnrollment": "Wskaźnik zapisów na studia wyższe",
+        "demographics_researchersPerMillion": "Badacze na milion mieszkańców",
+        "demographics_stemGraduateShare": "Udział absolwentów kierunków STEM",
+        "demographics_trainedIndustrialShare": "Udział wykwalifikowanej siły roboczej przemysłowej",
+        "demographics_manufacturingEmploymentShare": "Udział zatrudnienia w przemyśle",
+        "technology_internetUse": "Korzystanie z internetu",
+        "technology_mobileSubscriptions": "Abonamenty mobilne",
+        "technology_fixedBroadband": "Internet stacjonarny",
+        "technology_rdSpend": "Wydatki na badania i rozwój",
+        "technology_researchersPerMillion": "Badacze na milion mieszkańców",
+        "technology_stemGraduateShare": "Udział absolwentów STEM",
+        "technology_electricityAccess": "Dostęp do energii elektrycznej",
+        "defense_expenditureUsd": "Wydatki wojskowe",
+        "defense_expenditurePctGdp": "Obciążenie wojskowe",
+        "defense_personnel": "Personel sił zbrojnych",
+        "defense_industrialBalance": "Bilans przemysłu obronnego",
+        "defense_supplierDiversity": "Dywersyfikacja dostawców broni"
+      }
+    },
+    "defenseIndustrialBase": {
+      "proLocked": "Uaktualnij do PRO, aby zobaczyć zależność od dostawców broni i potencjał militarny"
     }
   },
   "header": {
@@ -332,6 +453,7 @@
     "securityAdvisories": "Ostrzeżenia Bezpieczeństwa",
     "orefSirens": "Israel Sirens",
     "telegramIntel": "Wywiad Telegram",
+    "xIntel": "X News Accounts",
     "giving": "Globalna Dobroczynność",
     "supplyChain": "Łańcuch Dostaw",
     "gulfEconomies": "Gospodarka Zatoki",
@@ -451,7 +573,9 @@
         "displacement": "Przełącz przepływy przesiedleń",
         "climate": "Przełącz anomalie klimatyczne",
         "outages": "Przełącz awarie internetu",
-        "tradeRoutes": "Przełącz szlaki handlowe"
+        "tradeRoutes": "Przełącz szlaki handlowe",
+        "canadaRoads": "Toggle Canada roads overlay",
+        "canadaAlerts": "Toggle Canada provincial emergency alerts overlay"
       },
       "view": {
         "dark": "Przełącz na tryb ciemny",
@@ -475,6 +599,10 @@
       "recent": "Ostatnie wyszukiwania",
       "empty": "Szukaj danych lub uruchom polecenia",
       "noResults": "No results found",
+      "resultAnnouncement_one": "{{count}} wynik dla {{query}}",
+      "resultAnnouncement_few": "{{count}} wyniki dla {{query}}",
+      "resultAnnouncement_many": "{{count}} wyników dla {{query}}",
+      "resultAnnouncement_other": "{{count}} wyników dla {{query}}",
       "navigate": "nawigować",
       "select": "wybierać",
       "close": "zamknąć",
@@ -612,7 +740,7 @@
         "URLHAUS_AUTH_KEY": "Używany zarówno dla API URLhaus, jak i ThreatFox.",
         "OTX_API_KEY": "Opcjonalne źródło wzbogacania warstwy zagrożeń cybernetycznych.",
         "ABUSEIPDB_API_KEY": "Opcjonalne źródło wzbogacania reputacji złośliwych adresów IP.",
-        "FINNHUB_API_KEY": "Notowania giełdowe w czasie rzeczywistym i dane rynkowe.",
+        "FINNHUB_API_KEY": "Opóźnione lub wstępnie załadowane notowania giełdowe i dane rynkowe. Klucz to nie transmisja na żywo.",
         "NASA_FIRMS_API_KEY": "System informacji o pożarach do zarządzania zasobami.",
         "OLLAMA_API_URL": "e.g. http://127.0.0.1:11434 (Ollama) or http://127.0.0.1:1234/v1 (LM Studio) — OpenAI-compatible endpoint.",
         "OLLAMA_MODEL": "e.g. llama3.1:8b — model tag to use for summarization."
@@ -752,9 +880,12 @@
         "space": "KOSMOS"
       },
       "paused": "Kamery wstrzymane",
-      "pausedIdle": "Kamery wstrzymane — przesuń mysz, aby wznowić",
       "play": "Odtwórz",
-      "previewStatus": "Podgląd na żywo"
+      "previewStatus": "Gotowe do odtworzenia",
+      "connecting": "Łączenie…",
+      "unverified": "Nie można potwierdzić, że ten strumień jest na żywo",
+      "offline": "{{city}} jest teraz offline",
+      "noFeeds": "W tej chwili brak aktywnych kamer internetowych w tym regionie"
     },
     "regulation": {
       "timeline": "Oś czasu",
@@ -858,6 +989,7 @@
       "noComtradeData": "Brak dostępnych danych przepływów strategicznych",
       "comtradeUnavailable": "Dane UN Comtrade tymczasowo niedostępne",
       "sourceComtrade": "UN Comtrade",
+      "comtradeNationalScope": "UN Comtrade rows are national-level official statistics for the reporting country. They are not a town, corridor, factory, port, or shipment export ledger.",
       "anomalyBadge": "Anomalia",
       "colReporter": "Kraj",
       "colCommodity": "Towar",
@@ -953,7 +1085,7 @@
         "ucdpEvents": "Wydarzenia UCDP",
         "displacementFlows": "Przepływy wypornościowe",
         "climateAnomalies": "Anomalie klimatyczne",
-        "weatherAlerts": "Alerty pogodowe",
+        "weatherAlerts": "Ostrzeżenia przed gwałtowną pogodą (NWS, ECCC, WMO SWIC)",
         "strategicWaterways": "Strategiczne drogi wodne",
         "economicCenters": "Centra Gospodarcze",
         "criticalMinerals": "Minerały krytyczne",
@@ -973,7 +1105,9 @@
         "speciesRecovery": "Ochrona gatunków",
         "renewableInstallations": "Czysta energia",
         "radiationSpike": "Skok radioaktywności",
-        "radiationElevated": "Podwyższona radioaktywność"
+        "radiationElevated": "Podwyższona radioaktywność",
+        "canadaRoads": "Canada Roads",
+        "canadaAlerts": "Canada Alerts (AB + BC + SK)"
       },
       "layersTitle": "Warstwy",
       "layerSearch": "Szukaj warstw...",
@@ -1041,7 +1175,7 @@
           "infraDatacenters": "Klastry obliczeniowe AI >=10 000 procesorów graficznych",
           "infraOutages": "Przerwy w dostępie do Internetu i zakłócenia w świadczeniu usług",
           "naturalEventsTech": "Trzęsienia ziemi, burze, pożary (mogą mieć wpływ na centra danych)",
-          "weatherAlerts": "Alerty pogodowe",
+          "weatherAlerts": "Oficjalne ostrzeżenia przed gwałtowną pogodą od krajowych służb meteorologicznych (NWS, ECCC, WMO SWIC)",
           "economicCenters": "Giełdy i banki centralne",
           "countriesOverlay": "Nakładki z nazwami krajów",
           "financeExchanges": "Główne giełdy światowe według poziomu rynku",
@@ -1053,7 +1187,7 @@
           "financeOutages": "Zakłócenia w Internecie, które mogą mieć wpływ na funkcjonowanie rynku",
           "financeCyberThreats": "Zdarzenia związane z bezpieczeństwem wokół infrastruktury finansowej",
           "macroWaterways": "Strategiczne wąskie gardła w transporcie towarów",
-          "weatherAlertsMarket": "Poważne zdarzenia pogodowe o znaczeniu rynkowym",
+          "weatherAlertsMarket": "Oficjalne ostrzeżenia przed gwałtowną pogodą o znaczeniu rynkowym (NWS, ECCC, WMO SWIC)",
           "naturalEventsMacro": "Trzęsienia ziemi, pożary, powodzie i inne zakłócenia naturalne",
           "timeRecent": "Filtruj dane oparte na czasie według ostatnich godzin",
           "timeExtended": "Pokaż dane z ostatniego tygodnia, miesiąca lub całego okresu",
@@ -1086,7 +1220,9 @@
           "techEvents": "Główne konferencje i wydarzenia technologiczne",
           "techFires": "Aktywne pożary w pobliżu infrastruktury technologicznej",
           "geoBoundaries": "Strefy zdemilitaryzowane, linie zawieszenia broni i sporne granice",
-          "ciiChoropleth": "Mapa cieplna Country Instability Index — koloruje kraje według wyniku CII (zielony=stabilny, czerwony=krytyczny)"
+          "ciiChoropleth": "Mapa cieplna Country Instability Index — koloruje kraje według wyniku CII (zielony=stabilny, czerwony=krytyczny)",
+          "canadaRoads": "Official road incidents, alerts, conditions, closures, construction, and hazards across supported Canadian jurisdictions",
+          "canadaAlerts": "Provincial public-safety alerts from Alberta Emergency Alert, B.C. Evacuation Orders and Alerts, and SaskAlert"
         },
         "notes": {
           "timeAffects": "Wpływ na: Trzęsienia ziemi, Pogoda, Protesty, Przestoje"
@@ -1133,9 +1269,6 @@
       "base": "Baza",
       "nuclear": "Obiekt jądrowy"
     },
-    "community": {
-      "joinDiscussion": "Help Shape What's Next"
-    },
     "threatLabels": {
       "critical": "KRYT",
       "high": "WYS",
@@ -1144,8 +1277,16 @@
       "info": "INFO"
     },
     "pizzint": {
+      "indexSource": "Indeks: World Monitor · dane lokali:",
+      "statusNormal": "NORMALNIE",
+      "statusNoData": "BRAK DANYCH",
+      "statusNoBaseline": "BRAK POZIOMU ODNIESIENIA",
+      "vsUsual": "względem normy",
       "title": "Indeks pizzy Pentagonu",
       "tensionsTitle": "Napięcia geopolityczne",
+      "tensionsSource": "Napięcia: World Monitor na podstawie zdarzeń GDELT",
+      "insufficientData": "Niewystarczające dane",
+      "pizzaUnavailable": "Dane o aktywności pizzerii są niedostępne",
       "source": "Źródło:",
       "defcon": "DEFCON {{level}}",
       "updated": "Zaktualizowano {{timeAgo}}",
@@ -1159,11 +1300,11 @@
       "minutesAgo": "{{m}}m temu",
       "hoursAgo": "{{h}}h temu",
       "defconLabels": {
-        "1": "PISTOLET Z NACIĘCIEM - MAKSYMALNA GOTOWOŚĆ",
-        "2": "SZYBKIE TEMPO – SIŁY ZBROJNE W GOTOWIE",
-        "3": "OKRĄGŁY DOM - ZWIĘKSZ GOTOWOŚĆ SIŁOWĄ",
-        "4": "PODWÓJNE UJĘCIE - ZEGAREK O WIĘKSZEJ INTELIGENCJI",
-        "5": "FADE OUT - NAJNIŻSZA GOTOWOŚĆ"
+        "1": "Maksymalna Aktywność",
+        "2": "Wysoka Aktywność",
+        "3": "Podwyższona Aktywność",
+        "4": "Powyżej Normy",
+        "5": "Normalna Aktywność"
       }
     },
     "playback": {
@@ -1414,6 +1555,16 @@
       "loading": "Łączenie z przekaźnikiem Telegram...",
       "empty": "Brak dostępnych wiadomości",
       "disabled": "Przekaźnik Telegram nieaktywny",
+      "watchlistPlaceholder": "Dodaj publiczny kanał przez @username",
+      "resolving": "Wyszukiwanie kanału...",
+      "invalidUsername": "Użyj publicznej nazwy @username z Telegramu",
+      "resolveFailed": "Nie udało się znaleźć kanału",
+      "watchlistLimit": "Możesz obserwować maksymalnie {{count}} własnych kanałów",
+      "previewMembers": "{{count}} członków",
+      "addChannel": "Dodaj kanał",
+      "added": "Dodano",
+      "remove": "Usuń",
+      "custom": "Własny",
       "filterAll": "Wszystkie",
       "filterBreaking": "Pilne",
       "filterConflict": "Konflikty",
@@ -1422,6 +1573,21 @@
       "live": "NA ŻYWO",
       "viewSource": "Zobacz źródło",
       "filterGeopolitics": "Geopolityka",
+      "filterCyber": "Cyber"
+    },
+    "xIntel": {
+      "infoTooltip": "Curated public news-account posts from X. Official API only.",
+      "loading": "Connecting to X news-account relay...",
+      "empty": "No posts available",
+      "disabled": "X news-account relay not active",
+      "filterAll": "All",
+      "filterBreaking": "Breaking",
+      "filterConflict": "Conflict",
+      "filterOsint": "OSINT",
+      "filterMiddleeast": "Middle East",
+      "live": "LIVE",
+      "viewSource": "View Source",
+      "filterGeopolitics": "Geopolitics",
       "filterCyber": "Cyber"
     },
     "investments": {
@@ -1599,7 +1765,10 @@
       "provenanceTitle": "Pochodzenie zasięgu: ile pozyskanych artykułów i odrębnych źródeł wybrano dla tego briefu",
       "compiledFrom": "Zebrane z {{stories}} artykułów z {{sources}} źródeł",
       "briefFreshness": "Wygenerowano {{minutes}}m temu · najnowsze źródło sprzed {{hours}}h",
-      "briefStoryDetails": "Story details ({{count}})"
+      "briefStoryDetails": "Szczegóły wiadomości ({{count}})",
+      "streamIdleStopLabel": "Zatrzymaj transmisję live gdy nieaktywna",
+      "streamIdleStopDesc": "Zatrzymuje Live News i Live Webcams po tym czasie bez aktywności i wyświetla powiadomienie w panelu.",
+      "streamIdleStopNever": "Nigdy"
     },
     "etfFlows": {
       "unavailable": "Dane ETF tymczasowo niedostępne",
@@ -1609,6 +1778,7 @@
       "etfs": "ETF-y",
       "netInflow": "NAPŁYW NETTO",
       "netOutflow": "ODPŁYW NETTO",
+      "netNeutral": "NETTO NEUTRALNE",
       "table": {
         "ticker": "Ticker",
         "issuer": "Emitent",
@@ -1693,13 +1863,10 @@
     },
     "liveNews": {
       "notLive": "{{name}} is not currently live",
-      "cannotEmbed": "{{name}} nie może być odtworzony tutaj — może być ograniczony w Twoim regionie (błąd {{code}})",
       "openOnYouTube": "Open on YouTube",
       "manage": "Zarządzaj kanałami",
       "addChannel": "Dodaj kanał",
       "remove": "Usuń",
-      "youtubeHandle": "Handle YouTube (np. @Channel)",
-      "youtubeHandleOrUrl": "Uchwyt lub URL YouTube",
       "displayName": "Nazwa wyświetlana (opcjonalnie)",
       "channelSettings": "Ustawienia kanału",
       "save": "Zapisz",
@@ -1714,15 +1881,26 @@
       "regionMiddleEast": "Bliski Wschód",
       "regionAfrica": "Afryka",
       "regionOceania": "Oceania",
-      "botCheck": "YouTube wymaga zalogowania, aby odtworzyć {{name}}",
-      "invalidHandle": "Wprowadź prawidłowy identyfikator YouTube (np. @NazwaKanału)",
       "signInToYouTube": "Zaloguj się do YouTube",
       "verifying": "Weryfikowanie…",
       "noResults": "Nie znaleziono kanałów pasujących do \"{{term}}\"",
       "hlsUrl": "URL strumienia HLS (opcjonalnie)",
       "invalidHlsUrl": "Wprowadź prawidłowy URL strumienia HLS (.m3u8)",
       "playLiveFeed": "Odtwórz transmisję na żywo",
-      "readyStatus": "Gotowe, gdy Ty jesteś gotowy"
+      "readyStatus": "Gotowe, gdy Ty jesteś gotowy",
+      "embedBlocked": "YouTube nie odtwarza {{name}} na innych stronach w tym momencie",
+      "unavailable": "{{name}} nie może być odtwarzany w tym momencie",
+      "noStream": "Dla {{name}} nie ustawiono jeszcze transmisji na żywo",
+      "needsChannelUrl": "Dodaj {{name}} ponownie z adresem URL jego kanału (youtube.com/channel/UC…) lub adresem URL transmisji na żywo",
+      "connecting": "Łączenie z {{name}}…",
+      "recording": "Nagrywanie",
+      "unverified": "Nie można potwierdzić, że ta transmisja jest na żywo",
+      "playNextChannel": "Odtwórz następny kanał",
+      "channelOrVideoUrl": "Kanał YouTube lub adres URL wideo",
+      "channelUrlHint": "Wklej adres URL kanału (youtube.com/channel/UC…) lub adres URL transmisji na żywo",
+      "youtubeChannel": "Kanał YouTube",
+      "insecureStream": "{{name}} używa niesecure'owego (http) strumienia, który przeglądarki blokują. Dodaj go ponownie z bezpiecznym (https) adresem URL strumienia",
+      "httpsStreamHint": "Przeglądarki blokują niezabezpieczone (http) strumienie. Wklej bezpieczny (https) adres URL strumienia"
     },
     "securityAdvisories": {
       "loading": "Ładowanie ostrzeżeń podróżnych...",
@@ -1759,7 +1937,9 @@
     "breakingNews": {
       "critical": "KRYTYCZNY",
       "dismiss": "Odrzuć",
-      "high": "WYSOKI"
+      "high": "WYSOKI",
+      "alertsRegion": "Breaking news alerts",
+      "viewPanel": "View related panel"
     },
     "giving": {
       "activityIndex": "Indeks aktywności",
@@ -1837,7 +2017,13 @@
       "loadingHistory": "Wczytywanie historii tranzytu…",
       "historyUnavailable": "Historia tranzytu niedostępna",
       "transitDataUnavailable": "Dane tranzytu niedostępne (upstream częściowy)",
-      "infoTooltip": "<strong>Monitor Łańcucha Dostaw</strong> Globalne śledzenie logistyki i zasobów:<ul><li><strong>Punkty Krytyczne</strong>: Status tranzytu morskiego, wskaźniki perturbacji i liczba statków</li><li><strong>Wysyłka</strong>: Trend indeksu Baltic Dry Index i stawek frachtu</li><li><strong>Minerały</strong>: Ryzyko koncentracji minerałów krytycznych (HHI) i główni producenci</li></ul>Kliknij kartę punktu krytycznego, aby rozwinąć wykres historii tranzytu."
+      "infoTooltip": "<strong>Monitor Łańcucha Dostaw</strong> Globalne śledzenie logistyki i zasobów:<ul><li><strong>Punkty Krytyczne</strong>: Status tranzytu morskiego, wskaźniki perturbacji i liczba statków</li><li><strong>Wysyłka</strong>: Trend indeksu Baltic Dry Index i stawek frachtu</li><li><strong>Minerały</strong>: Ryzyko koncentracji minerałów krytycznych (HHI) i główni producenci</li></ul>Kliknij kartę punktu krytycznego, aby rozwinąć wykres historii tranzytu.",
+      "mineStage": "Mine",
+      "refineryStage": "Refine",
+      "stageUnavailable": "No published figures for this stage",
+      "withheldNote": "W withheld",
+      "productionCaption": "Country shares of actual production. The map deposits layer shows where resources sit; this table shows who mines or refines them.",
+      "productionProLocked": "Uaktualnij do PRO, aby zobaczyć udziały krajów w wydobyciu i rafinacji z koncentracją (HHI) według etapu"
     },
     "positiveNewsFeed": {
       "noStories": "Brak artykułów w tej kategorii"
@@ -1875,13 +2061,39 @@
       "topTargets": "Kraje docelowe ataku"
     },
     "commodities": {
-      "infoTooltip": "<strong>Commodities</strong> Tradeable non-energy commodity tape focused on metals and materials. Energy prices live in Energy Complex; macro stress indicators live in Macro Stress."
+      "infoTooltip": "<strong>Commodities</strong> Tradeable non-energy commodity tape focused on metals and materials. Energy prices live in Energy Complex; macro stress indicators live in Macro Stress.",
+      "commodities": "Commodities",
+      "physicalPremiums": "Physical premium",
+      "physical": "Physical",
+      "paper": "Paper",
+      "premium": "Premium",
+      "asOf": "As of {{date}}",
+      "metals": {
+        "gold": "Gold",
+        "silver": "Silver"
+      },
+      "divergence": {
+        "compositeValue": "Wskaźnik stresu fizycznego: {{value}} / 100",
+        "fiveDayTrend": "Trend premii pięciodniowej",
+        "regimes": {
+          "normal": "Normalny",
+          "elevated": "Podwyższony",
+          "stressed": "Stresowany",
+          "extreme": "Ekstremalny"
+        },
+        "states": {
+          "insufficientHistory": "Rozgrzewanie: {{count}} / {{required}} punktów handlowych",
+          "staleInput": "Benchmark fizyczny jest nieaktualny",
+          "missingInput": "Sygnał dywergencji niedostępny"
+        },
+        "twentyDayTrend": "Trend premii za dwadzieścia dni handlowych"
+      }
     },
     "crypto": {
       "infoTooltip": "<strong>Crypto</strong> Live prices, 24h changes, and volume for major cryptocurrencies. Data sourced from CoinGecko."
     },
     "gulfEconomies": {
-      "infoTooltip": "<strong>Gulf Economies</strong> Real-time Gulf stock indices, currency rates, and oil prices for GCC economies (Saudi Arabia, UAE, Kuwait, Qatar, Bahrain, Oman)."
+      "infoTooltip": "<strong>Gulf Economies</strong> Seeded Gulf stock indices, currency rates, and oil prices for GCC economies (Saudi Arabia, UAE, Kuwait, Qatar, Bahrain, Oman)."
     },
     "groceryBasket": {
       "infoTooltip": "<strong>Grocery Index</strong> Global grocery basket price comparison across 24 countries — tracks real-world consumer goods inflation beyond headline CPI."
@@ -2001,7 +2213,7 @@
       "infoTooltip": "<strong>Kalendarz ekonomiczny</strong> Zaplanowane publikacje makroekonomiczne: CPI, NFP, GDP, PMI i decyzje banków centralnych. Pokazuje prognozę vs. rzeczywistość vs. poprzedni. Wydarzenia o wysokim wpływie wyróżnione. Źródło: dostawcy danych ekonomicznych."
     },
     "fsi": {
-      "infoTooltip": "<strong>Wskaźnik stresu finansowego</strong> Indeks stresu finansowego Fed z Kansas City (KCFSI): mierzy stres na rynkach finansowych USA przy użyciu 11 wskaźników, w tym spreadów rentowności, zmienności i korelacji krzyżowych. Wartości dodatnie wskazują na stres powyżej średniej. Źródło: Federal Reserve Bank of Kansas City.",
+      "infoTooltip": "<strong>Wskaźnik stresu finansowego</strong> Stosunek WorldMonitor kredytu wysokodochodowego do długoterminowych amerykańskich obligacji skarbowych, skorygowany o zmienność akcji i spread wysokodochodowy: (HYG / TLT) / (VIX × HY spread / 100). Nie jest to indeks stresu finansowego Rezerwy Federalnej w Kansas City. Odczyt 1.5 lub wyższy oznacza niski stres; poniżej 0.3 oznacza wysoki stres.",
       "title": "Wskaźnik Stresu Finansowego",
       "usFsiValue": "WARTOŚĆ US FSI",
       "cissTitle": "EU CISS (Systemowy Stres w Strefie Euro)",
@@ -2041,6 +2253,26 @@
         "failedToLoad": "Nie udało się załadować"
       },
       "cissStale": "EBC nie opublikował nowszej wartości — ta wartość może być nieaktualna."
+    },
+    "supplyVulnerability": {
+      "title": "Podatność surowcowa",
+      "help": "Ekspozycja kraju według surowca na podstawie koncentracji dostawców, tranzytu morskiego i dostępnych rezerw strategicznych.",
+      "loading": "Ładowanie podatności surowcowej…",
+      "unavailable": "Dane o podatności surowcowej są niedostępne",
+      "noCoverage": "Niewystarczające dowody dla tego kraju",
+      "unknown": "Nieznane",
+      "concentration": "Koncentracja",
+      "transit": "Tranzyt",
+      "buffer": "Rezerwa",
+      "sources": "Źródła",
+      "methodology": "Metodyka",
+      "hormuzTitle": "Zależności surowcowe",
+      "dependentCountries": "Kraje zależne",
+      "dependentCommodities": "Surowce zależne",
+      "stateOk": "Aktualne",
+      "stateStale": "Nieaktualne dane wejściowe",
+      "stateInsufficient": "Niewystarczające dane",
+      "proLocked": "Uaktualnij do PRO, aby zobaczyć ocenę podatności surowców"
     },
     "hormuzTracker": {
       "infoTooltip": "<strong>Tracker handlu w Hormuzie</strong> Śledzenie statków AIS w czasie rzeczywistym przez Cieśninę Ormuz, najważniejszy punkt zagrożenia naftowego na świecie. Monitoruje liczbę tankowców, zdarzenia zakłóceń i tygodniowe zmiany przepływów. Około 20% światowych dostaw ropy przechodzi tędy codziennie.",
@@ -2159,6 +2391,17 @@
       "chart": {
         "title": "Wykres cen {{symbol}}",
         "close": "Zamknij wykres"
+      },
+      "unavailable": {
+        "symbols": "{{symbols}} — {{reason}}",
+        "symbolsMore": "{{symbols}} +{{count}} more — {{reason}}",
+        "notFound": "no quote available",
+        "providerError": "quote lookup failed, retrying shortly",
+        "rateLimited": "quote provider rate limited, retrying shortly",
+        "notConfigured": "quote provider not configured",
+        "requestLimit": "too many symbols requested",
+        "budget": "not loaded yet, retrying shortly",
+        "seed": "market data temporarily unavailable"
       }
     },
     "heatmap": {
@@ -2325,13 +2568,14 @@
     },
     "sanctionsPressure": {
       "title": "Sankcje i desygnacje",
-      "infoTooltip": "Desygnacje sankcji OFAC z list SDN i konsolidowanej. Pokazuje, które kraje napotykają największą presję desygnacji, jakie programy ją napędzają i co zostało niedawno dodane od ostatniej aktualizacji.",
+      "infoTooltip": "Listy SDN i skonsolidowana OFAC oraz desygnacje SEMA/JVCFOA Global Affairs Canada. Pokazuje, które kraje napotykają największą presję desygnacji, jakie programy ją napędzają i co zostało niedawno dodane od ostatniej aktualizacji.",
       "loading": "Ładowanie danych sankcji...",
       "unavailable": "Dane sankcji niedostępne.",
       "summary": {
         "new": "Nowe",
         "vessels": "Statki",
-        "aircraft": "Statki powietrzne"
+        "aircraft": "Statki powietrzne",
+        "sema": "SEMA"
       },
       "sections": {
         "countries": "Kraje objęte sankcjami",
@@ -2346,11 +2590,12 @@
       "footer": {
         "updated": "Zaktualizowane {{time}}",
         "dataset": "zestaw danych {{date}}",
-        "source": "Źródło: OFAC"
+        "source": "Źródło: OFAC · GAC SEMA"
       },
       "pills": {
         "newCount": "+{{count}} nowych",
-        "new": "nowe"
+        "new": "nowe",
+        "sema": "sema-ca"
       },
       "designations_one": "{{count}} desygnacja",
       "designations_other": "{{count}} desygnacji",
@@ -2433,7 +2678,14 @@
       "analyzing": "Analiza...",
       "viewOnMap": "Wyświetl na mapie",
       "signals_few": "{{count}} sygnały",
-      "signals_many": "{{count}} sygnałów"
+      "signals_many": "{{count}} sygnałów",
+      "waiting": "Oczekiwanie na kolejną aktualizację danych. Ten panel aktualizuje się automatycznie.",
+      "offline": "Oczekiwanie na połączenie. Ten panel zaktualizuje się automatycznie po przywróceniu połączenia.",
+      "updated": "Zaktualizowano {{time}}",
+      "saved": "Ostatnia znana aktualizacja {{time}} · Sprawdzanie aktualizacji",
+      "savedOffline": "Ostatnia znana aktualizacja {{time}} · Brak połączenia",
+      "localSignals": "Na podstawie sygnałów załadowanych w panelu",
+      "emptySaved": "Brak konwergencji w ostatniej znanej aktualizacji."
     },
     "thermalEscalation": {
       "title": "Eskalacja termiczna",
@@ -2654,10 +2906,11 @@
       }
     },
     "fx": {
-      "infoTooltip": "<strong>Kursy walut</strong> Stres walutowy i kursy spot:<ul><li>FX Stress klasyfikuje 45 walut według ich największego spadku od szczytu do dołu w ostatnich 24 miesiącach, wraz ze zmianą 12-miesięczną</li><li>Zasięg obejmuje ARS, TRY, EGP, NGN, PKR i UAH — waluty pominięte w zestawach odniesienia BIS i EBC</li><li>Spot wyświetla kursy względem dolara amerykańskiego i referencyjnych kursów euro EBC osobno, ponieważ są notowane na podstawie różnych źródeł</li></ul>Źródła: Yahoo Finance i Europejski Bank Centralny.",
+      "infoTooltip": "<strong>Kursy walut</strong> Stres walutowy i kursy spot:<ul><li>FX Stress klasyfikuje 45 walut według ich największego spadku od szczytu do dołu w ostatnich 24 miesiącach, wraz ze zmianą 12-miesięczną</li><li>Zasięg obejmuje ARS, TRY, EGP, NGN, PKR i UAH — waluty pominięte w zestawach odniesienia BIS i EBC</li><li>Spot wyświetla kursy względem dolara amerykańskiego i referencyjnych kursów euro EBC osobno, ponieważ są notowane na podstawie różnych źródeł</li><li>RUB — kursy Banku Rosji, ruble za jednostkę</li></ul> Źródła: Yahoo Finance, Europejski Bank Centralny i Bank Rosji.",
       "tabs": {
         "stress": "Stres walutowy",
-        "spot": "Spot"
+        "spot": "Spot",
+        "rub": "RUB"
       },
       "currency": "Waluta",
       "pair": "Para",
@@ -2677,8 +2930,76 @@
       "source": {
         "stress": "Stres walutowy",
         "usd": "Kursy dolara USD",
-        "eur": "Kursy euro ECB"
-      }
+        "eur": "Kursy euro ECB",
+        "rub": "Kursy Banku Rosji"
+      },
+      "rubBase": "Bank Rosji — ruble za 1 jednostkę",
+      "rubPerUnit": "Rubli za jednostkę",
+      "sourceCbr": "Źródło: Bank Rosji"
+    },
+    "passkeyOffer": {
+      "title": "Zapisać klucz dostępu?",
+      "body": "Zaloguj się następnym razem za pomocą odcisku palca, twarzy lub kodu PIN urządzenia — bez hasła do zapamiętania.",
+      "accept": "Zapisz klucz dostępu",
+      "dismiss": "Nie teraz",
+      "close": "Zamknij",
+      "announce": "Zapisz klucz dostępu, aby zalogować się szybciej następnym razem.",
+      "busy": "Oczekiwanie na urządzenie…",
+      "succeeded": "Klucz dostępu zapisany. Możesz go użyć przy następnym logowaniu.",
+      "retryable": "To się nie powiodło. Możesz spróbować ponownie.",
+      "failed": "Nie udało się zapisać klucza dostępu na tym urządzeniu."
+    },
+    "decisionBrief": {
+      "commodityTitle": "Raport decyzyjny dotyczący surowców",
+      "commodity": "Surowiec / produkt",
+      "blockedChokepoint": "Przejście uznane za zablokowane",
+      "commodityCapture": "Zapisz porównanie surowców",
+      "title": "Raport decyzyjny",
+      "fuel": "Paliwo",
+      "chokepoint": "Wąskie gardło",
+      "baseline": "Zakłócenie bazowe",
+      "comparison": "Zakłócenie porównawcze",
+      "capture": "Pobierz / odśwież oba",
+      "downloadHtml": "Pobierz raport w HTML",
+      "downloadJson": "Pobierz raport w JSON",
+      "back": "← Powrót do raportu kraju",
+      "select": "Wybierz zakłócenie dostaw energii, a następnie pobierz oba scenariusze.",
+      "changed": "Wybór zmieniony. Pobierz oba scenariusze przed eksportem.",
+      "loading": "Pobieranie obu scenariuszy…",
+      "captured": "Pobrano. Przed pobraniem pliku sprawdź daty obserwacji i ograniczenia.",
+      "failed": "Nie udało się pobrać scenariuszy. Sprawdź dostęp i spróbuj ponownie. Brak wyniku do eksportu.",
+      "locked": "Raport decyzyjny jest dostępny w Pro."
+    },
+    "liveMedia": {
+      "idleStatus": "Wstrzymana z powodu braku aktywności",
+      "idleBody": "Transmisja live zatrzymana po {{duration}} bez aktywności myszy, klawiatury lub ekranu dotykowego.",
+      "idleResume": "Wznów",
+      "idleKeepPlaying": "Kontynuuj odtwarzanie przy braku aktywności",
+      "idleSettingsHint": "Możesz to zmienić w dowolnym momencie w Ustawienia › Media.",
+      "idleKeepPlayingToast": "Transmisja live będzie kontynuowana przy braku aktywności. Zmień w Ustawienia › Media."
+    },
+    "corroboration": {
+      "singlePublisher": "Jeden wydawca",
+      "singlePublisherHint": "Na razie tylko jeden wydawca o tym donosi. To opisuje zasięg relacji, nie dokładność.",
+      "tier4Only": "Tylko źródła niskiego poziomu",
+      "tier4OnlyHint": "Wszystkie portale relacjonujące to są źródłami poziomu 4 (agregatory i blogi). To opisuje zasięg relacji, nie dokładność.",
+      "rosterListed": "({{listed}} wymienionych)",
+      "rosterFeeds": "Widoczne kanały: {{labels}}",
+      "rosterLegend": "Poziomy szeregują źródła; nie oceniają tego twierdzenia.",
+      "tierDocsLink": "Jak przydzielane są poziomy",
+      "tierChip": "T{{tier}}",
+      "tierChipUndeclared": "T?",
+      "tierTitle1": "Poziom 1: Agencje prasowe i organy urzędowe",
+      "tierTitle2": "Poziom 2: Główne wydawnictwa",
+      "tierTitle3": "Poziom 3: Źródła specjalistyczne, regionalne i think tanki",
+      "tierTitle4": "Poziom 4: Agregatory i blogi",
+      "tierTitleUndeclared": "Poziom niedeklarowany: jeszcze nie przeanalizowane",
+      "rosterSummary": "Zgłoszone przez {{publishers}}",
+      "rosterSummaryTier1": "Zgłoszone przez {{publishers}}, w tym {{tier1}} poziomu 1",
+      "rosterPublishers_one": "{{count}} wydawca",
+      "rosterPublishers_few": "{{count}} wydawcy",
+      "rosterPublishers_many": "{{count}} wydawców",
+      "rosterPublishers_other": "{{count}} wydawców"
     }
   },
   "popups": {
@@ -2716,14 +3037,18 @@
     "protest": {
       "acledVerified": "ACLED (zweryfikowany)",
       "gdelt": "GDELT",
+      "records": "wpisów",
+      "mediaSignal": "Niezweryfikowany sygnał medialny",
+      "relatedArticle": "Powiązany artykuł",
+      "mediaSignalDetail": "To miejsce jest wymieniane w artykułach o niepokojach. Lokalne zdarzenie nie zostało potwierdzone.",
       "riots": "Zamieszki",
       "highSeverity": "Wysoka dotkliwość"
     },
     "gpsJamming": {
       "title": "Zakłócenia GPS/GNSS",
-      "navPerformance": "Nav Performance",
-      "samples": "ADS-B Samples",
-      "aircraft": "Aircraft",
+      "navPerformance": "Statki powietrzne dotknięte zakłóceniami",
+      "samples": "Liczba statków powietrznych dotkniętych zakłóceniami",
+      "aircraft": "Łączna liczba zaobserwowanych statków powietrznych",
       "h3Hex": "H3 Hex"
     },
     "flight": {
@@ -2891,6 +3216,7 @@
     "moreEvents": "więcej zdarzeń",
     "monitoring": "Monitorowanie",
     "viewUSGS": "Zobacz na USGS",
+    "viewNRCan": "Zobacz na Earthquakes Canada",
     "expired": "Wygasły",
     "timeAgo": {
       "s": "{{count}}s temu",
@@ -3011,7 +3337,11 @@
       "heading": "NAGŁÓWEK",
       "hexCode": "KOD szesnastkowy",
       "squawk": "SKRZEK",
-      "attribution": "Źródło: Sieć OpenSky"
+      "attribution": "Źródło: adsb.lol (ODbL) · OpenSky Network",
+      "climbRate": "SZYBKOŚĆ WZNOSZENIA",
+      "manufacturer": "PRODUCENT",
+      "owner": "OPERATOR",
+      "builtYear": "ROK BUDOWY"
     },
     "militaryVessel": {
       "aisDark": "JEST CIEMNO",
@@ -3056,7 +3386,8 @@
       "moreVessels": "+{{count}} więcej statków",
       "vesselsCount": "{{count}} STATKI",
       "vessels": "STATKI",
-      "trackedVessels": "STATKI GĄSOWE"
+      "trackedVessels": "STATKI GĄSOWE",
+      "showLess": "Pokaż mniej"
     },
     "naturalEvent": {
       "closed": "ZAMKNIĘTE",
@@ -3330,7 +3661,8 @@
     "all": "Wszystkie",
     "loadingGiving": "Ładowanie danych o globalnej dobroczynności",
     "rateLimitedMarket": "Dane rynkowe tymczasowo niedostępne (limit zapytań) — ponowna próba wkrótce",
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "dismiss": "Dismiss"
   },
   "preferences": {
     "display": "Wyświetlanie",
@@ -3352,7 +3684,9 @@
     "fontFamily": "Rodzina czcionki",
     "fontFamilyDesc": "Monospace dla wyglądu technicznego, domyślna czcionka systemowa dla łatwiejszego czytania.",
     "fontMono": "Monospace",
-    "fontSystem": "Domyślna czcionka systemowa"
+    "fontSystem": "Domyślna czcionka systemowa",
+    "panelFontScale": "Rozmiar tekstu",
+    "followGlobalFontScale": "Użyj ustawienia globalnego"
   },
   "contextMenu": {
     "openCountryBrief": "Otwórz przegląd kraju",
@@ -3444,13 +3778,16 @@
       "orefSirens1": "Alerty rakietowe i rakietowe Izraela w czasie rzeczywistym",
       "orefSirens2": "Mapowanie stref syren z klasyfikacją zagrożeń",
       "telegramIntel1": "Wyselekcjonowane kanały OSINT na Telegramie",
-      "telegramIntel2": "Aktualizacje konfliktów i geopolityki w czasie bliskim rzeczywistemu"
+      "telegramIntel2": "Aktualizacje konfliktów i geopolityki w czasie bliskim rzeczywistemu",
+      "xIntel1": "Curated public news accounts on X",
+      "xIntel2": "API-fresh posts with official permalinks"
     }
   },
   "auth": {
     "signIn": "Zaloguj się",
     "createAccount": "Utwórz konto",
-    "settings": "Ustawienia"
+    "settings": "Ustawienia",
+    "passkeyOffer": {}
   },
   "mcp": {
     "connectPanel": "Połącz MCP",

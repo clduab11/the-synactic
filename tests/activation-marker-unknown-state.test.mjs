@@ -35,7 +35,7 @@ const {
   SEED_META,
   STANDALONE_KEYS,
   ON_DEMAND_KEYS,
-  ROLLOUT_PENDING_UNTIL_MS,
+  RUNTIME_ROLLOUT_PENDING_POLICIES,
   CONTENT_FRESHNESS_ROLLOUT_UNTIL_MS,
 } = __testing__;
 
@@ -99,7 +99,15 @@ function installHealthPipelineMock(
       if (op === 'STRLEN') return { result: empty.has(key) ? 0 : 100 };
       if (op === 'LLEN') return { result: empty.has(key) ? 0 : 1 };
       if (op === 'EXISTS') {
-        assert.match(String(key), /^seed-activated:/, 'EXISTS is only used for activation markers');
+        // Activation keys are `seed-activated:*` by convention, with one
+        // deliberate exception: military:bases gates on its active-version
+        // pointer, which atomicSwitch writes in the SAME EVAL as seed-meta and
+        // therefore cannot disagree with "has published at least once" (#6845).
+        assert.match(
+          String(key),
+          /^seed-activated:|^military:bases:active$/,
+          'EXISTS is only used for activation markers',
+        );
         // Every OTHER marker reads cleanly absent, so a regression that made
         // the whole map unknown would show up as unrelated checks flipping
         // rather than as one assertion passing for the wrong reason.
@@ -342,7 +350,15 @@ function installSeedHealthPipelineMock(
     const commands = JSON.parse(init.body);
     const results = commands.map(([op, key]) => {
       if (op === 'EXISTS') {
-        assert.match(String(key), /^seed-activated:/, 'EXISTS is only used for activation markers');
+        // Activation keys are `seed-activated:*` by convention, with one
+        // deliberate exception: military:bases gates on its active-version
+        // pointer, which atomicSwitch writes in the SAME EVAL as seed-meta and
+        // therefore cannot disagree with "has published at least once" (#6845).
+        assert.match(
+          String(key),
+          /^seed-activated:|^military:bases:active$/,
+          'EXISTS is only used for activation markers',
+        );
         return markerEntries[key]?.() ?? { result: 0 };
       }
       assert.equal(op, 'GET');
@@ -566,7 +582,9 @@ describe('#6095 — every activation marker is claimed by exactly one policy', (
     const claims = Object.fromEntries(Object.keys(ACTIVATION_MARKERS).map((name) => {
       const policies = [];
       if (contentNames.has(name)) policies.push('content-freshness: fail closed on unknown');
-      if (ROLLOUT_PENDING_UNTIL_MS[name] != null) policies.push('rollout-pending: soft on unknown');
+      if (RUNTIME_ROLLOUT_PENDING_POLICIES[name] != null) {
+        policies.push('runtime-rollout-pending: soft on unknown');
+      }
       if (ON_DEMAND_KEYS.has(name)) policies.push('on-demand: soft on unknown');
       return [name, policies];
     }));
@@ -602,12 +620,8 @@ describe('#6095 — every activation marker is claimed by exactly one policy', (
   });
 });
 
-// The read-side guard (hasExpiredActivationGrace) refuses an expired softening,
-// but refusing still costs a full ~390-command sweep per concurrent waiter,
-// because the refresh wait budget is shorter than a sweep. The write side must
-// therefore stop the snapshot from outliving the deadline in the first place,
-// so the deadline lands as an ordinary cache MISS that the refresh lock
-// serialises to one sweep.
+// The snapshot TTL must end at its published grace deadline. The read-side
+// guard also rejects expired softening; the refresh lease then elects one owner.
 describe('#6152 review — the verdict cache cannot outlive the deadline it publishes', () => {
   const DEADLINE = CONTENT_FRESHNESS_ROLLOUT_UNTIL_MS[PORTWATCH_MARKER];
 
@@ -617,11 +631,19 @@ describe('#6152 review — the verdict cache cannot outlive the deadline it publ
     const sets = [];
     globalThis.fetch = async (url, init) => {
       for (const command of JSON.parse(init.body)) {
-        // Snapshot writes only — the refresh lock is also a `health:verdict:*`
-        // SET and carries its own unrelated TTL.
-        const key = String(command[1]);
-        if (command[0] === 'SET' && key.startsWith('health:verdict') && !key.includes('refresh-lock')) {
-          sets.push(command);
+        if (command[0] === 'EVAL' && command[1] === __testing__.HEALTH_VERDICT_WRITE_SNAPSHOT_SCRIPT) {
+          // KEYS: lease, full, compact, retained full, retained compact;
+          // ARGV: token, full, compact, live TTL, retained TTL. Inspect the two
+          // live snapshot SETs this script protects. The retained copies carry
+          // their own longer TTL and are refused at read time past a deadline.
+          const keyCount = Number(command[2]);
+          const [lease, full, compact] = command.slice(3, 3 + keyCount);
+          const [, fullJson, compactJson, ttl] = command.slice(3 + keyCount);
+          assert.equal(lease, __testing__.HEALTH_VERDICT_REFRESH_LOCK_KEY);
+          sets.push(
+            ['SET', full, fullJson, 'EX', ttl],
+            ['SET', compact, compactJson, 'EX', ttl],
+          );
         }
       }
       return inner(url, init);
@@ -630,6 +652,10 @@ describe('#6152 review — the verdict cache cannot outlive the deadline it publ
       headers: { 'x-worldmonitor-key': 'test-health-admin-key' },
     }), undefined, { now });
     const body = await res.json();
+    assert.deepEqual(sets.map((command) => command[1]).sort(), [
+      __testing__.HEALTH_VERDICT_SNAPSHOT_KEY,
+      __testing__.HEALTH_VERDICT_COMPACT_SNAPSHOT_KEY,
+    ].sort(), 'both distinct snapshot keys must be published');
     return { sets, body };
   }
 

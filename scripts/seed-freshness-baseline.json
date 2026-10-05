@@ -7,6 +7,11 @@
     "It does NOT mean the problem is acceptable forever -- expiresAt forces a re-review,",
     "and the gate fails outright once that date passes.",
     "",
+    "A temporary rollout entry may add an entry-level `expiresAt` bounded to the first",
+    "scheduled cron window. At or after that instant, its live problem blocks even when",
+    "the root expiresAt is later. A health-probe cutover requires either a completed",
+    "Railway-side pre-seed, a one-way durable activation marker, or this owner-bound, expiring acknowledgement.",
+    "",
     "Entries are matched on name:status exactly. A source that recovers is reported as",
     "'recovered' on the next run (prune it); a source that fails with a DIFFERENT status",
     "than the one baselined is treated as new and blocks, which is the point.",
@@ -17,19 +22,331 @@
     "Softening fault statuses is the marketImplications blind spot the ON_DEMAND_KEYS policy",
     "block in api/health.js exists to prevent."
   ],
-  "expiresAt": "2026-08-27",
+  "expiresAt": "2026-10-06T20:00:00Z",
   "acknowledged": [
     {
-      "name": "crossStraitActivityJapanMod",
-      "status": "SEED_ERROR",
-      "issue": 5714,
-      "reason": "Japan MOD route returns proxy CONNECT 403; candidate country-specific routes return 407. Second cause independent of the #5689 Decodo exhaustion. No verified replacement endpoint installed."
+      "name": "aisGaps",
+      "status": "EMPTY",
+      "issue": 7574,
+      "reason": "Bounded deploy-order window: the standalone probe reads plain EMPTY until the Railway relay's first scheduled seedAisGaps publish writes the envelope and seed-meta (#7574).",
+      "expiresAt": "2026-09-05T18:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:maritime:ais-gaps",
+        "activatedAt": "2026-09-05T12:00:00Z",
+        "firstScheduledRunAt": "2026-09-06T00:00:00Z"
+      }
     },
     {
-      "name": "humanitarianSummary",
-      "status": "SEED_ERROR",
-      "issue": 5769,
-      "reason": "HAPI returns 'Blocked due to bot activity' to Railway egress (same signature as #5713, which was closed). Recovers intermittently between health snapshots, so one green poll is not evidence of recovery."
+      "name": "flightDelays",
+      "status": "STALE_SEED",
+      "issue": 6987,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (repointed from seed-meta:aviation:faa) and reads STALE_SEED until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6987).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:aviation:delays-bootstrap",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "canadaRoads",
+      "status": "EMPTY",
+      "issue": 6608,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6608).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:ontario-511",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "albertaRoads",
+      "status": "EMPTY",
+      "issue": 6612,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6612).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:alberta-511",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "manitobaRoads",
+      "status": "EMPTY",
+      "issue": 6622,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6622).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:manitoba-511",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "torontoRoads",
+      "status": "EMPTY",
+      "issue": 6609,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6609).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:toronto-roads",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "bcOpen511",
+      "status": "EMPTY",
+      "issue": 6611,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6611).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:infra:bc-open511",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "canadaAlerts",
+      "status": "EMPTY",
+      "issue": 6659,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6659).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:canada-union",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "canadaAlertsAbSource",
+      "status": "EMPTY",
+      "issue": 6659,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6659).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:alberta-aea",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "canadaAlertsBcSource",
+      "status": "EMPTY",
+      "issue": 6659,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6659).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:bc-emergency-info",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "canadaAlertsSkSource",
+      "status": "STALE_SEED",
+      "issue": 6659,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads STALE_SEED until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6659).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:alerts:saskalert",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "ttcAlerts",
+      "status": "EMPTY",
+      "issue": 6623,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6623).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:transit:ttc-alerts",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "tpsMci",
+      "status": "EMPTY",
+      "issue": 7035,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#7035).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:safety:tps-mci",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "tpsCallsAttended",
+      "status": "EMPTY",
+      "issue": 7036,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#7036).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:safety:tps-calls-attended",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "xFeed",
+      "status": "EMPTY",
+      "issue": 6928,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6928).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:intelligence:x-feed:v1",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "tradeFlows",
+      "status": "EMPTY",
+      "issue": 6322,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6322).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:trade:flows",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "tariffTrendsUs",
+      "status": "EMPTY",
+      "issue": 6349,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (repointed from seed-meta:trade:tariffs:v1:840:all:10) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6349).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:trade:tariffs",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "fredRatesSeeder",
+      "status": "EMPTY",
+      "issue": 6339,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6339).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:economic:fred-rates",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "marketCorrelationSeries",
+      "status": "EMPTY",
+      "issue": 6418,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6418).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:market:correlation-series",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "bocValet",
+      "status": "EMPTY",
+      "issue": 6616,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6616).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:economic:boc-valet",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "statcanWds",
+      "status": "EMPTY",
+      "issue": 6676,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6676).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:economic:statcan-wds",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "foodStocks",
+      "status": "EMPTY",
+      "issue": 6440,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6440).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:resilience:food-stocks",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "demographicsCapability",
+      "status": "EMPTY",
+      "issue": 6437,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6437).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:demographics:capability",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "mineralProduction",
+      "status": "EMPTY",
+      "issue": 6439,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6439).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:supply-chain:mineral-production",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "staticRefBundleTick",
+      "status": "EMPTY",
+      "issue": 6691,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6691).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "bundle:heartbeat:static-ref",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "staticRefHeavyBundleTick",
+      "status": "EMPTY",
+      "issue": 6806,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads EMPTY until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6806).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "bundle:heartbeat:static-ref-heavy",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
+    },
+    {
+      "name": "viarailLive",
+      "status": "STALE_SEED",
+      "issue": 6615,
+      "reason": "Fork sync deploy-order window: this probe is new to the-synactic (no prior key) and reads STALE_SEED until its producer first publishes on this deployment after the upstream sync merges. Owner record is the upstream issue that introduced the probe (#6615).",
+      "expiresAt": "2026-10-06T20:00:00Z",
+      "cutover": {
+        "probeKey": "seed-meta:transit:viarail-live",
+        "activatedAt": "2026-10-05T20:00:00Z",
+        "firstScheduledRunAt": "2026-10-06T20:00:00Z"
+      }
     }
   ]
 }

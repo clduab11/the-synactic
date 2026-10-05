@@ -22,7 +22,6 @@ declare global {
   interface Window {
     __wmPaintEntries?: PaintEntrySnapshot[];
     __wmLcpEntries?: LcpEntrySnapshot[];
-    __wmWelcomeHydrationDispatched?: boolean;
     __wmWelcomeRootClearCount?: number;
   }
 }
@@ -202,10 +201,10 @@ test.describe('pre-hydration dashboard shell', () => {
       expect(preHydration.ariaBusy).toBe('true');
       expect(preHydration.appHeadingTag).toBe('H1');
       expect(preHydration.appHeadingAriaHidden).toBeNull();
-      expect(preHydration.appHeadingText).toContain('World Monitor');
+      expect(preHydration.appHeadingText).toContain('the-synactic');
       expect(preHydration.badgeAriaLabel).toBeNull();
       expect(preHydration.focusableCount).toBe(0);
-      expect(preHydration.shellText).toContain('World Monitor');
+      expect(preHydration.shellText).toContain('the-synactic');
       expect(preHydration.shellText).toContain(SHELL_LCP_TEXT);
       expect(preHydration.shellText).toContain('Primary View');
       expect(preHydration.candidateText).toBe(SHELL_LCP_TEXT);
@@ -227,7 +226,7 @@ test.describe('pre-hydration dashboard shell', () => {
 
       await expect(page.locator('.header')).toBeVisible({ timeout: 30000 });
       await expect(page.locator('.skeleton-shell')).toHaveCount(0);
-      await expect(page.locator('body > h1.app-heading')).toContainText('World Monitor');
+      await expect(page.locator('body > h1.app-heading')).toContainText('the-synactic');
       for (const href of [
         '/countries/',
         '/chokepoints/',
@@ -235,7 +234,7 @@ test.describe('pre-hydration dashboard shell', () => {
         '/tools/',
         '/pro#pricing',
         'https://www.worldmonitor.app/blog/',
-        'https://www.worldmonitor.app/docs',
+        'https://www.worldmonitor.app/docs/documentation',
         'https://github.com/koala73/worldmonitor',
       ]) {
         await expect(page.locator(`.site-footer nav a[href="${href}"]`)).toHaveCount(1);
@@ -379,7 +378,7 @@ test.describe('server-rendered welcome page', () => {
     await expect(page.locator('#seo-prerender')).toHaveCount(0);
     await expect(page.locator('#root[data-wm-prerendered="welcome"] h1')).toHaveCount(1);
     await expect(page.locator('#root h1')).toBeVisible();
-    await expect(page.locator('#root a[href="/dashboard?ref=welcome-hero"]')).toBeVisible();
+    await expect(page.locator('#root a[href="/dashboard"][data-umami-event-target="welcome-hero"]')).toBeVisible();
     await expect(page.locator('#root footer a[href="/countries/"]')).toBeVisible();
     await expect(page.locator('#root footer a[href="https://github.com/koala73/worldmonitor"]')).toBeVisible();
   });
@@ -397,8 +396,26 @@ test.describe('server-rendered welcome page', () => {
     }
   });
 
-  for (const language of ['fr', 'ar']) {
-    test(`keeps the English prerender for ${language} when welcome copy falls back`, async ({ page }) => {
+  for (const {
+    direction,
+    headline,
+    language,
+    ogLocale,
+  } of [
+    {
+      direction: 'ltr',
+      headline: "Au moment où c'est une nouvelle",
+      language: 'fr',
+      ogLocale: 'fr_FR',
+    },
+    {
+      direction: 'rtl',
+      headline: 'بحلول الوقت الذي تصبح فيه خبراً',
+      language: 'ar',
+      ogLocale: 'ar_SA',
+    },
+  ]) {
+    test(`keeps the English prerender until ${language} renders localized welcome copy`, async ({ page }) => {
       const pageErrors: string[] = [];
       page.on('pageerror', (error) => pageErrors.push(error.message));
       await page.addInitScript(() => {
@@ -409,13 +426,6 @@ test.describe('server-rendered welcome page', () => {
           }
           return originalReplaceChildren.call(this, ...nodes);
         };
-        window.requestIdleCallback = (callback) => window.setTimeout(() => {
-          callback({
-            didTimeout: false,
-            timeRemaining: () => 50,
-          });
-          window.__wmWelcomeHydrationDispatched = true;
-        }, 0);
       });
       const delayedMain = await delayWelcomeMain(page);
 
@@ -437,23 +447,18 @@ test.describe('server-rendered welcome page', () => {
 
         delayedMain.release();
 
-        await expect.poll(async () => page.evaluate(() => (
-          window.__wmWelcomeHydrationDispatched ?? false
-        ))).toBe(true);
-        await page.evaluate(() => new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        }));
+        await expect(page.locator('#root h1')).toContainText(headline);
         await expect(root).toBeVisible();
         await expect.poll(async () => page.evaluate(() => ({
           direction: getComputedStyle(document.documentElement).direction,
           language: document.documentElement.lang,
           ogLocale: document.querySelector('meta[property="og:locale"]')?.getAttribute('content'),
         }))).toEqual({
-          direction: 'ltr',
-          language: 'en',
-          ogLocale: 'en_US',
+          direction,
+          language,
+          ogLocale,
         });
-        expect(await page.evaluate(() => window.__wmWelcomeRootClearCount ?? 0)).toBe(0);
+        expect(await page.evaluate(() => window.__wmWelcomeRootClearCount ?? 0)).toBe(1);
         expect(pageErrors).toEqual([]);
       } finally {
         delayedMain.release();
@@ -473,7 +478,7 @@ test.describe('dashboard shell without JavaScript', () => {
     await expect(page.locator('#root h1')).toHaveCount(1);
     await expect(page.locator('#root h1')).toBeVisible();
     await expect(page.locator('#root h1')).toContainText('you already knew');
-    await expect(page.locator('#root a[href="/dashboard?ref=welcome-hero"]')).toBeVisible();
+    await expect(page.locator('#root a[href="/dashboard"][data-umami-event-target="welcome-hero"]')).toBeVisible();
     await expect(page.locator('#root footer a[href="/countries/"]')).toBeVisible();
     await expect(page.locator('#root footer a[href="https://github.com/koala73/worldmonitor"]')).toBeVisible();
   });
@@ -482,7 +487,7 @@ test.describe('dashboard shell without JavaScript', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('.skeleton-shell')).toBeHidden();
-    await expect(page.locator('body > h1.app-heading')).toContainText('World Monitor');
+    await expect(page.locator('body > h1.app-heading')).toContainText('the-synactic');
     await expect(page.locator('body > h1.app-heading')).not.toHaveAttribute('aria-hidden', 'true');
     await expect(page.locator('#seo-prerender')).toHaveCount(0);
     await expect(page.locator('#dashboard-noscript')).toBeVisible();
@@ -493,7 +498,7 @@ test.describe('dashboard shell without JavaScript', () => {
       '/crises/',
       '/tools/',
       '/blog/',
-      '/docs',
+      '/docs/documentation',
       '/pro#pricing',
       'https://github.com/koala73/worldmonitor',
     ]) {

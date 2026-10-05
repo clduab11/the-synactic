@@ -14,7 +14,7 @@ import {
 
 describe('PERMANENT_4XX_STATUSES classification', () => {
   it('includes the request-shape errors that retrying cannot fix', () => {
-    for (const code of [400, 401, 403, 404, 410, 422, 451]) {
+    for (const code of [400, 401, 403, 404, 410, 413, 422, 451]) {
       assert.equal(PERMANENT_4XX_STATUSES.has(code), true, `expected ${code} permanent`);
     }
   });
@@ -94,6 +94,41 @@ describe('withRetry', () => {
       /transient/,
     );
     assert.equal(attempts, 3, 'initial + 2 retries = 3 attempts');
+  });
+
+  it('WM_SEED_RETRY_DELAY_MS caps only the sleep, and only under the test runner', async () => {
+    // The knob exists so suites that stub persistent upstream failures do not
+    // idle through real backoff. Two properties are load-bearing: the attempt
+    // count stays real (only the sleep shrinks), and the cap is dual-gated on
+    // NODE_TEST_CONTEXT so a stray env var on a production seeder cannot
+    // silently disable backoff. This file runs under the node test runner, so
+    // NODE_TEST_CONTEXT is present here by construction.
+    assert.ok(process.env.NODE_TEST_CONTEXT, 'precondition: running under node --test');
+    const prior = process.env.WM_SEED_RETRY_DELAY_MS;
+    process.env.WM_SEED_RETRY_DELAY_MS = '1';
+    try {
+      let attempts = 0;
+      const t0 = Date.now();
+      await assert.rejects(
+        // delayMs 500 would sleep 500ms + 1000ms uncapped — far over the bound.
+        withRetry(async () => { attempts++; throw new Error('transient'); }, 2, 500),
+        /transient/,
+      );
+      const elapsed = Date.now() - t0;
+      assert.equal(attempts, 3, 'the cap must not change the attempt count');
+      // Uncapped this would sleep 500ms + 1000ms. The bound is set against the
+      // sleep being avoided, not against a stopwatch reading of the work —
+      // a tight absolute ceiling measures the runner's load and flakes under a
+      // parallel suite while passing in isolation.
+      const uncappedBackoffMs = 500 + 1000;
+      assert.ok(
+        elapsed < uncappedBackoffMs / 2,
+        `capped backoff must not idle: got ${elapsed}ms against an uncapped ${uncappedBackoffMs}ms`,
+      );
+    } finally {
+      if (prior === undefined) delete process.env.WM_SEED_RETRY_DELAY_MS;
+      else process.env.WM_SEED_RETRY_DELAY_MS = prior;
+    }
   });
 
   it('returns success on first attempt when fn succeeds', async () => {
@@ -267,9 +302,10 @@ describe('atomicPublish retry-on-transient (WM 2026-05-10 incident fix)', () => 
         atomicPublish('test:key:v1', { hello: 'world' }, null, 60),
         /HTTP 401/,
       );
-      const elapsed = Date.now() - t0;
+      // `calls === 1` already proves the retry ladder never ran, which is the
+      // whole content of "fast-fail" — the elapsed-time assertion that used to
+      // sit here added nothing and measured the runner's load.
       assert.equal(calls, 1, 'no retries on permanent 401');
-      assert.ok(elapsed < 500, `expected fast-fail, got ${elapsed}ms`);
     } finally {
       teardown();
     }

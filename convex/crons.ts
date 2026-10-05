@@ -23,6 +23,57 @@ crons.hourly(
   {},
 );
 
+// Bounded recovery for account deletions whose scheduled continuation was
+// dropped. Without it the by_status_updatedAt index has no reader, and a user
+// whose erase stalled sits write-fenced and already anonymized while their
+// subscription keeps billing, recoverable only by clicking Delete again or by
+// support running the runbook. The mutation only re-arms rows already staler
+// than PENDING_STALE_AFTER_MS, so a live retry backoff is never doubled, and
+// re-running a step is a no-op because every stepper re-queries its leftovers.
+crons.hourly(
+  "account-deletion-stalled-reaper",
+  { minuteUTC: 7 },
+  internal.accountDeletion.batches.reapStalledDeletions,
+  {},
+);
+
+// Bounded recovery for Company Monitoring purge generations whose scheduled
+// continuation was dropped. The mutation independently enforces the ordinary
+// lapse purgeAfter deadline, so an hourly wake cannot bypass the 24h grace.
+crons.hourly(
+  "company-monitoring-stalled-purge-reaper",
+  { minuteUTC: 37 },
+  internal.companyMonitoring.accounts.reapStalledAccountPurges,
+  {},
+);
+
+// Company Monitoring account roots are provisioned on first use and are no
+// longer touched by entitlement writes (#6256), so lapses are pulled here
+// instead of pushed from billing. Scanning only companyMonitoringAccounts means
+// this costs nothing for the subscribers who never use the feature. The 24h
+// purgeAfter grace still applies downstream, so detection latency of one tick
+// is absorbed by a window that already exists.
+crons.hourly(
+  "company-monitoring-entitlement-reconciler",
+  { minuteUTC: 47 },
+  internal.companyMonitoring.accounts.reconcileAccountEntitlements,
+  {},
+);
+
+// Retention sweep for the preference-write rate limiter (#6706). The limiter
+// used to drop expired-window rows inline on every write, which widened that
+// mutation's OCC read set from one counter row to the caller's entire row set
+// and livelocked users writing from two tabs. Collecting them here keeps the
+// write path's read set at exactly the current window. Hourly, not daily: a
+// user writing continuously produces one row per 60s window, so an hourly tick
+// bounds the table at ~60 rows per active user instead of ~1440.
+crons.hourly(
+  "user-prefs-rate-limit-prune",
+  { minuteUTC: 52 },
+  internal.userPreferences.pruneStaleWriteRateLimits,
+  {},
+);
+
 // PRO-launch broadcast ramp runner. Wakes once a day at 13:00 UTC
 // (~9am ET / 6am PT / 3pm CET — early enough that any kill-gate
 // trip can be triaged within US business hours, late enough that

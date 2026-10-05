@@ -6,6 +6,21 @@ All notable changes to World Monitor are documented here.
 
 ### Changed
 
+- **YouTube channel live detection is retired** (#8167; #5503). It scraped
+  youtube.com channel pages through a residential proxy, which #5503 flagged as
+  a YouTube Terms of Service violation. On
+  `GET /api/aviation/v1/get-youtube-live-stream-info`, a channel-only query now
+  returns error `channel_live_detection_retired` without contacting YouTube;
+  `isLive` is always `false` and `hlsUrl` is always empty. The `channel` query
+  field and the `isLive` and `hlsUrl` response fields are deprecated and kept
+  for v1 wire compatibility; the operation itself is not deprecated.
+  `GET /api/youtube/live?channel=` now returns HTTP 410 with
+  `{"error":"channel_live_detection_retired"}`, cacheable for one day;
+  `?videoId=` still returns the video's oEmbed title and channel name.
+  **Migration:** pass `video_id` (`videoId` on `/api/youtube/live`) to name a
+  video. There is no replacement for channel live detection; Live News and Live
+  Webcams play verified streams listed in `src/config/live-video-sources.ts`.
+
 - **Corporate intelligence is live; `get-company-enrichment` and
   `list-company-signals` are no longer deprecated** (#5695). Both
   `/api/intelligence/v1/get-company-enrichment` and
@@ -123,6 +138,7 @@ All notable changes to World Monitor are documented here.
 
 ### Security
 
+- **`GET /api/telegram-feed` now requires a dashboard session credential and is no longer publicly cacheable** (#7039). The route served Telegram post bodies to any Origin-less caller (`curl` / server-to-server) and advertised `public, s-maxage=120`, the same hole #6654 closed on `/api/x-feed`. It now runs `validateApiKey` (not `forceKey` — the anonymous `wms_` session is the intended credential) and returns `private, max-age=30` with `Vary` on the credential headers. The route is additionally rate-limited to 60 requests/min/IP, so a freely-minted `wms_` token cannot drive unbounded bulk extraction; the panel falls back to its last good payload instead of blanking when a refresh fails, replacing the `stale-if-error` buffer the public cache used to provide.
 - CDN-Cache-Control header now only set for trusted origins (worldmonitor.app, Vercel previews, Tauri); no-origin server-side requests always reach the edge function so `validateApiKey` can run, closing a potential cache-bypass path for external scrapers
 - **Shipping v2 webhook tenant isolation (#3242)** — `POST /api/v2/shipping/webhooks` (register) and `GET /api/v2/shipping/webhooks` (list) now enforce `validateApiKey(req, { forceKey: true })`, matching the sibling `[subscriberId]{,/[action]}` routes and the documented contract in `docs/api-shipping-v2.mdx`. Without this gate, a Clerk-authenticated pro user with no API key would fall through `callerFingerprint()` to the shared `'anon'` bucket and see/overwrite webhooks owned by other `'anon'`-bucket tenants.
 

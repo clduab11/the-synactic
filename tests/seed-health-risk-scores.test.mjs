@@ -98,7 +98,9 @@ test('relay CII warm-ping delegates risk-score health count to the RPC handler',
   );
   assert.match(
     handler,
-    /countCiiRealtimeSignalDensityCoverage\(acled,\s*aux,\s*nowMs\)/,
+    // Fork: the handler's `acled` is the HAPI snapshot result, so the rows are
+    // passed as `acled.rows`.
+    /countCiiRealtimeSignalDensityCoverage\(acled(?:\.rows)?,\s*aux,\s*nowMs\)/,
     'get-risk-scores handler must derive riskScores recordCount from real-time CII signal-density coverage using the request clock',
   );
   assert.match(

@@ -2,6 +2,10 @@ import { strict as assert } from 'node:assert';
 import test from 'node:test';
 import handler from './bootstrap.js';
 import { issueSessionToken } from './_session.js';
+import {
+  assertPublicBootstrapCorsHeaders,
+  assertPublicBootstrapSharedCacheHeaders,
+} from '../tests/helpers/public-bootstrap-contract.mjs';
 
 const ENTERPRISE_KEY = 'enterprise-bootstrap-test-key';
 const USER_KEY = 'wm_0123456789abcdef0123456789abcdef01234567';
@@ -198,19 +202,19 @@ function makePublicTierBootstrapRequest(tier = 'fast', headers = {}) {
   });
 }
 
+// Both delegate to tests/helpers/public-bootstrap-contract.mjs, which
+// tests/cors-preflight-live.test.mjs runs against a DEPLOYED URL. Keeping one
+// definition is the point: #7308 shipped because these assertions passed against
+// handler() while the edge served a different shape to real browsers.
 function assertSharedCacheHeaders(resp) {
-  // Tier responses intentionally avoid public/s-maxage in Cache-Control (CF in
-  // front of api.worldmonitor.app would mispin ACAO) and shield via Vercel's
-  // CDN-Cache-Control instead.
-  assert.ok(resp.headers.get('cdn-cache-control'));
-  assert.match(resp.headers.get('cdn-cache-control') || '', /\b(public|s-maxage)\b/i);
+  assertPublicBootstrapSharedCacheHeaders({ assert, resp });
 }
 
 function assertPublicCorsHeaders(resp) {
-  // Public seed payload → ACAO:* with no Vary: Origin and no credentials, so the
-  // shared CDN stores one entry per URL and no origin can pin an echoed ACAO.
-  assert.equal(resp.headers.get('access-control-allow-origin'), '*');
-  assert.equal(resp.headers.get('access-control-allow-credentials'), null);
+  assertPublicBootstrapCorsHeaders({ assert, resp });
+  // Tighter than the shared contract can be: this response is the handler's own
+  // output, with no platform-appended `Vary: accept-encoding` yet, so no Vary
+  // at all is the correct expectation here.
   assert.equal(resp.headers.get('vary'), null);
 }
 
@@ -227,6 +231,7 @@ test('no-Origin enterprise key keeps bootstrap shape but is not shared-cacheable
     assert.equal(resp.status, 200);
     assert.deepEqual(Object.keys(await resp.json()).sort(), ['data', 'missing']);
     assertNonSharedCacheHeaders(resp);
+    assert.equal(resp.headers.get('timing-allow-origin'), null);
   });
 });
 
@@ -237,6 +242,7 @@ test('allowed-Origin enterprise key keeps bootstrap shape but is not shared-cach
     assert.equal(resp.status, 200);
     assert.deepEqual(Object.keys(await resp.json()).sort(), ['data', 'missing']);
     assertNonSharedCacheHeaders(resp);
+    assert.equal(resp.headers.get('timing-allow-origin'), null);
   });
 });
 
@@ -440,7 +446,7 @@ test('over-limit wm_ user key returns non-cacheable 429 before Convex validation
 
 test('wm_ credential outside the supported header fallback never leaks the gateway sentinel', async () => {
   await withMockedBootstrapAuth({ entitlement: activeApiEntitlement() }, async () => {
-    const resp = await handler(makeBootstrapRequest({ Cookie: `wm-pro-key=${USER_KEY}` }));
+    const resp = await handler(makeBootstrapRequest({ Cookie: `__Host-wm-pro-key=${USER_KEY}` }));
     const body = await resp.json();
 
     assert.equal(resp.status, 401);
@@ -788,8 +794,18 @@ function makePublicOnDemandRequest(keys = 'cyberThreats', headers = {}) {
   });
 }
 
+// Redis GET pipeline result for a present on-demand key. The default mock
+// returns `result: null` (a miss). After #6784 a miss is no-store; tests that
+// pin the publisher-sized CDN shield must seed a body.
+function presentOnDemandPipelineBody(value = { records: [] }) {
+  return [{ result: JSON.stringify(value) }];
+}
+
 test('public on-demand key URL is CDN-shielded and anonymous', async () => {
-  await withMockedBootstrapAuth({ entitlement: activeApiEntitlement() }, async () => {
+  await withMockedBootstrapAuth({
+    entitlement: activeApiEntitlement(),
+    bootstrapPipelineBody: presentOnDemandPipelineBody(),
+  }, async () => {
     const resp = await handler(makePublicOnDemandRequest('cyberThreats'));
 
     assert.equal(resp.status, 200);
@@ -798,14 +814,92 @@ test('public on-demand key URL is CDN-shielded and anonymous', async () => {
   });
 });
 
+test('FAST-demoted keys serve anonymously with publisher-sized shields', async () => {
+  const expected = {
+    correlationCards: 300,
+    forecasts: 3600,
+  };
+  await withMockedBootstrapAuth({
+    entitlement: null,
+    bootstrapPipelineBody: presentOnDemandPipelineBody(),
+  }, async () => {
+    for (const [key, sMaxAge] of Object.entries(expected)) {
+      const resp = await handler(makePublicOnDemandRequest(key));
+      assert.equal(resp.status, 200, `keys=${key} must serve without credentials`);
+      assertSharedCacheHeaders(resp);
+      assertPublicCorsHeaders(resp);
+      assert.match(
+        resp.headers.get('cdn-cache-control') || '',
+        new RegExp(`s-maxage=${sMaxAge}\\b`),
+        `keys=${key} must use its explicit cache profile`,
+      );
+    }
+  });
+});
+
 test('public on-demand URL keeps ONE contract even when credentials are attached', async () => {
   // A CDN hit precedes handler auth, so the response must not vary by caller —
   // same invariant the tier URLs carry (#5250).
-  await withMockedBootstrapAuth({ entitlement: activeApiEntitlement() }, async () => {
+  await withMockedBootstrapAuth({
+    entitlement: activeApiEntitlement(),
+    bootstrapPipelineBody: presentOnDemandPipelineBody(),
+  }, async () => {
     const resp = await handler(makePublicOnDemandRequest('cyberThreats', { Cookie: 'wm-session=whatever' }));
 
     assert.equal(resp.status, 200);
     assertSharedCacheHeaders(resp);
+  });
+});
+
+test('every Canada road key serves anonymously with a shield sized to its publisher', async () => {
+  // #6763 moved canadaRoads and albertaRoads off the fast tier so they stop
+  // riding a payload every visitor downloads. A TIERED key is rejected on this
+  // URL — the next test proves tiered keys such as wildfires draw a 401 — so the
+  // move only works if these same requests now qualify. Asserted through the
+  // handler rather than by reading the registry: the registry is what the tier
+  // move edits, so checking it against itself would pass either way.
+  //
+  // The s-maxage values are the second half of the move. Without a profile
+  // these inherit the slow 7200 s shield, which outlives the 45- and 90-minute
+  // freshness budgets api/health.js declares for them.
+  const expected = {
+    canadaRoads: 900,   // seed-provincial-511, 15min member interval
+    albertaRoads: 900,  // same seeder, same interval
+    manitobaRoads: 900, // same seeder, same interval
+    bcOpen511: 1800,    // seed-open511, 30min member interval
+    torontoRoads: 7200, // 2h publisher; the inherited slow shield already fits
+  };
+  await withMockedBootstrapAuth({
+    entitlement: null,
+    bootstrapPipelineBody: presentOnDemandPipelineBody(),
+  }, async () => {
+    for (const [key, sMaxAge] of Object.entries(expected)) {
+      const resp = await handler(makePublicOnDemandRequest(key));
+      assert.equal(resp.status, 200, `keys=${key} must serve without credentials`);
+      assertSharedCacheHeaders(resp);
+      assertPublicCorsHeaders(resp);
+      assert.match(
+        resp.headers.get('cdn-cache-control') || '',
+        new RegExp(`s-maxage=${sMaxAge}\\b`),
+        `keys=${key} must be CDN-shielded for ${sMaxAge}s`,
+      );
+    }
+  });
+});
+
+test('a public on-demand miss is no-store so a recovered seeder is not hidden', async () => {
+  // Default mock is Redis GET -> null, so the key is in `missing`. Caching that
+  // 200 at the publisher interval would pin an empty body until the shield
+  // expired, and health (which reads Redis) would never page.
+  await withMockedBootstrapAuth({ entitlement: null }, async () => {
+    const resp = await handler(makePublicOnDemandRequest('canadaRoads'));
+    const body = await resp.json();
+
+    assert.equal(resp.status, 200);
+    assert.deepEqual(body, { data: {}, missing: ['canadaRoads'] });
+    assert.equal(resp.headers.get('cache-control'), 'no-store');
+    assertNonSharedCacheHeaders(resp);
+    assertPublicCorsHeaders(resp);
   });
 });
 
@@ -817,8 +911,8 @@ test('public on-demand URL does not widen into a CDN-amplification vector', asyn
   await withMockedBootstrapAuth({ entitlement: null }, async () => {
     for (const keys of [
       'cyberThreats,marketQuotes',   // multi-key
-      'marketQuotes',                // a real key, but not on-demand
       'wildfires',                   // slow-tier key, not on-demand
+      'earthquakes',                 // fast-tier key, not on-demand
       'notARealKey',                 // unknown
       '',                            // empty
     ]) {
@@ -828,3 +922,77 @@ test('public on-demand URL does not widen into a CDN-amplification vector', asyn
     }
   });
 });
+
+test('protected tester cookie names keep implicit weather bootstrap off the public cache path', async () => {
+  await withMockedBootstrapAuth({ entitlement: activeApiEntitlement() }, async () => {
+    for (const name of ['__Host-wm-pro-key', '__Host-wm-widget-key']) {
+      const response = await handler(makeWeatherBootstrapRequest({ Cookie: `${name}=invalid-key` }));
+      assert.equal(response.status, 401, name);
+      assert.equal(response.headers.get('cache-control'), 'no-store', name);
+      assert.equal(response.headers.get('cdn-cache-control'), null, name);
+    }
+  });
+});
+
+// ── IMF WEO datasets: validated before they are served ─────────────────────
+// A malformed IMF snapshot used to ride the publisher-sized CDN shield, so a
+// bad seed stayed cached after the seeder repaired it. A structurally broken
+// dataset now goes to `missing` with no-store; a single malformed country row
+// is dropped on its own and the rest of the dataset is served unchanged.
+for (const [key, field] of Object.entries({ imfMacro: 'inflationPct', imfGrowth: 'realGdpGrowthPct', imfLabor: 'unemploymentPct', imfExternal: 'exportsUsd' })) {
+  test(`${key} sends a structurally malformed dataset to missing with no-store`, async () => {
+    for (const value of [
+      {},
+      [],
+      { countries: {} },
+      { countries: [] },
+      { countries: { UA: { [field]: 1 } }, fallback: true },
+      { countries: { UA: { [field]: 1 } }, error: 'offline' },
+      { countries: { UA: { [field]: 1 } }, dataAvailable: false },
+      { countries: { UA: { [field]: 'bad' } } },
+    ]) {
+      await withMockedBootstrapAuth({ entitlement: null, bootstrapPipelineBody: presentOnDemandPipelineBody(value) }, async () => {
+        const response = await handler(makePublicOnDemandRequest(key));
+        assert.deepEqual(await response.json(), { data: {}, missing: [key] }, JSON.stringify(value));
+        assert.equal(response.headers.get('cache-control'), 'no-store');
+        assertNonSharedCacheHeaders(response);
+      });
+    }
+  });
+
+  test(`${key} drops malformed country rows individually and serves the rest unchanged`, async () => {
+    const good = { [field]: 1, year: 2026, extraField: 'kept' };
+    const value = {
+      countries: {
+        UA: good,
+        AE: { [field]: 2 },
+        XX: { [field]: 'bad' },
+        YY: null,
+        ZZ: { [field]: '1e999' },
+        QQ: { [field]: 3, year: 1776.5 },
+        WW: { year: 2026 },
+        lower: { [field]: 4 },
+      },
+      seededAt: '2026-09-01T00:00:00Z',
+    };
+    await withMockedBootstrapAuth({ entitlement: null, bootstrapPipelineBody: presentOnDemandPipelineBody(value) }, async () => {
+      const response = await handler(makePublicOnDemandRequest(key));
+      const body = await response.json();
+      assert.deepEqual(body.missing, []);
+      assert.deepEqual(body.data[key], {
+        countries: { UA: good, AE: { [field]: 2 } },
+        seededAt: '2026-09-01T00:00:00Z',
+      });
+      assertSharedCacheHeaders(response);
+    });
+  });
+
+  test(`${key} serves a well-formed dataset exactly as seeded`, async () => {
+    const repaired = { countries: { UA: { [field]: 1, year: 2026 } }, seededAt: '2026-09-01T00:00:00Z' };
+    await withMockedBootstrapAuth({ entitlement: null, bootstrapPipelineBody: presentOnDemandPipelineBody(repaired) }, async () => {
+      const response = await handler(makePublicOnDemandRequest(key));
+      assert.deepEqual((await response.json()).data[key], repaired);
+      assertSharedCacheHeaders(response);
+    });
+  });
+}

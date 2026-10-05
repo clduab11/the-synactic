@@ -136,9 +136,6 @@ const stubSources: Record<string, string> = {
       fn({ addBreadcrumb: () => {}, captureMessage: () => {}, captureException: () => {} });
     }
   `,
-  'dodopayments-checkout': `
-    export const DodoPayments = { Initialize() {}, Checkout: { isOpen: () => false, close: () => {}, open() {} } };
-  `,
   './billing': `
     export const openBillingPortal = async () => {};
     export const prereserveBillingPortalTab = () => null;
@@ -186,6 +183,13 @@ const stubSources: Record<string, string> = {
   `,
   './checkout-sentry-policy': `
     export const shouldSkipSentryForAction = () => false;
+    export const CHECKOUT_REPORT_KIND = 'checkout_request_failed';
+    export const buildCheckoutReportTags = (input) => ({
+      component: 'dodo-checkout',
+      action: input.action,
+      code: input.code,
+      kind: CHECKOUT_REPORT_KIND,
+    });
   `,
   './entitlements': `
     export const isEntitled = () => false;
@@ -194,10 +198,16 @@ const stubSources: Record<string, string> = {
   './checkout-banner-state': `
     export const CLASSIC_AUTO_DISMISS_MS = 5000;
     export const EXTENDED_UNLOCK_TIMEOUT_MS = 30000;
+    export const ENTITLEMENT_POLL_MS = 1000;
+    export const LATE_ACTIVATION_GRACE_MS = 300000;
     export const maskEmail = (email) => email ?? null;
   `,
   './referral-capture': `
     export const loadActiveReferral = () => null;
+    // Re-exported real, never faked: startCheckout gates its outgoing
+    // referral on this, so a stub that always returns true would make any
+    // referral assertion in this harness vacuous (#6493).
+    export { isAffiliateCode } from './src/services/referral-capture.ts';
   `,
   './checkout-duplicate-dialog': `
     export const showDuplicateSubscriptionDialog = () => {};
@@ -209,11 +219,6 @@ const stubSources: Record<string, string> = {
   `,
   './checkout-plan-names': `
     export const resolvePlanDisplayName = () => 'Pro Monthly';
-  `,
-  './entitlement-watchdog': `
-    export function createEntitlementWatchdog() {
-      return { start: () => {}, stop: () => {}, isActive: () => true };
-    }
   `,
 };
 
@@ -229,6 +234,8 @@ const pendingDialogPlugin: Plugin = {
     buildApi.onLoad({ filter: /.*/, namespace: 'pending-stub' }, (args) => ({
       contents: stubSources[args.path],
       loader: 'js',
+      // Lets a stub re-export the real module it partially replaces.
+      resolveDir: process.cwd(),
     }));
   },
 };

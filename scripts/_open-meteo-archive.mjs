@@ -37,6 +37,19 @@ const MAX_RETRY_AFTER_MS = 60_000;
 // 503 stays: that is a transient fault on their side, not a refusal aimed at us.
 const RETRYABLE_STATUSES = new Set([503]);
 
+// Soft-deadline seam (ported from upstream #open-meteo deadline work). Callers
+// that budget a whole fetch phase (seed-climate-zone-normals) pass
+// `deadlineAtMs`; once it is reached the helper throws an error tagged with
+// this code instead of starting another attempt or sleeping through the
+// budget, so the seeder can stop the phase rather than lose the run.
+export const OPEN_METEO_DEADLINE_CODE = 'OPEN_METEO_DEADLINE';
+
+function createDeadlineError(label) {
+  return Object.assign(new Error(`Open-Meteo deadline exhausted for ${label}`), {
+    code: OPEN_METEO_DEADLINE_CODE,
+  });
+}
+
 export function chunkItems(items, size) {
   const chunks = [];
   for (let i = 0; i < items.length; i += size) {
@@ -74,7 +87,12 @@ export async function fetchOpenMeteoArchiveBatch(zones, opts) {
     timeoutMs = 30_000,
     maxRetries = 3,
     retryBaseMs = 2_000,
+    deadlineAtMs = Number.POSITIVE_INFINITY,
     label = zones.map((zone) => zone.name).join(', '),
+    // Test hooks: the real clock and sleeper in production. Tests inject them
+    // to exercise the deadline without waiting on wall-clock time.
+    _now = Date.now,
+    _sleep = sleep,
   } = opts;
 
   const params = new URLSearchParams({
@@ -97,20 +115,36 @@ export async function fetchOpenMeteoArchiveBatch(zones, opts) {
   let lastTransportError = null;
   let attempts = 0;
 
+  const attemptTimeoutMs = () => {
+    const remainingMs = deadlineAtMs - _now();
+    if (!(remainingMs > 0)) throw createDeadlineError(label);
+    return Math.max(1, Math.min(timeoutMs, Math.floor(remainingMs)));
+  };
+  const ensureBeforeDeadline = () => {
+    if (!(deadlineAtMs - _now() > 0)) throw createDeadlineError(label);
+  };
+  const waitForRetry = async (retryMs) => {
+    if (retryMs >= deadlineAtMs - _now()) throw createDeadlineError(label);
+    await _sleep(retryMs);
+    ensureBeforeDeadline();
+  };
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     attempts = attempt + 1;
     let resp;
     try {
       resp = await fetch(url, {
         headers: { 'User-Agent': ARCHIVE_UA, Accept: 'application/json' },
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(attemptTimeoutMs()),
       });
+      ensureBeforeDeadline();
     } catch (err) {
+      if (err?.code === OPEN_METEO_DEADLINE_CODE) throw err;
       lastTransportError = err;
       if (attempt < maxRetries) {
         const retryMs = retryBaseMs * 2 ** attempt;
         console.log(`  [OPEN_METEO] ${err?.message ?? err} for ${label}; retrying batch in ${Math.round(retryMs / 1000)}s`);
-        await sleep(retryMs);
+        await waitForRetry(retryMs);
         continue;
       }
       break;
@@ -129,7 +163,7 @@ export async function fetchOpenMeteoArchiveBatch(zones, opts) {
     if (RETRYABLE_STATUSES.has(resp.status) && attempt < maxRetries) {
       const retryMs = parseRetryAfterMs(resp.headers.get('retry-after')) ?? (retryBaseMs * 2 ** attempt);
       console.log(`  [OPEN_METEO] ${resp.status} for ${label}; retrying batch in ${Math.round(retryMs / 1000)}s`);
-      await sleep(retryMs);
+      await waitForRetry(retryMs);
       continue;
     }
 

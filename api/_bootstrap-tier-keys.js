@@ -72,6 +72,14 @@ export const BOOTSTRAP_CACHE_KEYS = Object.freeze({
   ucdpEvents: 'conflict:ucdp-events-bootstrap:v1',
   temporalAnomalies: 'temporal:anomalies:v1',
   weatherAlerts: 'weather:alerts:v1',
+  imdCycloneMarine: 'weather:imd-cyclone-marine:v1',
+  liveVideoResolved: 'live-video:resolved:v1',
+  canadaRoads: 'infra:ontario-511:v1',
+  albertaRoads: 'infra:alberta-511:v1',
+  manitobaRoads: 'infra:manitoba-511:v1',
+  torontoRoads: 'infra:toronto-roads:v1',
+  bcOpen511: 'infra:bc-open511:v1',
+  canadaAlerts: 'alerts:canada:v1',
   spending: 'economic:spending:v1',
   techEvents: 'research:tech-events-bootstrap:v1',
   gdeltIntel: 'intelligence:gdelt-intel:v1',
@@ -95,7 +103,6 @@ export const BOOTSTRAP_CACHE_KEYS = Object.freeze({
   eurostatHousePrices: 'economic:eurostat:house-prices:v1',
   eurostatGovDebtQ: 'economic:eurostat:gov-debt-q:v1',
   eurostatIndProd: 'economic:eurostat:industrial-production:v1',
-  marketImplications: 'intelligence:market-implications:v1',
   fearGreedIndex: 'market:fear-greed:v1',
   hyperliquidFlow: 'market:hyperliquid:flow:v1',
   crudeInventories: 'economic:crude-inventories:v1',
@@ -107,7 +114,6 @@ export const BOOTSTRAP_CACHE_KEYS = Object.freeze({
   euFsi: 'economic:fsi-eu:v1',
   shippingStress: 'supply_chain:shipping_stress:v1',
   socialVelocity: 'intelligence:social:reddit:v1',
-  wsbTickers: 'intelligence:wsb-tickers:v1',
   pizzint: 'intelligence:pizzint:seed:v1',
   diseaseOutbreaks: 'health:disease-outbreaks:v1',
   economicStress: 'economic:stress-index:v1',
@@ -137,6 +143,7 @@ export const BOOTSTRAP_CACHE_KEYS = Object.freeze({
   // authorized for ingest + re-serve, conditioned on gentle cadence -- the
   // seeder documents the arithmetic. See scripts/seed-kraken-markets.mjs.
   krakenMarkets: 'market:kraken:v1',
+  marketCorrelationSeries: 'market:correlation-series:v1',
 });
 
 const SLOW_KEY_NAMES = new Set([
@@ -160,7 +167,6 @@ const SLOW_KEY_NAMES = new Set([
   'nationalDebt',
   'euGasStorage',
   'eurostatCountryData',
-  'marketImplications',
   'fearGreedIndex',
   'hyperliquidFlow',
   'crudeInventories',
@@ -178,9 +184,6 @@ const SLOW_KEY_NAMES = new Set([
   'krakenMarkets',
   'oilStocksAnalysis',
   'lngVulnerability',
-  'pipelinesGas',
-  'pipelinesOil',
-  'storageFacilities',
   'fuelShortages',
   'energyCrisisPolicies',
   'aaiiSentiment',
@@ -189,9 +192,9 @@ const SLOW_KEY_NAMES = new Set([
 
 const FAST_KEY_NAMES = new Set([
   'earthquakes', 'outages', 'serviceStatuses', 'ddosAttacks', 'trafficAnomalies', 'macroSignals', 'chokepoints',
-  'marketQuotes', 'commodityQuotes', 'positiveGeoEvents', 'riskScores', 'flightDelays', 'insights', 'predictions',
-  'iranEvents', 'temporalAnomalies', 'weatherAlerts', 'spending', 'theaterPosture', 'gdeltIntel',
-  'correlationCards', 'forecasts', 'shippingRates', 'shippingStress', 'socialVelocity', 'wsbTickers',
+  'marketQuotes', 'commodityQuotes', 'positiveGeoEvents', 'riskScores', 'insights', 'predictions',
+  'iranEvents', 'temporalAnomalies', 'weatherAlerts', 'spending', 'theaterPosture', 'gdeltIntel', 'canadaAlerts',
+  'shippingRates', 'shippingStress', 'socialVelocity',
 ]);
 
 const ON_DEMAND_KEY_NAMES = new Set([
@@ -208,6 +211,22 @@ const ON_DEMAND_KEY_NAMES = new Set([
   'electricityPrices', 'jodiOil', 'chokepointBaselines',
   'portwatchChokepointsRef', 'portwatchPortActivity', 'sprPolicies',
   'energyDisruptions',
+  // Oil/gas pipeline and storage registries. Previously slow-tier freight:
+  // every visitor downloaded ~528 KB decoded even when the map layers were
+  // off (full/happy defaults) and the panels were below the fold. Demand
+  // comes from an enabled layer or a near-viewport energy panel (#7046).
+  'pipelinesGas',
+  'pipelinesOil',
+  'storageFacilities',
+  // Flights layer ships disabled on every variant, so this never rendered
+  // from the fast payload for a default visitor.
+  'flightDelays',
+  // The minimum further FAST demotion needed by #7046. Both consumers are
+  // demand-gated and read the credential-less per-key URL. Putting them in
+  // SLOW would erase the energy-registry reduction; moving additional FAST
+  // keys would add default-startup requests after the 20% target is met.
+  'forecasts',
+  'correlationCards',
   // Both back the opt-in FX panel (#6199). On-demand rather than tiered
   // because that panel ships disabled by default: neither payload should ride
   // a tier every visitor downloads to render a surface almost nobody has on.
@@ -215,6 +234,34 @@ const ON_DEMAND_KEY_NAMES = new Set([
   // Sets with a bare quote matcher, so one apostrophe in prose opens a phantom
   // string and gets registered as a duplicate key.
   'fxYoy', 'sharedFxRates',
+  'marketCorrelationSeries',
+  // Toronto's live road-restrictions snapshot is about 2 MB. Keep it off the
+  // global FAST payload and fetch it only when the Canada-roads layer renders.
+  'torontoRoads',
+  // DriveBC is also too large for every visitor's startup payload.
+  'bcOpen511',
+  // The other two feeds behind the same map layer, moved off FAST in #6763.
+  // Together they were 507,639 of the fast tier's 1,343,003 bytes — 37.8%, more
+  // than marketQuotes — and a tier is not layer-gated, so every visitor on every
+  // variant downloaded them, mobile included, where this layer ships disabled
+  // and nothing ever rendered a byte of it.
+  //
+  // All five road sources are on-demand now, which is what lets the layer stay
+  // off by default: with none of them tiered, a visitor who never enables
+  // Canada roads pays nothing at all for them.
+  'canadaRoads',
+  'albertaRoads',
+  'manitobaRoads',
+  // IMD cyclone/port/coastal/marine products (#7005). On-demand: the weather
+  // and natural layers fetch this key only when those layers are on, so it
+  // never rides a payload every visitor downloads.
+  'imdCycloneMarine',
+  // The video each catalog YouTube channel has live now (#8545), fetched by the
+  // live video players at play intent and only for slots that list a channel.
+  // The get-bootstrap-data RPC also serves any registered key by name, so the
+  // payload stays minimal: channel id to video id and timestamps, no titles,
+  // enforced by validateResolvedPayload in scripts/seed-live-video-resolved.mjs.
+  'liveVideoResolved',
 ]);
 
 /**

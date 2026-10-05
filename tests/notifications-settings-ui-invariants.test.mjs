@@ -4,8 +4,7 @@
  *
  * These are source-grep tests rather than Playwright tests — the settings
  * panel renders inline HTML strings via a long render function with no
- * exports, the same shape the relay carries (cf.
- * notification-relay-effective-sensitivity.test.mjs). Source-grep catches the
+ * exports. Source-grep catches the
  * regressions that matter for this plan: layout placement, disable-on-realtime
  * state, snap-to-high logic, and atomic-save routing.
  *
@@ -250,6 +249,9 @@ describe('watchlist tickers — client save + re-sync plumbing (#4922 U3)', () =
       /hasTier\(1\)/,
       're-sync must be gated on PRO tier client-side before hitting the API',
     );
+    assert.match(watchlistModalSrc, /setMarketWatchlistPreferences/, 'catalog and custom layers must save atomically');
+    assert.match(watchlistModalSrc, /setAttribute\('role', 'checkbox'\)/, 'catalog items must be keyboard-operable controls');
+    assert.match(watchlistModalSrc, /document\.removeEventListener\('keydown'/, 'modal teardown must remove Escape handling');
   });
 
   /**

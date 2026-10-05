@@ -68,8 +68,14 @@ describe('brief-llm-core mirror parity', () => {
     // ever reverts both mirrors together, byte-identity still passes. This
     // pins that the production path actually carries the fix.
     const scriptsText = read(SCRIPTS_COPY);
-    assert.match(scriptsText, /PROPER_NOUN_COORDINATOR/,
-      'coordinate-split relaxation missing from the seeder-loaded mirror');
+    assert.match(scriptsText, /isGroundedAfterRelaxation\(summarySeq, headlineSequences, headline\)/,
+      'grounding relaxation ladder missing from the seeder-loaded mirror');
+    assert.match(scriptsText, /occursAsContiguousRun/,
+      'verbatim-run relaxation missing from the seeder-loaded mirror');
+    assert.match(scriptsText, /matchesReorderedWindow/,
+      'reordered-window relaxation missing from the seeder-loaded mirror');
+    assert.doesNotMatch(scriptsText, /PROPER_NOUN_COORDINATOR/,
+      'coordinator splitting must stay removed: a bridged "Johnson and Johnson" would launder against one surname');
     assert.match(scriptsText, /expandHyphenatedSequences/,
       'headline-side hyphen expansion missing from the seeder-loaded mirror');
   });

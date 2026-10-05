@@ -31,6 +31,7 @@ export const SUPPORTED_VARIANTS = new Set([
   'commodity',
   'energy',
   'happy',
+  'trader',
 ]);
 
 const DESKTOP_ASSET_IDENTIFIER = 'worldmonitor';

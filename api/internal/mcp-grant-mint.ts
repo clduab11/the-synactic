@@ -31,9 +31,10 @@
  *   - INVALID_NONCE                400  Redis nonce miss / expired
  *   - UNKNOWN_CLIENT               400  Redis client miss
  *   - INVALID_REDIRECT_URI         400  client redirect_uri no longer allowlisted
- *   - INSUFFICIENT_TIER            403  user tier < 1, no mcpAccess, expired,
- *                                       or a provider-CONFIRMED lapse (which
- *                                       additionally sets X-Billing-Verification)
+ *   - INSUFFICIENT_TIER            403  genuinely insufficient non-free tier,
+ *                                       no mcpAccess, expired, or malformed.
+ *                                       Provider-confirmed ended coverage uses
+ *                                       the restricted free-account path.
  *   - NONCE_CLAIMED_BY_OTHER_USER  403  nonce already claimed by a different
  *                                       Clerk userId (anti-hijack — see F2)
  *   - TIER_VERIFICATION_UNAVAILABLE 503 entitlement could not be VERIFIED, or a
@@ -61,18 +62,19 @@
 
 export const config = { runtime: 'edge' };
 
-import { resolveClerkSession } from '../../server/_shared/auth-session';
+import { resolveSessionUserId } from '../../server/_shared/auth-session';
 import {
   getEntitlements,
   isEntitlementBackendConfigured,
 } from '../../server/_shared/entitlement-check';
 import {
   checkProMcpAccess,
+  grantSessionVerificationUnavailableResponse,
   proMcpGateDenialResponse,
   type ProMcpEntitlement,
 } from '../../server/_shared/pro-mcp-gate';
 // @ts-expect-error — JS module, no declaration file
-import { isAllowedRedirectUri } from '../oauth/register.js';
+import { isAllowedRedirectUri } from '../oauth/_redirect-uri.js';
 import { GrantConfigError, signGrant } from '../_mcp-grant-hmac';
 
 // Fixed return URL — NOT user-controllable (anti-phishing).
@@ -175,7 +177,7 @@ async function rawRedisSetNxEx(key: string, value: unknown, ttlSeconds: number):
 
 export interface MintDeps {
   /** Resolves the Clerk userId from the request's Bearer header. Null = unauth. */
-  resolveUserId: (req: Request) => Promise<string | null>;
+  resolveUserId: (req: Request) => Promise<string | Response | null>;
   /** Reads a raw `oauth:*` or `mcp-grant:*` key from Redis. Throws on transport failure. */
   redisGet: (key: string) => Promise<unknown | null>;
   /** Writes a raw `mcp-grant:*` key with TTL. Returns false on failure. */
@@ -208,6 +210,7 @@ export async function mintGrantHandler(req: Request, deps: MintDeps): Promise<Re
   }
 
   const userId = await deps.resolveUserId(req);
+  if (userId instanceof Response) return grantSessionVerificationUnavailableResponse();
   if (!userId) {
     return jsonError('UNAUTHENTICATED', 'A valid Clerk session is required.', 401);
   }
@@ -264,7 +267,27 @@ export async function mintGrantHandler(req: Request, deps: MintDeps): Promise<Re
   const gate = checkProMcpAccess(ent, now, {
     backendConfigured: isEntitlementBackendConfigured(),
   });
-  if (gate) return proMcpGateDenialResponse(gate);
+  // #6716: a CONFIRMED free account continues the handshake.
+  //
+  // The free allowance is selected only after a user-bound credential resolves,
+  // and this is one of the four gates on the only path to that credential
+  // (a `wm_` key is not an option — convex/apiKeys.ts requires `apiAccess`,
+  // which the free plan does not have). Refusing here made the allowance
+  // reachable only by accounts that had ALREADY been Pro, while
+  // SERVER_INSTRUCTIONS advertised it to every client on `initialize`.
+  //
+  // This widens ISSUANCE only. `checkProMcpAccess` classifies confirmed free
+  // accounts (including provider-confirmed lapses) as `free_account`; the MCP
+  // dispatcher restricts that credential to cache-backed allowance tools, while
+  // `server/gateway.ts` and `server/_shared/premium-check.ts` still refuse
+  // downstream Pro execution — so the credential grants no paid capability.
+  //
+  // Every other denial kind still refuses: `insufficient_tier` (an expired or
+  // disabled paid row, or a malformed entitlement) and `billing_verification`
+  // (a retryable renewal/unverifiable read). A provider-confirmed lapse becomes
+  // `free_account`; minting on an unverifiable read would hand out credentials
+  // during an entitlement outage.
+  if (gate && gate.kind !== 'free_account') return proMcpGateDenialResponse(gate);
 
   // Mint the signed grant first (cheaper to fail before the Redis write).
   const exp = now + GRANT_TTL_MS;
@@ -350,7 +373,7 @@ export async function mintGrantHandler(req: Request, deps: MintDeps): Promise<Re
 
 export default async function handler(req: Request): Promise<Response> {
   return mintGrantHandler(req, {
-    resolveUserId: async (r) => (await resolveClerkSession(r))?.userId ?? null,
+    resolveUserId: resolveSessionUserId,
     redisGet: rawRedisGet,
     redisSetEx: rawRedisSetEx,
     redisSetNxEx: rawRedisSetNxEx,

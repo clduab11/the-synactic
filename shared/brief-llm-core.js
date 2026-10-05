@@ -123,7 +123,7 @@ export function parseWhyMatters(text) {
 }
 
 /**
- * Deterministic 16-char hex hash of the SIX story fields that flow
+ * Deterministic SHA-256 hex digest of the SIX story fields that flow
  * into the whyMatters prompt (5 core + description). Also consumed by
  * server/worldmonitor/intelligence/v1/get-country-intel-brief.ts
  * (citation verification + grounding telemetry, #4921). Cache identity
@@ -155,7 +155,7 @@ export function parseWhyMatters(text) {
  * @returns {Promise<string>}
  */
 export async function hashBriefStory(story) {
-  const material = [
+  const material = JSON.stringify([
     story.headline ?? '',
     story.source ?? '',
     story.threatLevel ?? '',
@@ -166,7 +166,7 @@ export async function hashBriefStory(story) {
     // empty string → deterministic; same-story-same-description pairs
     // still collide on purpose, different descriptions don't.
     story.description ?? '',
-  ].join('||');
+  ]);
   const bytes = new TextEncoder().encode(material);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   let hex = '';
@@ -174,7 +174,7 @@ export async function hashBriefStory(story) {
   for (let i = 0; i < view.length; i++) {
     hex += view[i].toString(16).padStart(2, '0');
   }
-  return hex.slice(0, 16);
+  return hex;
 }
 
 // ── Analyst-path prompt v2 (multi-sentence, grounded) ──────────────────────
@@ -339,7 +339,10 @@ const TITLE_PREFIX_STOP = new Set([
 
 // Joiner words — lowercase tokens that bridge proper-noun sequences.
 // "Democratic Republic of Congo" is ONE sequence, not three.
-const PROPER_NOUN_JOINER = new Set(['of', 'the', 'and', 'for', 'de', 'du', 'der', 'van', 'el', 'al']);
+// Coordinating "and"/"And"/"AND" usually ends the current sequence so
+// "Ukraine and Russia" is two names. Registered expansions and repeated-name
+// entities retain it contextually in extractProperNounSequencesWithMeta.
+const PROPER_NOUN_JOINER = new Set(['of', 'the', 'for', 'de', 'du', 'der', 'van', 'el', 'al']);
 
 // Acronym ↔ expansion table (bidirectional). When summary contains
 // either form and headline contains the other, treated as equivalent.
@@ -348,6 +351,7 @@ const PROPER_NOUN_JOINER = new Set(['of', 'the', 'and', 'for', 'de', 'du', 'der'
 // its canonical key for equivalence.
 const ACRONYM_EXPANSIONS = [
   ['WHO', 'World Health Organization'],
+  ['ICC', 'International Criminal Court'],
   ['UN', 'United Nations'],
   ['US', 'USA', 'United States', 'United States of America', 'America'],
   ['UK', 'United Kingdom', 'Britain', 'Great Britain'],
@@ -418,7 +422,7 @@ const DEMONYM_TO_NATION = new Map([
   ['Danish', 'Denmark'], ['Danes', 'Denmark'],
   ['Belgian', 'Belgium'], ['Belgians', 'Belgium'],
   ['Austrian', 'Austria'], ['Austrians', 'Austria'],
-  ['Filipino', 'Philippines'], ['Filipinos', 'Philippines'],
+  ['Philippine', 'Philippines'], ['Filipino', 'Philippines'], ['Filipinos', 'Philippines'],
   ['Thai', 'Thailand'], ['Thais', 'Thailand'],
   ['Indonesian', 'Indonesia'], ['Indonesians', 'Indonesia'],
   ['Nigerian', 'Nigeria'], ['Nigerians', 'Nigeria'],
@@ -439,6 +443,11 @@ const ACRONYM_NORMALIZE = (() => {
   }
   return map;
 })();
+
+const AND_JOINED_ACRONYM_VARIANTS = ACRONYM_EXPANSIONS
+  .flatMap((group) => group)
+  .map((variant) => variant.toLowerCase().split(/\s+/))
+  .filter((tokens) => tokens.includes('and'));
 
 const DEMONYM_NORMALIZE = (() => {
   const map = new Map();
@@ -488,6 +497,7 @@ const SENTENCE_START_AMBIGUOUS = new Set([
   'no', 'not', 'yes',
   'breaking', 'live', 'updated', 'latest', 'exclusive', 'just',
   'meanwhile', 'however', 'moreover', 'additionally', 'furthermore', 'still',
+  'simultaneously', 'concurrently', 'domestically',
   'with', 'without', 'on', 'in', 'at', 'by', 'for', 'over', 'under', 'about',
 ]);
 
@@ -515,6 +525,34 @@ function normalizeDottedAcronyms(text) {
   return text.replace(/(\b[A-Z]\.(?:[A-Z]\.?)+)/g, (match) => match.replace(/\./g, ''));
 }
 
+function properNounTokenValue(token) {
+  if (typeof token !== 'string' || token.length < 2 || !/[\p{Lu}\p{Lt}]/u.test(token)) return null;
+  const stripped = token.replace(/[.,;:'’]+$/g, '').replace(/['’]s$/i, '');
+  return (stripped || token).toLowerCase();
+}
+
+function followingTokensMatch(expectedTokens, tokens, startIndex) {
+  return expectedTokens.every((expected, index) => {
+    const actual = tokens[startIndex + index];
+    if (expected === 'and' || PROPER_NOUN_JOINER.has(expected)) {
+      return actual?.toLowerCase() === expected;
+    }
+    return properNounTokenValue(actual) === expected;
+  });
+}
+
+function shouldRetainAndJoiner(current, tokens, tokenIndex) {
+  if (current.length === 0) return false;
+  if (followingTokensMatch(current, tokens, tokenIndex + 1)) return true;
+
+  return AND_JOINED_ACRONYM_VARIANTS.some((variant) => {
+    const andIndex = variant.indexOf('and');
+    if (andIndex !== current.length) return false;
+    if (!variant.slice(0, andIndex).every((token, index) => token === current[index])) return false;
+    return followingTokensMatch(variant.slice(andIndex + 1), tokens, tokenIndex + 1);
+  });
+}
+
 export function extractProperNounSequences(text) {
   return extractProperNounSequencesWithMeta(text).map((entry) => entry.tokens);
 }
@@ -538,7 +576,7 @@ function extractProperNounSequencesWithMeta(text) {
 
   // Normalize dotted acronyms BEFORE sentence-splitting so "U.S." isn't
   // misread as a sentence boundary or split into ['U', 'S'].
-  const preprocessed = normalizeDottedAcronyms(text);
+  const preprocessed = normalizeDottedAcronyms(text).replace(/[\u2010\u2011]/g, '-');
 
   // Split into sentences so sentence-start handling can run per-sentence.
   const sentences = preprocessed.split(/[.!?]+\s+|\n+/);
@@ -564,7 +602,8 @@ function extractProperNounSequencesWithMeta(text) {
     let bridgeBuffer = []; // joiners pending — kept only if another proper noun follows
     let firstToken = true;
 
-    for (const token of tokens) {
+    for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
+      const token = tokens[tokenIndex];
       // Strip trailing punctuation and possessive 's / ’s so
       // "Beirut's" → "beirut" and "U.S." → "U.S" (handled below).
       let stripped = token.replace(/[.,;:'’]+$/g, '');
@@ -572,13 +611,14 @@ function extractProperNounSequencesWithMeta(text) {
       const tokenForLookup = stripped || token;
       const isTitlePrefix = TITLE_PREFIX_STOP.has(stripped);
       const isJoiner = PROPER_NOUN_JOINER.has(token.toLowerCase());
-      // Capitalized: at least 2 chars long. Single-letter capitalized
+      // Name casing can occur after a digit or lowercase prefix (3M, eBay).
+      // Require at least 2 chars. Single-letter capitalized
       // tokens are sentence-final initials ("...J.D. Vance was met by Smith
       // and J."), middle initials in names, or "I" (the pronoun, already
       // handled by SENTENCE_START_AMBIGUOUS). None should register as
       // a standalone proper noun.
-      const isCapitalized = token.length >= 2 && /^[A-Z]/.test(token);
-      const isAllCapsAcronym = /^[A-Z]{2,6}$/.test(token);
+      const isCapitalized = token.length >= 2 && /[\p{Lu}\p{Lt}]/u.test(token);
+      const isAllCapsAcronym = /^(?=.*\p{Lu})[\p{Lu}\p{N}]{2,6}$/u.test(token);
       const isAmbiguousSentenceStart = firstToken
         && !isAllCapsAcronym
         && SENTENCE_START_AMBIGUOUS.has(token.toLowerCase());
@@ -598,6 +638,25 @@ function extractProperNounSequencesWithMeta(text) {
       }
       const atSentenceStart = firstToken;
       firstToken = false;
+
+      // Coordinating and is normally a sequence break, not a name. Preserve it
+      // only when splitting would break a registered expansion (SEC) or let a
+      // repeated-name entity reuse one cited occurrence (Johnson and Johnson).
+      if (token.toLowerCase() === 'and') {
+        if (shouldRetainAndJoiner(current, tokens, tokenIndex)) {
+          bridgeBuffer.push('and');
+          continue;
+        }
+        if (current.length > 0) {
+          sequences.push({ tokens: current, sentenceInitial: currentStartedSentence, allCaps: currentAllCaps, firstSentence: currentFirstSentence });
+          current = [];
+          currentStartedSentence = false;
+          currentAllCaps = false;
+          currentFirstSentence = false;
+        }
+        bridgeBuffer = [];
+        continue;
+      }
 
       if (isJoiner) {
         if (current.length > 0) bridgeBuffer.push(token.toLowerCase());
@@ -772,8 +831,8 @@ function normalizeSequence(sequence) {
  * normalization). The validator catches LLM-introduced invention.
  *
  * Returns `{ ok: true }` when every summary proper-noun sequence is
- * grounded in the headline, OR when either input is malformed (defensive
- * default — ship the LLM output rather than fall back on confusion).
+ * grounded in the headline. Malformed inputs fail open by default;
+ * public citation callers opt into failClosed to withhold unvalidated text.
  *
  * Returns `{ ok: false, hallucinated: [...] }` when at least one
  * summary sequence has no matching contiguous subsequence in the
@@ -782,14 +841,15 @@ function normalizeSequence(sequence) {
  *
  * @param {string} summary - the LLM-rewritten brief paragraph
  * @param {string} headline - the source headline the LLM was given
+ * @param {{ failClosed?: boolean }} [options] - Reject unavailable validation on public citation surfaces.
  * @returns {{ ok: boolean, hallucinated?: string[] }}
  */
-export function validateNoHallucinatedProperNouns(summary, headline) {
-  // Defensive: malformed inputs return ok (ship the LLM output rather
-  // than fall back on confusion). Catches null, undefined, empty
-  // string, non-string, and weird unicode.
-  if (typeof summary !== 'string' || summary.length === 0) return { ok: true };
-  if (typeof headline !== 'string' || headline.length === 0) return { ok: true };
+export function validateNoHallucinatedProperNouns(summary, headline, { failClosed = false } = {}) {
+  // Preserve the legacy default; citation publication must opt into rejection.
+  const unavailable = () => failClosed ? { ok: false, hallucinated: [] } : { ok: true };
+  if (typeof summary !== 'string' || summary.length === 0) return unavailable();
+  if (typeof headline !== 'string' || headline.length === 0) return unavailable();
+  if (failClosed && (!summary.trim() || !headline.trim())) return unavailable();
 
   let summaryEntries, headlineSequences, headlineTokens;
   try {
@@ -818,8 +878,8 @@ export function validateNoHallucinatedProperNouns(summary, headline) {
     // included, with nothing in the log. A dead gate and a healthy gate looked
     // identical. Warn so the difference is visible, matching the pattern used
     // by checkLeadGrounding below.
-    console.warn(`[brief_grounding] proper-noun extraction threw (${err?.message ?? err}) — accepting unvalidated`);
-    return { ok: true };
+    console.warn(`[brief_grounding] proper-noun extraction threw (${err?.message ?? err}) — ${failClosed ? 'rejecting unvalidated' : 'accepting unvalidated'}`);
+    return unavailable();
   }
 
   if (summaryEntries.length === 0) return { ok: true };
@@ -829,7 +889,7 @@ export function validateNoHallucinatedProperNouns(summary, headline) {
   for (const { tokens: summarySeq, sentenceInitial, allCaps, firstSentence } of summaryEntries) {
     // Strict pass first (contiguous subsequence, single-token membership),
     // then the fork's relaxation ladder (verbatim run in the raw source,
-    // coordinator splitting with every part independently grounded).
+    // same-entity word-order variance). Neither ever splits a sequence.
     if (groundsInAnySequence(summarySeq, headlineSequences)) continue;
     if (isGroundedAfterRelaxation(summarySeq, headlineSequences, headline)) continue;
     // #6109: a SINGLE token that opens the lead's FIRST sentence is
@@ -859,24 +919,15 @@ export function validateNoHallucinatedProperNouns(summary, headline) {
   return { ok: true };
 }
 
-// Joiners that COORDINATE two independent entities rather than forming one
-// name. Deliberately just 'and': 'of' / 'de' / 'du' / 'der' / 'van' / 'el' /
-// 'al' / 'for' / 'the' are name-internal, and splitting on them would shatter
-// "Republic of Korea" into two ungrounded halves.
-const PROPER_NOUN_COORDINATOR = new Set(['and']);
-
-// The joiners whose position inside a name is orthography, not identity:
-// "Strait of Hormuz" and "Hormuz Strait" are the same place. The coordinator
-// is deliberately EXCLUDED — stripping 'and' would collapse "South Sudan and
-// North Korea" into one window that a permutation check could ground
-// "Sudan Korea" against.
-const NAME_INTERNAL_JOINER = new Set(
-  [...PROPER_NOUN_JOINER].filter((token) => !PROPER_NOUN_COORDINATOR.has(token)),
-);
-
+// Joiners whose position inside a name is orthography, not identity: "Strait
+// of Hormuz" and "Hormuz Strait" are the same place. A bridged 'and' is NOT in
+// this set — extractProperNounSequencesWithMeta retains it only inside a
+// registered expansion or a repeated-name entity ("Johnson and Johnson"), and
+// leaving it in place keeps a permutation check from collapsing two
+// coordinated names into one window it could ground "Sudan Korea" against.
 /** ['strait','of','hormuz'] → ['strait','hormuz'] */
 function stripNameInternalJoiners(seq) {
-  return seq.filter((token) => !NAME_INTERNAL_JOINER.has(token));
+  return seq.filter((token) => !PROPER_NOUN_JOINER.has(token));
 }
 
 /**
@@ -885,8 +936,8 @@ function stripNameInternalJoiners(seq) {
  * name-internal joiners are stripped from both sides, is a permutation of it.
  *
  * Adjacency is load-bearing, exactly as in occursAsContiguousRun: requiring
- * the window keeps "South Korea" ungrounded against the single bridged
- * sequence ['south','sudan','and','north','korea'] (windows [south,sudan],
+ * the window keeps "South Korea" ungrounded against a bridged sequence
+ * ['south','sudan','and','north','korea'] (windows [south,sudan],
  * [sudan,and], [and,north], [north,korea] — none is a permutation), while
  * "Hormuz Strait" grounds against ['strait','of','hormuz'] (stripped window
  * [strait,hormuz] IS one). Multiplicity is exact — token presence alone
@@ -925,15 +976,6 @@ function groundsInAnySequence(seq, headlineSequences) {
   return false;
 }
 
-/** Drop joiners stranded at a part edge: ['the','us'] → ['us']. */
-function trimEdgeJoiners(seq) {
-  let start = 0;
-  let end = seq.length;
-  while (start < end && PROPER_NOUN_JOINER.has(seq[start])) start += 1;
-  while (end > start && PROPER_NOUN_JOINER.has(seq[end - 1])) end -= 1;
-  return seq.slice(start, end);
-}
-
 /**
  * Add a hyphen-split variant of any sequence containing a hyphenated token,
  * KEEPING the original. Retaining the original is what lets a summary saying
@@ -954,39 +996,6 @@ function expandHyphenatedSequences(sequences) {
   return out;
 }
 
-/**
- * Second-chance grounding for a summary sequence that failed the strict
- * contiguous-subsequence check.
- *
- * WHY THIS EXISTS — two measured false-positive classes, both from real
- * seed-insights runs on 2026-08-04 (4 of 5 runs rejected):
- *
- *   1. COORDINATE BRIDGING. `PROPER_NOUN_JOINER` deliberately bridges 'and'
- *      so real names survive tokenization ("Trinidad and Tobago",
- *      "Bosnia and Herzegovina"). The side effect: the lead sentence
- *      "Diplomatic efforts between Iran and the US continue [1][8]" yields ONE
- *      sequence ['iran','and','the','us'], which must appear CONTIGUOUSLY in a
- *      headline. No headline ever writes it that way, so the whole brief is
- *      rejected — while `synthesisSystemPrompt` explicitly invites the
- *      construction ("the lead may JUXTAPOSE stories").
- *
- *   2. HYPHENATED DYADS. Tokenization keeps '-' inside a token (to preserve
- *      "Mar-a-Lago", "O'Brien") but splits on '/'. So a headline reading
- *      "Qatar says progress made toward US-Iran talks" grounds NEITHER 'us'
- *      NOR 'iran', while "Russia/Ukraine grain corridor" grounds both.
- *      Measured: 'Israel-Hamas' grounds neither Israel nor Hamas;
- *      'China-Taiwan' grounds neither China nor Taiwan.
- *
- * SAFETY PROPERTY THIS MUST PRESERVE. This function may only ever turn a
- * REJECT into an ACCEPT when every component is independently grounded in the
- * cited stories. A genuinely invented proper noun must still be caught —
- * measured controls: "Washington" and "Atlantis" must stay REJECTED against a
- * corpus that grounds "Iran".
- *
- * @param {string[]} summarySeq       normalized token sequence from the summary
- * @param {string[][]} headlineSequences normalized sequences from the cited stories
- * @returns {boolean} true → treat as grounded; false → keep the rejection
- */
 /**
  * Does `seq` occur as a contiguous, ordered run of words in the raw source
  * text (case-insensitively, after the same acronym normalization)?
@@ -1011,43 +1020,57 @@ function occursAsContiguousRun(seq, text) {
   return containsSubsequence(words, seq);
 }
 
+/**
+ * Second-chance grounding for a summary sequence that failed the strict
+ * contiguous-subsequence check.
+ *
+ * WHY THIS EXISTS — measured false-positive classes from real seed-insights
+ * runs on 2026-08-04 (4 of 5 runs rejected):
+ *
+ *   1. HYPHENATED DYADS. Tokenization keeps '-' inside a token (to preserve
+ *      "Mar-a-Lago", "O'Brien") but splits on '/'. So a headline reading
+ *      "Qatar says progress made toward US-Iran talks" grounds NEITHER 'us'
+ *      NOR 'iran', while "Russia/Ukraine grain corridor" grounds both.
+ *      Measured: 'Israel-Hamas' grounds neither Israel nor Hamas;
+ *      'China-Taiwan' grounds neither China nor Taiwan. Handled headline-side
+ *      by expandHyphenatedSequences before this function runs.
+ *
+ *   2. CASE AND WORD ORDER. "Hormuz Strait" against a source writing
+ *      "reopening Hormuz strait" (lowercase) or "Strait of Hormuz" (reordered)
+ *      is the same place, not an invention. occursAsContiguousRun and
+ *      matchesReorderedWindow restore that evidence.
+ *
+ * A third class — "Iran and the US" bridged into ONE sequence that no headline
+ * writes contiguously — used to be relaxed here by splitting on the
+ * coordinator. The tokenizer now ends a sequence at a plain "and" itself
+ * (PROPER_NOUN_JOINER no longer bridges it), so the only 'and' that reaches
+ * this function is one shouldRetainAndJoiner kept on purpose: a registered
+ * expansion or a repeated-name entity. Splitting those is exactly the
+ * laundering the retention exists to prevent (each half of "Johnson and
+ * Johnson" would ground against one "Boris Johnson"), so this function never
+ * splits a sequence.
+ *
+ * SAFETY PROPERTY THIS MUST PRESERVE. This may only ever turn a REJECT into
+ * an ACCEPT when the exact tokens are present in the cited stories — verbatim
+ * and in order, or as a same-length permutation of one contiguous window. A
+ * genuinely invented proper noun must still be caught — measured controls:
+ * "Washington" and "Atlantis" must stay REJECTED against a corpus that
+ * grounds "Iran".
+ *
+ * @param {string[]} summarySeq       normalized token sequence from the summary
+ * @param {string[][]} headlineSequences normalized sequences from the cited stories
+ * @param {string} headlineText       the raw joined source text
+ * @returns {boolean} true → treat as grounded; false → keep the rejection
+ */
 function isGroundedAfterRelaxation(summarySeq, headlineSequences, headlineText) {
-  // Verbatim run in the source outranks every structural heuristic below: if
+  // Verbatim run in the source outranks the structural heuristic below: if
   // the exact words are there in the exact order, nothing was invented.
   if (occursAsContiguousRun(summarySeq, headlineText)) return true;
 
   // Same entity, different word order — "Hormuz Strait" vs "Strait of
   // Hormuz". Operates on extracted (capitalized) sequences only, so a
   // lowercase source spelling never widens into a window here.
-  if (matchesReorderedWindow(summarySeq, headlineSequences)) return true;
-
-  // Split ONLY on the coordinator, then require EVERY part to ground on its
-  // own. "Iran and the US" → ['iran'] + ['us']: both real, both cited, accept.
-  // "Iran and Atlantis" → ['atlantis'] grounds nowhere, so the whole sequence
-  // stays rejected. Requiring only SOME part to ground would let one real
-  // entity launder an invented one — that is the property this must not lose.
-  const parts = [];
-  let current = [];
-  for (const token of summarySeq) {
-    if (PROPER_NOUN_COORDINATOR.has(token)) {
-      if (current.length > 0) parts.push(current);
-      current = [];
-    } else {
-      current.push(token);
-    }
-  }
-  if (current.length > 0) parts.push(current);
-
-  // Nothing coordinated. The strict check already failed on this exact
-  // sequence, so re-testing it unchanged would only fail again — and a real
-  // hyphenated name like "Trinidad and Tobago" reaches this path ONLY when it
-  // never grounded whole, in which case splitting is the correct verdict.
-  if (parts.length < 2) return false;
-
-  const trimmed = parts.map(trimEdgeJoiners).filter((part) => part.length > 0);
-  if (trimmed.length < 2) return false;
-
-  return trimmed.every((part) => groundsInAnySequence(part, headlineSequences));
+  return matchesReorderedWindow(summarySeq, headlineSequences);
 }
 
 // Numeric and date facts need their own citation-scoped check. Proper-noun
@@ -1074,7 +1097,7 @@ const NUMBER_FACT_WORD_SEQUENCE_RE = new RegExp(
   `\\b(?:${NUMBER_FACT_WORD_PATTERN})(?:[- ](?:${NUMBER_FACT_WORD_PATTERN}|and))*\\b(?:\\s+percent\\b)?`,
   'gi',
 );
-const DIGIT_FACT_RE = /\d[\d,]*(?:\.\d+)?(?:\s*(?:%|percent|thousands?|millions?|billions?|trillions?))?/gi;
+const DIGIT_FACT_RE = /\d[\d,]*(?:\.\d+)?(?:\s*(?:%|percent|thousands?|millions?|billions?|bil\b|trillions?))?/gi;
 const DATE_MONTH_PATTERN = 'Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?';
 const DATE_EXPRESSION_RE = new RegExp(
   `\\b(?:\\d{4}-\\d{1,2}-\\d{1,2}|\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?|(?:${DATE_MONTH_PATTERN})\\.?\\s+\\d{1,2}(?:,?\\s+\\d{4})?|\\d{1,2}\\s+(?:${DATE_MONTH_PATTERN})\\.?\\s*(?:\\d{4})?)\\b`,
@@ -1093,7 +1116,7 @@ function formatNumericFact(value) {
 
 function normalizeDigitFact(raw) {
   const match = raw.trim().toLowerCase().replace(/,/g, '').match(
-    /^(\d+(?:\.\d+)?)(?:\s*(%|percent|thousands?|millions?|billions?|trillions?))?$/,
+    /^(\d+(?:\.\d+)?)(?:\s*(%|percent|thousands?|millions?|billions?|bil\b|trillions?))?$/,
   );
   if (!match) return `number:${raw.trim().toLowerCase()}`;
   const value = Number(match[1]);
@@ -1101,7 +1124,7 @@ function normalizeDigitFact(raw) {
   const unit = match[2];
   if (!unit) return `number:${formatNumericFact(value)}`;
   if (unit === '%' || unit === 'percent') return `number:${formatNumericFact(value)}%`;
-  const scale = NUMBER_FACT_WORD_VALUES.get(unit.replace(/s$/, ''));
+  const scale = NUMBER_FACT_WORD_VALUES.get(unit === 'bil' ? 'billion' : unit.replace(/s$/, ''));
   return scale ? `number:${formatNumericFact(value * scale)}` : `number:${formatNumericFact(value)} ${unit}`;
 }
 
@@ -1233,6 +1256,81 @@ export function validateNoHallucinatedFacts(summary, groundText) {
     if (!groundFacts.has(fact)) return { ok: false, hallucinated: [fact] };
   }
   return { ok: true };
+}
+
+const STATUS_QUALIFIER_CLASSES = [
+  ['former', 'ex', 'erstwhile', 'one-time', 'onetime', 'then-', 'outgoing', 'retired'],
+  ['acting', 'interim', 'caretaker'],
+  ['incoming'],
+  ['late'],
+];
+const STATUS_QUALIFIER_CLASS_OF = new Map(
+  STATUS_QUALIFIER_CLASSES.flatMap((cls) => cls.map((q) => [q.replace(/-$/, ''), cls])),
+);
+const PERSON_TITLE_WORDS =
+  'president|prime minister|vice president|premier|chancellor|minister|secretary|senator|governor|mayor|'
+  + 'chairman|chairwoman|chairperson|chair|chief|ceo|cfo|ambassador|envoy|speaker|king|queen|pope|leader|'
+  + 'commander|general|admiral|director|prosecutor|judge|justice|adviser|advisor|aide|spokesman|spokeswoman|'
+  + 'spokesperson|head|official|lawmaker|congressman|congresswoman|representative|pm';
+// Lowercase words that can sit inside an office name between the qualifier
+// and the title: "former deputy prime minister", "former national security adviser".
+const OFFICE_MODIFIER_WORDS =
+  'deputy|vice|assistant|associate|senior|national|security|foreign|defense|defence|finance|interior|'
+  + 'justice|health|trade|energy|state|army|military|intelligence|supreme|party|attorney|federal|regional';
+const CALENDAR_WORDS =
+  'Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|'
+  + 'August|September|October|November|December';
+// No `i` flag: under `i`, \p{Lu} also matches lowercase, so "Former officials said" reads as a named person.
+const anyCase = (/** @type {string} */ word) => word.replace(/\p{L}/gu, (c) => `[${c.toUpperCase()}${c}]`);
+const PERSON_TITLE_RE_SOURCE = PERSON_TITLE_WORDS.split('|').map(anyCase).join('|');
+// A bridge word is part of the office name: a nationality or institution
+// ("US", "Brazilian", "White House"), an office modifier, or a title word
+// ("official adviser"). Any other word ends the match, so "Former officials
+// said President Trump" and "Late on Tuesday President Trump" qualify nobody.
+const BRIDGE_WORD_RE_SOURCE = `(?:(?!(?:${CALENDAR_WORDS})\\b)\\p{Lu}[\\p{L}'’-]*`
+  + `|${OFFICE_MODIFIER_WORDS.split('|').map(anyCase).join('|')}|${PERSON_TITLE_RE_SOURCE})`;
+const STATUS_QUALIFIER_RE = new RegExp(
+  `\\b(${STATUS_QUALIFIER_CLASSES.flat().map((q) => (q.endsWith('-') ? `${anyCase(q.slice(0, -1))}(?=-)` : anyCase(q))).join('|')})[-\\s]+`
+  + `(?:${BRIDGE_WORD_RE_SOURCE}\\s+){0,3}?(?:${PERSON_TITLE_RE_SOURCE})s?\\b[-\\s]+(?:(?:of|the|for|to|and)\\s+)?(\\p{Lu}[\\p{L}'’-]+)`,
+  'gu',
+);
+
+/**
+ * @param {{ text: string; tokens: Set<string> }} ground
+ * @param {string} word
+ */
+function groundHasWord(ground, word) {
+  if (word.includes('-')) return ground.text.includes(word);
+  return ground.tokens.has(word);
+}
+
+/**
+ * Validate that every status qualifier the summary attaches to a titled,
+ * named person is carried by the ground text. `groundText` may be one string
+ * or one string per source story; with an array, the qualifier class and the
+ * name must appear in the SAME story. Malformed inputs accept, matching the
+ * sibling validators.
+ *
+ * @param {unknown} summary
+ * @param {unknown} groundText
+ * @returns {{ ok: boolean, hallucinated?: string[] }}
+ */
+export function validateNoHallucinatedStatusQualifiers(summary, groundText) {
+  if (typeof summary !== 'string' || summary.length === 0) return { ok: true };
+  const grounds = (Array.isArray(groundText) ? groundText : [groundText])
+    .filter((g) => typeof g === 'string' && g.trim().length > 0)
+    .map((g) => normalizeDottedAcronyms(g).toLowerCase())
+    .map((text) => ({ text, tokens: new Set(text.split(/[^\p{L}\p{N}]+/u)) }));
+  if (grounds.length === 0) return { ok: true };
+  const hallucinated = [];
+  for (const match of normalizeDottedAcronyms(summary).matchAll(STATUS_QUALIFIER_RE)) {
+    const qualifier = match[1].toLowerCase();
+    const name = match[2].replace(/['’]s$/i, '').toLowerCase();
+    const cls = STATUS_QUALIFIER_CLASS_OF.get(qualifier) ?? [qualifier];
+    const grounded = grounds.some((g) => cls.some((q) => groundHasWord(g, q)) && groundHasWord(g, name));
+    if (!grounded) hallucinated.push(match[0].trim());
+  }
+  return hallucinated.length === 0 ? { ok: true } : { ok: false, hallucinated };
 }
 
 /**
@@ -1436,7 +1534,7 @@ export function groundingTokenSet(text) {
 // edge-safe module — callers with a different cap pass it explicitly.
 const DEFAULT_GROUNDING_STORY_CAP = 8;
 
-export function checkLeadGrounding(synthesis, stories, storyCap = DEFAULT_GROUNDING_STORY_CAP) {
+export function checkLeadGrounding(synthesis, stories, storyCap = DEFAULT_GROUNDING_STORY_CAP, { combinedThreshold = null } = {}) {
   if (!Array.isArray(stories) || stories.length === 0) return true;
 
   const storyTokens = new Set();
@@ -1484,7 +1582,14 @@ export function checkLeadGrounding(synthesis, stories, storyCap = DEFAULT_GROUND
       combinedTokens.add(w);
     }
   }
-  const threshold = storyTokens.size >= 4 ? 2 : 1;
+  // combinedThreshold override (#7253 review): the 2-hit requirement is
+  // calibrated for a FULL 2-3 sentence lead. A lead the repair path shortened
+  // may have lost the sentence that carried the second anchor, so its caller
+  // passes 1 — requirement 1 above still stands unconditionally, which is what
+  // keeps an anchor-free mush lead rejected even at the relaxed threshold.
+  const threshold = Number.isInteger(combinedThreshold) && combinedThreshold > 0
+    ? combinedThreshold
+    : (storyTokens.size >= 4 ? 2 : 1);
   let combinedHits = 0;
   for (const tok of storyTokens) {
     if (combinedTokens.has(tok)) {
