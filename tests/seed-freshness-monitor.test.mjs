@@ -974,8 +974,13 @@ describe('scheduled seed freshness monitor', () => {
         ['bocValet', 'the Bank of Canada Valet probe publishes again'],
         ['statcanWds', 'its EMPTY escalated to STALE_CONTENT and the content budget now covers the real cadence'],
       ]) {
+        // Fork: a cutover-bound acknowledgement is a bounded deploy-order
+        // window for the upstream sync (every one of these probes is new to
+        // the-synactic's main), not a standing suppression; it expires by the
+        // producer's first scheduled run. Only a bare, open-ended entry is the
+        // recurrence suppression this guard forbids.
         assert.equal(
-          committed.acknowledged.some((entry) => entry.name === name),
+          committed.acknowledged.some((entry) => entry.name === name && !entry.cutover),
           false,
           `${name} recovered (${why}); do not suppress a future recurrence`,
         );
@@ -998,8 +1003,13 @@ describe('scheduled seed freshness monitor', () => {
         ['mineralProduction', 'seed-meta:supply-chain:mineral-production carries 12 records'],
         ['staticRefHeavyBundleTick', 'bundle:heartbeat:static-ref-heavy fired at 2026-08-20T04:01:04Z'],
       ]) {
+        // Fork: a cutover-bound acknowledgement is a bounded deploy-order
+        // window for the upstream sync (every one of these probes is new to
+        // the-synactic's main), not a standing suppression; it expires by the
+        // producer's first scheduled run. Only a bare, open-ended entry is the
+        // recurrence suppression this guard forbids.
         assert.equal(
-          committed.acknowledged.some((entry) => entry.name === name),
+          committed.acknowledged.some((entry) => entry.name === name && !entry.cutover),
           false,
           `${name} recovered (${why}); do not suppress a future recurrence`,
         );
@@ -1031,8 +1041,10 @@ describe('scheduled seed freshness monitor', () => {
       );
       // #6806 owns ONE consolidated bundle-tick ack when it owns any at all —
       // never one per member. It owns none now that the heartbeat fired.
+      // Fork: the cutover-bound sync acknowledgement for staticRefHeavyBundleTick
+      // is a deploy-order window, not a bundle-tick suppression (see above).
       assert.deepEqual(
-        committed.acknowledged.filter((entry) => entry.issue === 6806).map((entry) => entry.name),
+        committed.acknowledged.filter((entry) => entry.issue === 6806 && !entry.cutover).map((entry) => entry.name),
         [],
       );
       // The consolidation is the point: Railway caps a project at 100 services

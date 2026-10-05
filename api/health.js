@@ -727,7 +727,23 @@ const SEED_META = {
   chinaCoverage:   { key: 'seed-meta:health:china-coverage',   maxStaleMin: 180 },
   // Always-on loop publishes every few seconds. Five minutes tolerates deploy
   // churn while still detecting a stopped worker well before leases age out.
-  companyMonitoringWorker: { key: 'seed-meta:company-monitoring:worker', maxStaleMin: 5, workerControl: true },
+  companyMonitoringWorker: {
+    key: 'seed-meta:company-monitoring:worker',
+    maxStaleMin: 5,
+    workerControl: true,
+    // Fork cutover: this probe is new relative to the-synactic's main (it landed
+    // upstream in #6386 before the cutover gate existed). The worker SETs the
+    // durable marker (COMPANY_MONITORING_WORKER_ACTIVATION_KEY in
+    // scripts/company-monitoring-worker.mjs) once it is actually running, so the
+    // probe stays softened until that first activation.
+    activationKey: 'seed-activated:company-monitoring:worker',
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 6386,
+      activationKey: 'seed-activated:company-monitoring:worker',
+    },
+  },
   earthquakes: {
     key: 'seed-meta:seismology:earthquakes', maxStaleMin: 30,
     sourceFailure: {
@@ -1103,7 +1119,8 @@ const SEED_META = {
     maxStaleMin: 45, // union rebuilds on the */15 Alberta tick; 45 = 3× interval
     cutover: {
       mode: 'expiring-ack',
-      fromKey: 'seed-meta:alerts:alberta-aea',
+      // Fork: relative to the-synactic's main this probe is new, not repointed.
+      fromKey: null,
       issue: 6659,
       status: 'EMPTY',
     },
@@ -1211,7 +1228,11 @@ const SEED_META = {
     },
   },
   telegramFeed:     { key: 'seed-meta:intelligence:telegram-feed:v1', maxStaleMin: 10 }, // 60s poll interval; 10min grace catches poll failures before they go stale in the panel
-  xFeed:            { key: 'seed-meta:intelligence:x-feed:v1', maxStaleMin: 45 }, // Fixed 15min List slots; 45min = 3 missed slots. Freshness advances only after an accepted page is published.
+  // Fork cutovers (expiring-ack, status measured with classifyKey against this
+  // branch): these probes are new relative to the-synactic's main and landed
+  // upstream before the cutover gate existed. scripts/seed-freshness-baseline.json
+  // carries the matching owner-bound acknowledgements.
+  xFeed:            { key: 'seed-meta:intelligence:x-feed:v1', maxStaleMin: 45, cutover: { mode: 'expiring-ack', fromKey: null, issue: 6928, status: 'EMPTY' } }, // Fixed 15min List slots; 45min = 3 missed slots. Freshness advances only after an accepted page is published.
   digestNotifications: { key: 'seed-meta:digest:last-run',          maxStaleMin: 90 }, // Railway digest-notifications cron runs every 30min; 90 = 3x cadence and detects a dead cron before daily digests are missed.
   forecasts:        { key: 'seed-meta:forecast:predictions',       maxStaleMin: 90 },
   forecastsBootstrap: { key: 'seed-meta:forecast:predictions-bootstrap', maxStaleMin: 90 }, // Same cron. Monitored separately: the fast tier now hydrates from the dashboard list, and a transform/write failure there must not hide behind a healthy canonical key (#5300).
@@ -1371,11 +1392,11 @@ const SEED_META = {
   // already gone. 420 = the 6h cron plus one hour of grace, so health reaches
   // STALE_SEED an hour BEFORE the keys it vouches for lapse. Same shape as the
   // meta-only comtradeBilateralHs4 entry above (35d budget, 40d payload TTL).
-  tradeFlows:          { key: 'seed-meta:trade:flows',                        maxStaleMin: 420, minRecordCount: 200, dominantFailureMode: true },
+  tradeFlows:          { key: 'seed-meta:trade:flows',                        maxStaleMin: 420, minRecordCount: 200, dominantFailureMode: true, cutover: { mode: 'expiring-ack', fromKey: null, issue: 6322, status: 'EMPTY' } },
   // Same meta-only shape as tradeFlows above (#6316 moved tariffs off the
   // single-key US years=10 probe). maxStaleMin 420 sits inside TARIFF_TTL
   // (480min); minRecordCount 150 leaves headroom under a ~200+ reporter fleet.
-  tariffTrendsUs:      { key: 'seed-meta:trade:tariffs',                      maxStaleMin: 420, minRecordCount: 150 },
+  tariffTrendsUs:      { key: 'seed-meta:trade:tariffs',                      maxStaleMin: 420, minRecordCount: 150, cutover: { mode: 'expiring-ack', fromKey: 'seed-meta:trade:tariffs:v1:840:all:10', issue: 6349, status: 'EMPTY' } },
   // publish.ts runs once daily (02:30 UTC); seed-meta TTL=52h — maxStaleMin must cover the full 24h cycle
   consumerPricesOverview:   { key: 'seed-meta:consumer-prices:overview:ae',     maxStaleMin: 1500, minSuccessRate: 0.5 }, // 25h = 24h cadence + 1h grace; warn when <50% snapshots succeeded
   consumerPricesCategories: { key: 'seed-meta:consumer-prices:categories:ae:30d',            maxStaleMin: 1500 },
@@ -1388,7 +1409,7 @@ const SEED_META = {
   aiTokens:          { key: 'seed-meta:market:token-panels', maxStaleMin: 90 },
   otherTokens:       { key: 'seed-meta:market:token-panels', maxStaleMin: 90 },
   fredBatch:         { key: 'seed-meta:economic:fred:v1:FEDFUNDS:0', maxStaleMin: 1500 }, // daily cron
-  fredRatesSeeder:   { key: 'seed-meta:economic:fred-rates', maxStaleMin: 180, minRecordCount: 24 }, // independent hourly FRED/rates seeder; publication accepts 18/24, but health requires full consumer coverage
+  fredRatesSeeder:   { key: 'seed-meta:economic:fred-rates', maxStaleMin: 180, minRecordCount: 24, cutover: { mode: 'expiring-ack', fromKey: null, issue: 6339, status: 'EMPTY' } }, // independent hourly FRED/rates seeder; publication accepts 18/24, but health requires full consumer coverage
   forecastFredWalcl:      { key: 'seed-meta:economic:fred:v1:WALCL:0',      maxStaleMin: 1500 },
   forecastFredT10y2y:     { key: 'seed-meta:economic:fred:v1:T10Y2Y:0',     maxStaleMin: 1500 },
   forecastFredUnrate:     { key: 'seed-meta:economic:fred:v1:UNRATE:0',     maxStaleMin: 1500 },
@@ -2085,7 +2106,7 @@ const ACTIVATION_MARKERS = {
   chinaCoverage: 'seed-activated:health:china-coverage',
   // Written by the PizzINT archive's Lua (scripts/shared/pizzint-history.cjs).
   pizzintHistory: SEED_META.pizzintHistory.activationKey,
-  companyMonitoringWorker: 'seed-activated:company-monitoring:worker',
+  companyMonitoringWorker: SEED_META.companyMonitoringWorker.activationKey,
   // Written by scripts/seed-cbr-rates.mjs (CBR_ACTIVATION_KEY) in runSeed's
   // afterPublish hook, so it exists only once a real table has been published.
   cbrRates: 'seed-activated:economic:cbr-rates',
