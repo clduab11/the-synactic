@@ -19808,12 +19808,19 @@ a.prediction-link:hover {
    pasted. Green rather than the cyan key colour: this is a resolved state. */
 .mcp-preset-configured-badge {
   color: #22c55e;
+  font-weight: 700;
+}
+
 /* Map author credit badge (inside layers panel) */
 .map-author-badge {
   padding: 6px 10px;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: calc(10px * var(--wm-panel-effective-scale, 1));
   font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #00e5ff;
+  border-top: 1px solid rgba(0, 229, 255, 0.2);
+  pointer-events: none;
 }
 
 .mcp-preset-card.mcp-preset-configured .mcp-preset-name::after {

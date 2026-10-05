@@ -260,7 +260,7 @@ const SITE_MAP = [
   [/widget-store/,                            { cap: 'widgets.custom' }], // NOTE: matches no current gate
   [/^api\/v2\/shipping\/webhooks\//, { exclude: 'consumer of shipping premium gate — preserves billing verification denial', preds: ['resolvePremiumCallerIdentity'] }],
   [/entitlements|entitlement-check|premium-check|pro-entitlement|billing|payments\//, { exclude: 'entitlement plumbing — resolves/propagates state, gates nothing itself' , preds: ['apiAccess','isCallerPremium','resolvePremiumCallerIdentity','tier'] }],
-  [/UnifiedSettings|data-loader|http\.ts|apiPlanLimitUsage|mcpProTokens|gateway\.ts|shipping/, { exclude: 'consumer of a gate mapped elsewhere — renders or forwards, does not define' , preds: ['apiAccess','hasPremiumAccess','isCallerPremium','isProUser','mcpAccess','tier'] }],
+  [/UnifiedSettings|data-loader|http\.ts|apiPlanLimitUsage|mcpProTokens|gateway\.ts|shipping/, { exclude: 'consumer of a gate mapped elsewhere — renders or forwards, does not define' , preds: ['apiAccess','dataExport','hasPremiumAccess','isCallerPremium','isProUser','mcpAccess','tier'] }],
 ];
 
 
@@ -343,7 +343,6 @@ const SITE_BASELINE = {
   "server/_shared/pro-mcp-gate.ts::tier": 1,
   "server/gateway.ts::apiAccess": 3,
   "server/gateway.ts::embedAccess": 1,
-  "src/services/entitlements.ts::embedAccess": 1,
   "server/gateway.ts::tier": 5,
   "server/worldmonitor/economic/v1/get-national-debt.ts::isCallerPremium": 1,
   "server/worldmonitor/intelligence/v1/deduct-situation.ts::isCallerPremium": 1,
@@ -367,10 +366,14 @@ const SITE_BASELINE = {
   "src/app/panel-layout.ts::hasPremiumAccess": 1,
   "src/components/RegionalIntelligenceBoard.ts::hasPremiumAccess": 1,
   "src/components/TelegramIntelPanel.ts::hasPremiumAccess": 1,
+  "src/components/UnifiedSettings.ts::apiAccess": 1,
+  "src/components/UnifiedSettings.ts::dataExport": 1,
   "src/components/UnifiedSettings.ts::isProUser": 1,
+  "src/components/UnifiedSettings.ts::mcpAccess": 1,
   "src/services/analysis-framework-store.ts::hasPremiumAccess": 1,
   "src/services/correlation-engine/engine.ts::hasPremiumAccess": 1,
   "src/services/economic/index.ts::hasPremiumAccess": 1,
+  "src/services/entitlements.ts::embedAccess": 1,
   "src/services/entitlements.ts::tier": 1,
   "src/services/gates/export-resolver.ts::dataExport": 4,
   "src/services/gates/export.ts::dataExport": 1,

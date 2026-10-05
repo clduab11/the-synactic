@@ -1130,10 +1130,6 @@ async function fetchInsights() {
       + `${failureDetail ? ` on "${failureDetail}"` : ''} — `
       + 'falling back to single-headline brief',
     );
-    // Model-derived tokens: opt-in only, never persisted to seed-meta or health.
-    if (gateDetail && process.env.BRIEF_GATE_DEBUG) {
-      console.warn(`  [brief_synthesis DEBUG] ${gateReason}: ${String(gateDetail).slice(0, 200)}`);
-    }
     // #6001: L2 gets only what remains of the run's LLM budget — two full
     // 60s budgets could outlast the 120s seed lock.
     const legacy = await generateLegacySingleHeadlineBrief(topStories, {

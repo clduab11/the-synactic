@@ -5,7 +5,6 @@ import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
 import { jsonResponse } from './_json-response.js';
 import { resolvePremiumCallerIdentity } from '../server/_shared/premium-check';
 import { isBlockedResolvedAddress } from '../server/_shared/ip-address-classification';
-import { ENDPOINT_RATE_POLICIES, checkScopedRateLimit, getClientIp } from '../server/_shared/rate-limit';
 import { withPresetAuth, listConfiguredPresetHosts } from './_mcp-preset-auth';
 import { buildUsageIdentity } from '../server/_shared/usage-identity';
 import {
