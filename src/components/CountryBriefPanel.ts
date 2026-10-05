@@ -1,9 +1,11 @@
 import type { CountryBriefSignals } from '@/types';
 import type { CountryScore } from '@/services/country-instability';
+import type { GetDefenseIndustrialBaseResponse } from '@/generated/client/worldmonitor/military/v1/service_client';
 import type { PredictionMarket } from '@/services/prediction';
 import type { NewsItem } from '@/types';
-import type { GetCountryChokepointIndexResponse, SectorExposureSummary, CountryProductsResponse, MultiSectorShockResponse } from '@/services/supply-chain';
+import type { GetCountryChokepointIndexResponse, GetCountryVulnerabilitiesResponse, SectorExposureSummary, CountryProductsResponse, MultiSectorShockResponse } from '@/services/supply-chain';
 import type { BriefSource } from '@/utils/brief-sources';
+import type { IntelBriefEvidence } from '@/utils/format-intel-brief';
 import type { DecisionSignalProvenance } from '../../shared/decision-signal-provenance-contract';
 import type { ChinaDecisionSignalGroupId } from '../../shared/china-decision-signals';
 
@@ -18,6 +20,7 @@ export interface CountryIntelData {
   reason?: string;
   fallback?: boolean;
   sources?: BriefSource[];
+  evidence?: IntelBriefEvidence[];
 }
 
 export interface StockIndexData {
@@ -57,11 +60,13 @@ export interface CountryDeepDiveBaseSummary {
 }
 
 export interface CountryDeepDiveMilitarySummary {
-  ownFlights: number;
-  foreignFlights: number;
-  nearbyVessels: number;
+  ownFlights: number | null;
+  foreignFlights: number | null;
+  nearbyVessels: number | null;
   nearestBases: CountryDeepDiveBaseSummary[];
-  foreignPresence: boolean;
+  foreignPresence: boolean | null;
+  coverageNotes?: string[];
+  coverage?: 'complete' | 'partial';
 }
 
 export interface CountryDeepDiveEconomicIndicator {
@@ -129,6 +134,9 @@ export interface CountryEnergyProfileData {
   solarShare: number;
   hydroShare: number;
   importShare: number;
+  importShareAvailable: boolean;
+  importShareYear: number;
+  importShareSource: string;
   gasStorageAvailable: boolean;
   gasStorageFillPct: number;
   gasStorageChange1d: number;
@@ -196,6 +204,8 @@ export interface CountryPortActivityData {
 }
 
 export interface CountryBriefPanel {
+  setSectionFailure?(id: import('../../shared/country-brief-sections').BriefSectionId, state: 'locked' | 'unavailable', reason: string): void;
+  setSectionCoverage?(id: import('../../shared/country-brief-sections').BriefSectionId, missing: string[]): void;
   show(country: string, code: string, score: CountryScore | null, signals: CountryBriefSignals): void;
   hide(): void;
   showLoading(): void;
@@ -205,8 +215,6 @@ export interface CountryBriefPanel {
   getTimelineMount(): HTMLElement | null;
   readonly signal: AbortSignal;
   onClose(cb: () => void): void;
-  setShareStoryHandler(handler: (code: string, name: string) => void): void;
-  setExportImageHandler(handler: (code: string, name: string) => void): void;
   updateBrief(data: CountryIntelData): void;
   updateNews(headlines: NewsItem[]): void;
   updateMarkets(markets: PredictionMarket[]): void;
@@ -214,8 +222,11 @@ export interface CountryBriefPanel {
   updateInfrastructure(code: string): void;
   showGeoError?(onRetry: () => void): void;
   updateScore?(score: CountryScore | null, signals: CountryBriefSignals): void;
+  isFallbackBrief?(): boolean;
   updateSignalDetails?(details: CountryDeepDiveSignalDetails): void;
-  updateMilitaryActivity?(summary: CountryDeepDiveMilitarySummary): void;
+  updateMilitaryActivity?(summary: CountryDeepDiveMilitarySummary | null): void;
+  updateDefenseIndustrialBase?(data: GetDefenseIndustrialBaseResponse | null): void;
+  syncCountryPremiumSectionsAccess?(hasAccess: boolean): void;
   updateEconomicIndicators?(indicators: CountryDeepDiveEconomicIndicator[]): void;
   updateChinaCountrySummary?(data: ChinaCountrySummaryData): void;
   updateCountryFacts?(data: CountryFactsData): void;
@@ -232,6 +243,7 @@ export interface CountryBriefPanel {
   updateTariffTrends?(data: { currentRate: number; trend: string; datapoints: Array<{ year: number; tariffRate: number }> } | null): void;
   updateMultiSectorCostShock?(data: MultiSectorShockResponse | null): void;
   updateProductImports?(data: CountryProductsResponse | null): void;
+  updateCommodityVulnerabilities?(data: GetCountryVulnerabilitiesResponse | null): void;
   updateHousingCycle?(data: {
     residential?: { indexValue: number; qoqChange: number | null; yoyChange: number | null; period: string } | null;
     commercial?: { indexValue: number; qoqChange: number | null; yoyChange: number | null; period: string } | null;

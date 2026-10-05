@@ -62,6 +62,8 @@ export const MCP_PRESET_AUTH: readonly McpPresetAuthEntry[] = Object.freeze([
     host: 'mcp.tavily.com',
     headers: [{ template: BEARER, envVars: ['TAVILY_API_KEY'] }],
   },
+  // Upstream preset (keyless): free web search / URL fetch, no credential.
+  { presetName: 'Parallel Search', host: 'search.parallel.ai', headers: [] },
   {
     presetName: 'Perigon News',
     host: 'mcp.perigon.io',

@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
-import { loadEnvFile, CHROME_UA, getRedisCredentials, acquireLockSafely, releaseLock, withRetry, writeFreshnessMetadata, logSeedResult, verifySeedKey, extendExistingTtl, getResponseHeader } from './_seed-utils.mjs';
+import { loadEnvFile, CHROME_UA, getRedisCredentials, parseRedisCommandResponse, redisCommand, acquireLockSafely, releaseLock, withRetry, writeFreshnessMetadata, logSeedResult, verifySeedKey, extendExistingTtl, getResponseHeader } from './_seed-utils.mjs';
 import { summarizeMilitaryTheaters, buildMilitarySurges, appendMilitaryHistory } from './_military-surges.mjs';
 import { buildEnvelope, unwrapEnvelope } from './_seed-envelope-source.mjs';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-import { createHash } from 'node:crypto';
 
 loadEnvFile(import.meta.url);
 
@@ -42,6 +41,36 @@ const FORECAST_REFRESH_REQUEST_TTL = 60 * 60;
 // ── Proxy Config ─────────────────────────────────────────
 const OPENSKY_PROXY_AUTH = process.env.OPENSKY_PROXY_AUTH || process.env.PROXY_URL || '';
 const PROXY_ENABLED = !!OPENSKY_PROXY_AUTH;
+
+// ── Keyless ADS-B Endpoints ───────────────────────────────
+const ADSBLOL_MIL_ENDPOINT = 'https://api.adsb.lol/v2/mil';
+const AIRPLANES_LIVE_POINT_ENDPOINT = 'https://api.airplanes.live/v2/point';
+const ADSB_FI_POINT_ENDPOINT = 'https://opendata.adsb.fi/api/v3';
+
+// Both point-query providers restrict their public APIs to non-commercial use.
+// The hosted WorldMonitor service must therefore stay fail-closed unless an
+// operator has separately confirmed an eligible deployment and opts in.
+const GAP_FILL_NONCOMMERCIAL_ENABLED = process.env.WM_ENABLE_NONCOMMERCIAL_ADSB_GAP_FILL === '1';
+
+// ── Optional regional gap-fill points ─────────────────────
+const BLIND_SPOT_REGIONS = [
+  { name: 'Yekaterinburg', lat: 56.8, lon: 60.6, radiusNm: 250 },
+  { name: 'Novosibirsk',   lat: 55.0, lon: 82.9, radiusNm: 250 },
+  { name: 'Krasnoyarsk',   lat: 56.0, lon: 92.9, radiusNm: 250 },
+  { name: 'Vladivostok',   lat: 43.1, lon: 131.9, radiusNm: 250 },
+  { name: 'Urumqi',        lat: 43.8, lon: 87.6, radiusNm: 250 },
+  { name: 'Chengdu',       lat: 30.6, lon: 104.1, radiusNm: 250 },
+  { name: 'Lagos-Accra',   lat: 6.5,  lon: 3.4,  radiusNm: 250 },
+  { name: 'Addis Ababa',   lat: 9.0,  lon: 38.7, radiusNm: 250 },
+];
+
+// Both gap-fill providers publish a 1 request/second ceiling. Calls alternate
+// between providers, so a one-second delay between every outbound request is
+// safely below each provider's own limit. The total budget keeps a degraded
+// provider from outliving the seeder lock.
+const GAP_FILL_STAGGER_MS = 1_000;
+const GAP_FILL_REQUEST_TIMEOUT_MS = 5_000;
+const GAP_FILL_TOTAL_BUDGET_MS = 45_000;
 
 // ── Query Regions ──────────────────────────────────────────
 const QUERY_REGIONS = [
@@ -393,6 +422,7 @@ function createClassificationStageCounters() {
     sourceOperatorCandidateHits: 0,
     sourceFieldCoverage: Object.fromEntries(SOURCE_META_FIELDS.map((field) => [field, 0])),
     sourceHintCounts: {
+      authoritativeMilitary: 0,
       militaryHint: 0,
       militaryOperatorHint: 0,
       commercialHint: 0,
@@ -422,6 +452,7 @@ function recordSourceCoverage(stageCounters, sourceMeta = {}, sourceHints = {}, 
   for (const field of SOURCE_META_FIELDS) {
     if (summary[field]) stageCounters.sourceFieldCoverage[field] += 1;
   }
+  if (sourceHints.authoritativeMilitary) stageCounters.sourceHintCounts.authoritativeMilitary += 1;
   if (sourceHints.militaryHint) stageCounters.sourceHintCounts.militaryHint += 1;
   if (sourceHints.militaryOperatorHint) stageCounters.sourceHintCounts.militaryOperatorHint += 1;
   if (sourceHints.commercialHint) stageCounters.sourceHintCounts.commercialHint += 1;
@@ -443,9 +474,11 @@ function recordSourceCoverage(stageCounters, sourceMeta = {}, sourceHints = {}, 
 
 function deriveSourceHints(sourceMeta = {}) {
   const hintText = getSourceHintText(sourceMeta);
+  const authoritativeMilitary = sourceMeta.authoritativeMilitary === true;
   return {
     hintText,
-    militaryHint: /(AIR FORCE|AIR ?SELF ?DEFEN[CS]E|MILIT|NAVY|MARINE|ARMY|DEFEN[CS]E|SQUADRON|\bUSAF\b|\bUSN\b|\bUSMC\b|\bRAF\b|\bRCAF\b|\bRAAF\b|NATO|\bPLAAF\b|\bPLAN\b|\bVKS\b|RECON|AWACS|TANKER|AIRLIFT|FIGHTER|BOMBER|DRONE)/.test(hintText),
+    authoritativeMilitary,
+    militaryHint: authoritativeMilitary || /(AIR FORCE|AIR ?SELF ?DEFEN[CS]E|MILIT|NAVY|MARINE|ARMY|DEFEN[CS]E|SQUADRON|\bUSAF\b|\bUSN\b|\bUSMC\b|\bRAF\b|\bRCAF\b|\bRAAF\b|NATO|\bPLAAF\b|\bPLAN\b|\bVKS\b|RECON|AWACS|TANKER|AIRLIFT|FIGHTER|BOMBER|DRONE)/.test(hintText),
     militaryOperatorHint: /(AIR FORCE|AIR ?SELF ?DEFEN[CS]E|NAVY|MARINE|ARMY|DEFEN[CS]E|SQUADRON|EMIRI AIR FORCE|ROYAL .* AIR FORCE|AEROSPACE FORCES|\bPLAAF\b|\bPLAN\b|NATO)/.test(hintText),
     commercialHint: /(AIRLINES|AIRWAYS|LOGISTICS|EXPRESS|CARGOLUX|TURKISH AIRLINES|ETHIOPIAN AIRLINES|QATAR AIRWAYS|EMIRATES SKYCARGO|SAUDIA)/.test(hintText),
   };
@@ -560,20 +593,37 @@ const WINGBITS_BASE = 'https://customer-api.wingbits.com/v1/flights';
 const OPENSKY_TOKEN_URL = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
 const OPENSKY_AUTH_COOLDOWN_MS = 60_000;
 const OPENSKY_AUTH_RETRY_DELAYS = [0, 2_000, 5_000];
+
+// #6249: the single global /states/all query has no per-region isolation any
+// more, so one transient network blip or 5xx zeroes OpenSky's entire
+// contribution for the cycle. Bounded ladder for non-401/non-429 failures,
+// mirroring the auth ladder's shape. 429 stays unretried (#6241).
+const OPENSKY_FETCH_RETRY_DELAYS = [0, 1_500];
 // This seeder is a one-shot process on a */5 Railway cron, so the 429 cooldown
 // CANNOT live in a module variable the way the relay's does — the deadline has
 // to outlive the process. Redis is the only state that does (#6241).
-const OPENSKY_COOLDOWN_KEY = 'opensky:cooldown-until:v1';
+const {
+  cooldownKeyForAccount,
+  OPENSKY_LEGACY_COOLDOWN_KEY,
+  OPENSKY_MAX_COOLDOWN_MS,
+  OPENSKY_SHARED_FALLBACK_COOLDOWN_MS,
+  accountFingerprint: openSkyAccountFingerprint,
+  clampCooldownMs,
+  ttlSecondsForCooldown,
+  inspectCooldownRecord,
+  buildCooldownRecord,
+  maxDeadlineSetCommand,
+  compareAndDelCommand,
+  legacyCooldownCompatibilityEnabled,
+} = createRequire(import.meta.url)('./_opensky-account-cooldown.cjs');
+const OPENSKY_ACCOUNT_FINGERPRINT = openSkyAccountFingerprint(process.env.OPENSKY_CLIENT_ID);
+const OPENSKY_COOLDOWN_KEY = cooldownKeyForAccount(OPENSKY_ACCOUNT_FINGERPRINT);
 // OpenSky omits the retry-after header on some rejections; those repeat just as
 // reliably, so a header-less 429 still parks the tier. Sized against THIS
 // seeder's cadence, not the relay's sub-minute loop: the process is one-shot on
 // a */5 cron, so any deadline under 300s has already expired by the next tick
 // and suppresses exactly zero requests. Two ticks buys real headroom.
-const OPENSKY_429_FALLBACK_COOLDOWN_MS = 10 * 60_000;
-// Upper bound on ANY cooldown, applied on write AND on read. This guard is the
-// alarm, so a corrupt or hand-written deadline must not be able to switch a data
-// tier off permanently — anything past this window is treated as garbage.
-const OPENSKY_MAX_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const OPENSKY_429_FALLBACK_COOLDOWN_MS = OPENSKY_SHARED_FALLBACK_COOLDOWN_MS;
 let openskyToken = null;
 let openskyTokenExpiry = 0;
 let openskyTokenPromise = null;
@@ -648,17 +698,6 @@ async function fetchJsonDirect(url, { headers = {}, method = 'GET', body = null,
   return resp.json();
 }
 
-// The cooldown is a property of an ACCOUNT's quota, but the key is global. On a
-// credential rotation a healthy new account would otherwise inherit the old
-// one's lockout and lose coverage for its remaining window. A non-secret
-// fingerprint of the client id makes the record self-identifying; a mismatch
-// fails OPEN, same as every other unreadable record (#6241).
-function openSkyAccountFingerprint() {
-  const clientId = process.env.OPENSKY_CLIENT_ID;
-  if (!clientId) return null;
-  return createHash('sha256').update(clientId).digest('hex').slice(0, 12);
-}
-
 function getOptionalRedisCredentials() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -682,66 +721,89 @@ function formatWait(ms) {
 // try — so a throw here would kill the entire run, Wingbits included, on every
 // tick until someone deleted the key by hand. That is strictly worse than the
 // bug the cooldown exists to fix, so nothing in here may escape (#6241).
+async function readLegacyOpenSkyCooldown(creds, inactiveResult) {
+  const legacyRecord = await redisGet(creds.url, creds.token, OPENSKY_LEGACY_COOLDOWN_KEY);
+  const inspected = inspectCooldownRecord(legacyRecord, {
+    account: OPENSKY_ACCOUNT_FINGERPRINT,
+  });
+  if (inspected.ignoreReason === 'account-mismatch') {
+    console.warn('  [OpenSky Quota] ignoring legacy cooldown recorded for a different OpenSky account');
+  } else if (inspected.ignoreReason === 'implausible-deadline') {
+    console.warn('  [OpenSky Quota] ignoring implausible legacy cooldown deadline ' + inspected.until);
+  }
+  if (inspected.remainingMs <= 0) return inactiveResult;
+
+  // Copy, never delete: another process may still be on the v1 writer during
+  // rollout. The v2 max-deadline EVAL protects a concurrent account-local write.
+  try {
+    await withRetry(() => redisCommand(
+      creds.url,
+      creds.token,
+      maxDeadlineSetCommand(OPENSKY_COOLDOWN_KEY, legacyRecord, ttlSecondsForCooldown(inspected.remainingMs)),
+      { label: 'Redis EVAL migrate legacy OpenSky cooldown', timeoutMs: 10_000 },
+    ), 2, 1000);
+  } catch (err) {
+    // The existing v1 record is still authoritative for this request even
+    // when the best-effort v2 copy fails; do not turn that into a billed call.
+    console.warn('  [OpenSky Quota] failed to migrate legacy cooldown: ' + (err.message || err));
+  }
+  return { remainingMs: inspected.remainingMs, record: legacyRecord, ignoreReason: null };
+}
+
 async function readOpenSkyCooldown() {
   const creds = getOptionalRedisCredentials();
-  if (!creds) return { remainingMs: 0 };
+  if (!creds) return { remainingMs: 0, record: null };
   try {
     const record = await redisGet(creds.url, creds.token, OPENSKY_COOLDOWN_KEY);
-    const until = Number(record?.until);
-    if (!Number.isFinite(until)) return { remainingMs: 0 };
-    // A record written by different credentials describes a quota this run does
-    // not share. Records with no fingerprint predate this field, so they are
-    // also treated as not-ours rather than obeyed blindly.
-    const account = openSkyAccountFingerprint();
-    if (!record?.account || record.account !== account) {
+    const inspected = inspectCooldownRecord(record, {
+      account: OPENSKY_ACCOUNT_FINGERPRINT,
+    });
+    if (inspected.ignoreReason === 'account-mismatch') {
       console.warn('  [OpenSky Quota] ignoring cooldown recorded for a different OpenSky account');
-      return { remainingMs: 0 };
+    } else if (inspected.ignoreReason === 'implausible-deadline') {
+      console.warn(`  [OpenSky Quota] ignoring implausible cooldown deadline ${inspected.until}`);
     }
-    const remainingMs = until - Date.now();
-    // Beyond the documented maximum the record cannot have come from this code
-    // path, so obey the clock rather than the value. Logged as a raw number:
-    // `new Date(n).toISOString()` throws RangeError past ±8.64e15, and a
-    // nanosecond-scale timestamp lands there — formatting the very value this
-    // branch exists to reject would turn the guard into the outage.
-    if (remainingMs > OPENSKY_MAX_COOLDOWN_MS) {
-      console.warn(`  [OpenSky Quota] ignoring implausible cooldown deadline ${until}`);
-      return { remainingMs: 0 };
-    }
-    return { remainingMs: Math.max(0, remainingMs) };
+    const inactiveResult = {
+      remainingMs: inspected.remainingMs,
+      record,
+      ignoreReason: inspected.ignoreReason || null,
+    };
+    if (inspected.remainingMs > 0) return inactiveResult;
+    if (!legacyCooldownCompatibilityEnabled()) return inactiveResult;
+    return readLegacyOpenSkyCooldown(creds, inactiveResult);
   } catch (err) {
     console.warn(`  [OpenSky Quota] cooldown read failed, proceeding without it: ${err.message || err}`);
-    return { remainingMs: 0 };
+    return { remainingMs: 0, record: null, ignoreReason: 'read-failed' };
   }
 }
 
 async function recordOpenSkyCooldown(retryAfterSeconds) {
-  const cooldownMs = Math.min(
-    OPENSKY_MAX_COOLDOWN_MS,
-    Math.max(OPENSKY_429_FALLBACK_COOLDOWN_MS, (Number(retryAfterSeconds) || 0) * 1000),
-  );
-  const until = Date.now() + cooldownMs;
+  const cooldownMs = clampCooldownMs(retryAfterSeconds, OPENSKY_429_FALLBACK_COOLDOWN_MS);
+  const record = buildCooldownRecord({
+    cooldownMs,
+    retryAfterSeconds,
+    account: OPENSKY_ACCOUNT_FINGERPRINT,
+    recordedBy: 'seed-military-flights',
+  });
   console.warn(
     `  [OpenSky Quota] 429 quota exhausted — cooldown ${formatWait(cooldownMs)} ` +
-    `(until ${new Date(until).toISOString()}, retryAfter=${retryAfterSeconds ?? 'absent'})`,
+    `(until ${record.untilIso}, retryAfter=${retryAfterSeconds ?? 'absent'})`,
   );
   const creds = getOptionalRedisCredentials();
   if (!creds) return;
   try {
-    // The TTL outlives the deadline so a live key always answers the read; the
-    // successful-call path deletes it, and the TTL is only the backstop.
-    await redisSet(creds.url, creds.token, OPENSKY_COOLDOWN_KEY, {
-      until,
-      untilIso: new Date(until).toISOString(),
-      // Both values: the clamped one drove the deadline, the advertised one is
-      // what OpenSky actually said. Persisting only the clamp hides an
-      // implausible upstream header from whoever reads this key during an
-      // incident.
-      retryAfterSeconds: retryAfterSeconds ?? null,
-      cooldownMs,
-      account: openSkyAccountFingerprint(),
-      recordedAt: Date.now(),
-      recordedBy: 'seed-military-flights',
-    }, Math.ceil(cooldownMs / 1000) + 60);
+    // A single EVAL dual-writes v2 and v1 during the bounded rollout bridge,
+    // so an old process sees the same account cooldown. The legacy key drops
+    // out automatically after the cutoff.
+    const keys = legacyCooldownCompatibilityEnabled({ now: record.recordedAt })
+      ? [OPENSKY_COOLDOWN_KEY, OPENSKY_LEGACY_COOLDOWN_KEY]
+      : [OPENSKY_COOLDOWN_KEY];
+    await withRetry(() => redisCommand(
+      creds.url,
+      creds.token,
+      maxDeadlineSetCommand(keys, record, ttlSecondsForCooldown(cooldownMs)),
+      { label: `Redis EVAL max-deadline ${OPENSKY_COOLDOWN_KEY}`, timeoutMs: 10_000 },
+    ), 2, 1000);
   } catch (err) {
     console.warn(`  [OpenSky Quota] failed to persist cooldown: ${err.message || err}`);
   }
@@ -766,11 +828,24 @@ function combineOpenSkyFetchErrors(directError, proxyError) {
   );
 }
 
-async function clearOpenSkyCooldown() {
+async function clearOpenSkyCooldown({ expectedRecord = null, watermarkUntil = Date.now() } = {}) {
   const creds = getOptionalRedisCredentials();
   if (!creds) return;
   try {
-    await redisDel(creds.url, creds.token, OPENSKY_COOLDOWN_KEY);
+    // Compare-and-delete: a stale success must not erase a newer, longer
+    // cooldown that landed while this request was in flight. Expired or
+    // unreadable leftovers still clear when `until` is not newer than the
+    // watermark, so a fail-open GET cannot strand a dead deadline (#6253).
+    await withRetry(() => redisCommand(
+      creds.url,
+      creds.token,
+      compareAndDelCommand(OPENSKY_COOLDOWN_KEY, {
+        expectedJson: expectedRecord ? JSON.stringify(expectedRecord) : '',
+        expectedRevision: expectedRecord?.revision ?? expectedRecord?.recordedAt ?? '',
+        watermarkUntil,
+      }),
+      { label: `Redis EVAL compare-and-del ${OPENSKY_COOLDOWN_KEY}`, timeoutMs: 10_000 },
+    ), 2, 1000);
   } catch (err) {
     console.warn(`  [OpenSky Quota] failed to clear cooldown: ${err.message || err}`);
   }
@@ -855,55 +930,83 @@ async function getOpenSkyToken() {
 // what a global query costs — so the previous PACIFIC+WESTERN pair (1,296 and
 // 4,824 sq°) spent 8 credits/run for strictly less coverage than 4 buys. See
 // docs/solutions/integration-issues/opensky-bbox-area-billing-flat-top-tier.md (#6222).
-async function fetchOpenSkyAuthenticated() {
+// Exported as a test seam: the full fetchAllStates path staggers 13 blind-spot
+// regions at 1s each before reaching this tier, which is far too slow for the
+// retry-contract tests that need to drive it directly.
+export async function fetchOpenSkyAuthenticated() {
   const url = `${OPENSKY_BASE}/states/all?extended=1`;
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  // One direct+proxy attempt. 401 returns for a token-refresh retry; any
+  // other failure propagates so the ladder below can classify it.
+  const attemptOnce = async (token) => {
+    const headers = { Authorization: `Bearer ${token}` };
+    try {
+      const data = await fetchJsonDirect(url, { headers });
+      return { ok: true, transport: 'direct', data };
+    } catch (directError) {
+      if (isOpenSkyUnauthorizedError(directError)) return { unauthorized: true };
+      // Never retry a 429 through the proxy. The quota is per ACCOUNT, and both
+      // paths carry the same bearer token — a different egress IP cannot change
+      // the verdict, so the retry is guaranteed to fail while still costing a
+      // request, proxy bandwidth, and latency on every cycle of a multi-hour
+      // exhaustion window. It also bounds the double-spend window: a direct
+      // request that OpenSky served but that failed client-side has already
+      // debited its credits, and retrying debits them again (#6222).
+      if (isOpenSkyRateLimitedError(directError)) throw directError;
+      if (!PROXY_ENABLED) throw directError;
+      try {
+        const data = await proxyFetchJson(url, { headers });
+        return { ok: true, transport: 'proxy', data };
+      } catch (proxyError) {
+        if (isOpenSkyUnauthorizedError(proxyError)) return { unauthorized: true };
+        throw combineOpenSkyFetchErrors(directError, proxyError);
+      }
+    }
+  };
+
+  let lastError = null;
+  for (const delayMs of OPENSKY_FETCH_RETRY_DELAYS) {
+    if (delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
     const token = await getOpenSkyToken();
     if (!token) return { states: null, status: getOpenSkyAuthStatus() };
-    const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      let data;
-      try {
-        data = await fetchJsonDirect(url, { headers });
-        return { states: data.states || [], status: `success:direct` };
-      } catch (directError) {
-        if (isOpenSkyUnauthorizedError(directError)) {
-          clearOpenSkyToken();
-          if (attempt === 0) continue;
-        }
-        if (!PROXY_ENABLED) throw directError;
-        // Never retry a 429 through the proxy. The quota is per ACCOUNT, and both
-        // paths carry the same bearer token — a different egress IP cannot change
-        // the verdict, so the retry is guaranteed to fail while still costing a
-        // request, proxy bandwidth, and latency on every cycle of a multi-hour
-        // exhaustion window. It also bounds the double-spend window: a direct
-        // request that OpenSky served but that failed client-side has already
-        // debited its credits, and retrying debits them again (#6222).
-        if (isOpenSkyRateLimitedError(directError)) throw directError;
-        try {
-          data = await proxyFetchJson(url, { headers });
-          return { states: data.states || [], status: `success:proxy` };
-        } catch (proxyError) {
-          if (isOpenSkyUnauthorizedError(proxyError)) {
-            clearOpenSkyToken();
-            if (attempt === 0) continue;
-          }
-          throw combineOpenSkyFetchErrors(directError, proxyError);
-        }
+      let outcome = await attemptOnce(token);
+      if (outcome.unauthorized) {
+        // 401 keeps the immediate refresh semantics: clear, re-auth, retry
+        // once — never the backoff ladder, which is for transient failures.
+        clearOpenSkyToken();
+        const refreshed = await getOpenSkyToken();
+        if (!refreshed) return { states: null, status: getOpenSkyAuthStatus() };
+        outcome = await attemptOnce(refreshed);
       }
-    } catch (error) {
+      if (outcome.ok) {
+        return { states: outcome.data.states || [], status: `success:${outcome.transport}` };
+      }
+      // Second consecutive unauthorized: report it, do not loop.
+      clearOpenSkyToken();
       return {
         states: null,
-        status: `error:${redactProxy(error.message)}`,
-        rateLimited: isOpenSkyRateLimitedError(error),
-        retryAfterSeconds: error?.retryAfterSeconds ?? null,
+        status: 'error:OpenSky unauthorized after token refresh',
       };
+    } catch (error) {
+      if (isOpenSkyRateLimitedError(error)) {
+        return {
+          states: null,
+          status: `error:${redactProxy(error.message)}`,
+          rateLimited: true,
+          retryAfterSeconds: error?.retryAfterSeconds ?? null,
+        };
+      }
+      lastError = error;
     }
   }
-
-  return { states: null, status: getOpenSkyAuthStatus() };
+  return {
+    states: null,
+    status: `error:${redactProxy(lastError?.message || 'OpenSky fetch failed')}`,
+  };
 }
 
 // No anonymous fallback. OpenSky's unauthenticated tier is 400 credits/day PER
@@ -923,6 +1026,7 @@ async function fetchOpenSkyGlobal({ source, fetchSources, seenIds, allStates }) 
   // deliberately left this alone. What it costs is a full round-trip and its
   // share of the run's wall clock, every 5 minutes, for a window production has
   // seen run to 22,688s (~6.3h): ~76 doomed requests per outage (#6241).
+  const cooldownReadAt = Date.now();
   const cooldown = await readOpenSkyCooldown();
   if (cooldown.remainingMs > 0) {
     regionSource.authStatus = `quota-cooldown:${Math.ceil(cooldown.remainingMs / 1000)}s`;
@@ -944,12 +1048,10 @@ async function fetchOpenSkyGlobal({ source, fetchSources, seenIds, allStates }) 
     if (authResult?.rateLimited) {
       await recordOpenSkyCooldown(authResult.retryAfterSeconds);
     } else if (regionSource.authStatus.startsWith('success:')) {
-      // Unconditional on success. Gating this on "we read a record earlier"
-      // would tie the cleanup to a read that also returns empty when Redis is
-      // merely unreachable, so one GET blip would strand a dead deadline. A
-      // proven-live upstream is the authoritative signal; one DEL per healthy
-      // run is the whole cost, and it self-heals any corrupt record.
-      await clearOpenSkyCooldown();
+      await clearOpenSkyCooldown({
+        expectedRecord: cooldown.ignoreReason ? null : cooldown.record,
+        watermarkUntil: cooldownReadAt,
+      });
     }
     if (states && states.length > 0) {
       if (source.value === 'none') source.value = 'opensky-auth';
@@ -1071,22 +1173,253 @@ async function fetchWingbits() {
   return states;
 }
 
-// ── Fetch All States (Wingbits first, OpenSky supplements) ─
+// ── ADSB.lol /v2/mil (primary, keyless, global) ──────────
+function normalizeResponseNowMs(value, fallbackMs = Date.now()) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return fallbackMs;
+  return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+}
+
+function parseAircraftResponse(data, sourceName) {
+  if (!data || !Array.isArray(data.ac)) {
+    const keys = data && typeof data === 'object' ? Object.keys(data).join(',') : typeof data;
+    throw new Error(`${sourceName} unexpected response shape (expected ac array; keys: ${keys || 'none'})`);
+  }
+  return {
+    aircraft: data.ac,
+    responseNowMs: normalizeResponseNowMs(data.now),
+  };
+}
+
+function buildAdsbSourceMeta(flight, sourceName) {
+  const dbFlags = Number(flight?.dbFlags);
+  // readsb/ADSBExchange-compatible dbFlags bit 0 marks a military database
+  // record. The adsb.lol /v2/mil endpoint is itself an authoritative military
+  // selection even if a future response omits dbFlags on an individual row.
+  const authoritativeMilitary = sourceName === 'adsb.lol'
+    || (Number.isInteger(dbFlags) && (dbFlags & 1) === 1);
+  const knownHex = flight?.hex ? isKnownHex(String(flight.hex).replace(/~/g, '')) : null;
+  const originCountry = knownHex?.country || '';
+
+  return {
+    source: sourceName,
+    authoritativeMilitary,
+    rawKeys: Object.keys(flight || {}),
+    rawPreview: {
+      hex: flight?.hex || '',
+      flight: flight?.flight || '',
+      type: flight?.type || '',
+      r: flight?.r || '',
+      t: flight?.t || '',
+      desc: flight?.desc || '',
+      category: flight?.category || '',
+      dbFlags: flight?.dbFlags,
+    },
+    operatorName: '',
+    operatorCode: '',
+    ownerName: '',
+    aircraftModel: flight?.desc || flight?.t || '',
+    aircraftTypeLabel: flight?.t || '',
+    aircraftTypeCode: flight?.t || '',
+    aircraftDescription: flight?.desc || '',
+    registration: flight?.r || '',
+    originCountry,
+  };
+}
+
+function convertToStates(aircraft, sourceName, seenIds, allStates, responseNowMs = Date.now()) {
+  let added = 0;
+  const responseNowSeconds = normalizeResponseNowMs(responseNowMs) / 1000;
+  for (const a of aircraft) {
+    const icao24 = (a.hex || '').trim().replace(/~/g, '');
+    if (!icao24 || seenIds.has(icao24)) continue;
+    const lat = a.lat;
+    const lon = a.lon;
+    if (lat == null || lon == null) continue;
+    seenIds.add(icao24);
+
+    const callsign = (a.flight || '').trim();
+    const altBaro = a.alt_baro;
+    const onGround = typeof altBaro === 'string' && altBaro === 'ground';
+    const altMeters = typeof altBaro === 'number' ? altBaro * 0.3048 : null;
+    const velocityMs = a.gs != null ? a.gs * 0.514444 : null;
+    const vertRateMs = a.baro_rate != null ? a.baro_rate * 0.00508 : null;
+    const seenSeconds = Number(a.seen);
+    const seenPositionSeconds = Number(a.seen_pos);
+    const lastContact = Number.isFinite(seenSeconds)
+      ? responseNowSeconds - Math.max(0, seenSeconds)
+      : responseNowSeconds;
+    const timePosition = Number.isFinite(seenPositionSeconds)
+      ? responseNowSeconds - Math.max(0, seenPositionSeconds)
+      : null;
+    const sourceMeta = buildAdsbSourceMeta(a, sourceName);
+
+    allStates.push([
+      icao24,
+      callsign,
+      sourceMeta.originCountry,
+      timePosition,
+      lastContact,
+      lon,
+      lat,
+      altMeters,
+      onGround,
+      velocityMs,
+      a.track || 0,
+      vertRateMs,
+      null,
+      a.alt_geom != null ? a.alt_geom * 0.3048 : null,
+      a.squawk || null,
+      sourceMeta,
+    ]);
+    added++;
+  }
+  return added;
+}
+
+async function fetchAdsbLol() {
+  console.log(`  [adsb.lol] GET ${ADSBLOL_MIL_ENDPOINT}`);
+  const resp = await fetch(ADSBLOL_MIL_ENDPOINT, {
+    headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`adsb.lol HTTP ${resp.status}: ${body.substring(0, 200)}`);
+  }
+  const parsed = parseAircraftResponse(await resp.json(), 'adsb.lol');
+  console.log(`  [adsb.lol] ${parsed.aircraft.length} military aircraft globally`);
+
+  const states = [];
+  convertToStates(parsed.aircraft, 'adsb.lol', new Set(), states, parsed.responseNowMs);
+  return states;
+}
+
+// ── Gap-fill: airplanes.live + adsb.fi point queries ──────
+async function fetchAirplanesLivePoint(lat, lon, radiusNm, timeoutMs = GAP_FILL_REQUEST_TIMEOUT_MS) {
+  const url = `${AIRPLANES_LIVE_POINT_ENDPOINT}/${lat}/${lon}/${radiusNm}`;
+  const resp = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`airplanes.live HTTP ${resp.status}: ${body.substring(0, 200)}`);
+  }
+  return parseAircraftResponse(await resp.json(), 'airplanes.live');
+}
+
+async function fetchAdsbFiPoint(lat, lon, dist, timeoutMs = GAP_FILL_REQUEST_TIMEOUT_MS) {
+  const url = `${ADSB_FI_POINT_ENDPOINT}/lat/${lat}/lon/${lon}/dist/${dist}`;
+  const resp = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`adsb.fi HTTP ${resp.status}: ${body.substring(0, 200)}`);
+  }
+  // adsb.fi v3 is ADSBExchange-compatible and returns `ac`, not `aircraft`.
+  return parseAircraftResponse(await resp.json(), 'adsb.fi');
+}
+
+async function fetchGapFillStates(seenIds, allStates, {
+  now = Date.now,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  requestTimeoutMs = GAP_FILL_REQUEST_TIMEOUT_MS,
+  staggerMs = GAP_FILL_STAGGER_MS,
+  totalBudgetMs = GAP_FILL_TOTAL_BUDGET_MS,
+} = {}) {
+  const startedAt = now();
+  let totalAdded = 0;
+  const remainingMs = () => totalBudgetMs - (now() - startedAt);
+  const pause = async () => {
+    const waitMs = Math.min(staggerMs, Math.max(0, remainingMs()));
+    if (waitMs > 0) await sleep(waitMs);
+  };
+
+  for (const region of BLIND_SPOT_REGIONS) {
+    if (remainingMs() <= 0) {
+      console.warn(`  [Gap-fill] ${totalBudgetMs}ms budget exhausted; remaining regions skipped`);
+      break;
+    }
+    const regionAdded = { airplanes: 0, adsbFi: 0 };
+
+    try {
+      const result = await fetchAirplanesLivePoint(
+        region.lat,
+        region.lon,
+        region.radiusNm,
+        Math.max(1, Math.min(requestTimeoutMs, remainingMs())),
+      );
+      const added = convertToStates(result.aircraft, 'airplanes.live', seenIds, allStates, result.responseNowMs);
+      regionAdded.airplanes = added;
+      totalAdded += added;
+    } catch (e) {
+      console.warn(`  [airplanes.live] ${region.name}: ${e.message}`);
+    }
+
+    await pause();
+    if (remainingMs() <= 0) break;
+
+    try {
+      const result = await fetchAdsbFiPoint(
+        region.lat,
+        region.lon,
+        region.radiusNm,
+        Math.max(1, Math.min(requestTimeoutMs, remainingMs())),
+      );
+      const added = convertToStates(result.aircraft, 'adsb.fi', seenIds, allStates, result.responseNowMs);
+      regionAdded.adsbFi = added;
+      totalAdded += added;
+    } catch (e) {
+      console.warn(`  [adsb.fi] ${region.name}: ${e.message}`);
+    }
+
+    await pause();
+
+    const total = regionAdded.airplanes + regionAdded.adsbFi;
+    if (total > 0) {
+      console.log(`  [Gap-fill] ${region.name}: +${total} (airplanes.live=${regionAdded.airplanes}, adsb.fi=${regionAdded.adsbFi})`);
+    }
+  }
+  return totalAdded;
+}
+
+// ── Fetch All States (adsb.lol primary, regional supplements) ─
 async function fetchAllStates() {
   const seenIds = new Set();
   const allStates = [];
   const source = { value: 'none' };
-  const oauthConfigured = Boolean(process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET);
   const fetchSources = {
+    adsbLolUsed: false,
+    gapFillEnabled: GAP_FILL_NONCOMMERCIAL_ENABLED,
+    gapFillAttempted: false,
+    gapFillUsed: false,
     wingbitsUsed: false,
-    oauthConfigured,
-    proxyEnabled: PROXY_ENABLED,
-    openSkyAuthSuccess: false,
-    openSkyCooldownRemainingMs: 0,
+    openSkyDisabled: true,
     regions: [],
   };
 
-  // Tier 1: Wingbits — no proxy needed, fast, reliable
+  // Tier 1: adsb.lol /v2/mil — one keyless global call, covers blind spots
+  try {
+    const adsbStates = await fetchAdsbLol();
+    for (const state of adsbStates) {
+      const icao24 = state[0];
+      if (seenIds.has(icao24)) continue;
+      seenIds.add(icao24);
+      allStates.push(state);
+    }
+    if (adsbStates.length > 0) {
+      source.value = 'adsb.lol';
+      fetchSources.adsbLolUsed = true;
+      console.log(`  [adsb.lol] ${adsbStates.length} unique aircraft loaded`);
+    }
+  } catch (e) {
+    console.warn(`  [adsb.lol] ${e.message}`);
+  }
+
+  // Tier 2: Wingbits — keyed, regional
   try {
     const wbStates = await fetchWingbits();
     for (const state of wbStates) {
@@ -1096,7 +1429,7 @@ async function fetchAllStates() {
       allStates.push(state);
     }
     if (wbStates.length > 0) {
-      source.value = 'wingbits';
+      if (source.value === 'none') source.value = 'wingbits';
       fetchSources.wingbitsUsed = true;
       console.log(`  [Wingbits] ${wbStates.length} unique aircraft loaded`);
     }
@@ -1104,11 +1437,29 @@ async function fetchAllStates() {
     console.warn(`  [Wingbits] ${e.message}`);
   }
 
-  // Tier 2: OpenSky — ONE global query, always. Not gated on Wingbits success:
-  // states merge additively by icao24 above, so this contributes aircraft
-  // Wingbits never saw. Gating it would delete that coverage, and a degraded
-  // but non-empty Wingbits response would satisfy the gate (#6222).
-  await fetchOpenSkyGlobal({ source, fetchSources, seenIds, allStates });
+  // Tier 3: optional non-commercial gap-fill. It is only useful when the
+  // global primary failed, and hosted deployments stay fail-closed by default.
+  if (!fetchSources.adsbLolUsed && GAP_FILL_NONCOMMERCIAL_ENABLED) {
+    fetchSources.gapFillAttempted = true;
+    try {
+      const added = await fetchGapFillStates(seenIds, allStates);
+      if (added > 0) {
+        if (source.value === 'none') source.value = 'gap-fill';
+        fetchSources.gapFillUsed = true;
+      }
+    } catch (e) {
+      console.warn(`  [Gap-fill] ${e.message}`);
+    }
+  } else if (!GAP_FILL_NONCOMMERCIAL_ENABLED) {
+    console.log('  [Gap-fill] disabled (non-commercial providers require explicit opt-in)');
+  } else {
+    console.log('  [Gap-fill] skipped (adsb.lol primary succeeded)');
+  }
+
+  // OpenSky is deliberately not part of the seeder waterfall. Issue #6224's
+  // acceptance contract requires the record set to publish with it fully
+  // disabled so the 5-minute cron spends zero metered credits in every state.
+  console.log('  [OpenSky] disabled for military-flight seeding');
 
   return { allStates, source: source.value, fetchSources };
 }
@@ -1174,6 +1525,7 @@ function summarizeClassificationAudit(rawStates, flights, rejected, stageCounter
         Object.entries(stageCounters.sourceFieldCoverage).map(([field, count]) => [`${field}Present`, count]),
       ),
       militaryHint: stageCounters.sourceHintCounts.militaryHint,
+      authoritativeMilitary: stageCounters.sourceHintCounts.authoritativeMilitary,
       militaryOperatorHint: stageCounters.sourceHintCounts.militaryOperatorHint,
       commercialHint: stageCounters.sourceHintCounts.commercialHint,
       sourceOperatorCandidateHits: stageCounters.sourceOperatorCandidateHits,
@@ -1300,6 +1652,31 @@ function classifyTrustedPlaSourceFlight(sourceOperator, sourceMeta) {
   };
 }
 
+function classifyAuthoritativeSourceFlight(sourceMeta, originCountry = '') {
+  const sourceOperator = deriveOperatorFromSourceMeta(sourceMeta);
+  const aircraftType = detectAircraftTypeFromSourceMeta(sourceMeta);
+  return {
+    operator: sourceOperator?.operator || 'other',
+    operatorCountry: sourceOperator?.operatorCountry || sourceMeta.originCountry || originCountry || 'Unknown',
+    aircraftType,
+    confidence: sourceOperator ? 'high' : 'medium',
+    admissionReason: 'authoritative_military_source',
+    classificationReason: aircraftType === 'unknown' ? 'untyped' : 'source_metadata',
+    aircraftTypeInferenceReason: aircraftType === 'unknown' ? 'untyped' : 'source_metadata',
+    operatorInferenceReason: sourceOperator ? 'source_metadata' : 'unresolved',
+  };
+}
+
+function getSourcePrefix(state) {
+  const sourceMeta = state[15] || {};
+  const src = sourceMeta.source || '';
+  if (src === 'adsb.lol') return 'adsb';
+  if (src === 'airplanes.live') return 'apl';
+  if (src === 'adsb.fi') return 'adsbfi';
+  if (src === 'wingbits') return 'wingbits';
+  return 'opensky';
+}
+
 function buildMilitaryFlightRecord(state, classified, sourceHints) {
   const icao24 = state[0];
   const callsign = (state[1] || '').trim();
@@ -1312,9 +1689,10 @@ function buildMilitaryFlightRecord(state, classified, sourceHints) {
   const hotspot = getNearbyHotspot(lat, lon);
   const isInteresting = (hotspot && hotspot.priority === 'high') ||
     classified.aircraftType === 'bomber' || classified.aircraftType === 'reconnaissance' || classified.aircraftType === 'awacs';
+  const sourcePrefix = getSourcePrefix(state);
 
   return {
-    id: `opensky-${icao24}`,
+    id: `${sourcePrefix}-${icao24}`,
     callsign: callsign || `UNKN-${icao24.substring(0, 4).toUpperCase()}`,
     hexCode: icao24.toUpperCase(),
     lat,
@@ -1328,6 +1706,7 @@ function buildMilitaryFlightRecord(state, classified, sourceHints) {
     ...classified,
     sourceMeta: summarizeSourceMeta(state[15] || {}),
     sourceHints: {
+      authoritativeMilitary: sourceHints.authoritativeMilitary,
       militaryHint: sourceHints.militaryHint,
       militaryOperatorHint: sourceHints.militaryOperatorHint,
       commercialHint: sourceHints.commercialHint,
@@ -1365,14 +1744,14 @@ function filterMilitaryFlights(allStates) {
     const hexMatch = isKnownHex(icao24);
     if (csMatch) stageCounters.callsignMatched += 1;
     if (hexMatch) stageCounters.hexMatched += 1;
-    if (csMatch || hexMatch || trustedPlaSourceOperator) stageCounters.candidateStates += 1;
+    if (csMatch || hexMatch || trustedPlaSourceOperator || sourceHints.authoritativeMilitary) stageCounters.candidateStates += 1;
 
-    if (!csMatch && commercialMatch && !trustedPlaSourceOperator && !sourceHints.militaryHint) {
+    if (!csMatch && commercialMatch && !trustedPlaSourceOperator && !sourceHints.authoritativeMilitary && !sourceHints.militaryHint) {
       pushRejectedFlight(rejected, state, 'commercial_callsign_override');
       continue;
     }
 
-    if (!csMatch && !hexMatch && !trustedPlaSourceOperator) {
+    if (!csMatch && !hexMatch && !trustedPlaSourceOperator && !sourceHints.authoritativeMilitary) {
       pushRejectedFlight(rejected, state, 'no_military_signal');
       continue;
     }
@@ -1381,7 +1760,9 @@ function filterMilitaryFlights(allStates) {
       ? classifyCallsignMatchedFlight({ csMatch, hexMatch, callsign, sourceMeta })
       : hexMatch
         ? classifyHexMatchedFlight({ state, hexMatch, callsign, sourceMeta, sourceHints, rejected })
-        : classifyTrustedPlaSourceFlight(trustedPlaSourceOperator, sourceMeta);
+        : trustedPlaSourceOperator
+          ? classifyTrustedPlaSourceFlight(trustedPlaSourceOperator, sourceMeta)
+          : classifyAuthoritativeSourceFlight(sourceMeta, originCountry);
     if (!classified) continue;
 
     const flight = buildMilitaryFlightRecord(state, {
@@ -1427,37 +1808,71 @@ function calculateTheaterPostures(flights) {
 }
 
 // ── Redis Write ────────────────────────────────────────────
-async function redisSet(url, token, key, value, ttl) {
+export async function redisSet(url, token, key, value, ttl) {
   const payload = JSON.stringify(value);
   const cmd = ttl ? ['SET', key, payload, 'EX', ttl] : ['SET', key, payload];
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(cmd),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!resp.ok) throw new Error(`Redis SET ${key} failed: HTTP ${resp.status}`);
+  await withRetry(() => redisCommand(url, token, cmd, {
+    label: `Redis SET ${key}`,
+    timeoutMs: 10_000,
+  }), 2, 1000);
 }
 
-async function redisDel(url, token, key) {
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': CHROME_UA },
-    body: JSON.stringify(['DEL', key]),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!resp.ok) throw new Error(`Redis DEL ${key} failed: HTTP ${resp.status}`);
+export async function redisDel(url, token, key) {
+  await withRetry(() => redisCommand(url, token, ['DEL', key], {
+    label: `Redis DEL ${key}`,
+    timeoutMs: 10_000,
+  }), 2, 1000);
 }
 
-async function redisGet(url, token, key) {
-  const resp = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  if (!data?.result) return null;
-  try { return unwrapEnvelope(JSON.parse(data.result)).data; } catch { return null; }
+export async function redisGet(url, token, key) {
+  const data = await withRetry(async () => {
+    const resp = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${token}`, 'User-Agent': CHROME_UA },
+      signal: AbortSignal.timeout(10_000),
+    });
+    return parseRedisCommandResponse(resp, `Redis GET ${key}`);
+  }, 2, 1000);
+  if (data.result == null) return null;
+  try {
+    return unwrapEnvelope(JSON.parse(data.result)).data;
+  } catch (cause) {
+    throw Object.assign(new Error(`Redis GET ${key} returned invalid stored JSON`), { cause });
+  }
+}
+
+const MILITARY_PUBLICATION_TTL_GROUPS = [
+  { keys: [LIVE_KEY, 'seed-meta:military:flights'], ttl: LIVE_TTL },
+  {
+    keys: [
+      STALE_KEY,
+      THEATER_POSTURE_STALE_KEY,
+      MILITARY_SURGES_STALE_KEY,
+      MILITARY_FORECAST_INPUTS_STALE_KEY,
+      MILITARY_CLASSIFICATION_AUDIT_STALE_KEY,
+      'seed-meta:theater-posture',
+      'seed-meta:military-forecast-inputs',
+      'seed-meta:military-surges',
+    ],
+    ttl: STALE_TTL,
+  },
+  {
+    keys: [
+      THEATER_POSTURE_LIVE_KEY,
+      MILITARY_FORECAST_INPUTS_LIVE_KEY,
+      MILITARY_CLASSIFICATION_AUDIT_LIVE_KEY,
+      MILITARY_SURGES_LIVE_KEY,
+    ],
+    ttl: THEATER_POSTURE_LIVE_TTL,
+  },
+  { keys: [THEATER_POSTURE_BACKUP_KEY, MILITARY_SURGES_HISTORY_KEY], ttl: THEATER_POSTURE_BACKUP_TTL },
+];
+
+export async function preserveMilitaryPublicationTtls() {
+  const results = [];
+  for (const group of MILITARY_PUBLICATION_TTL_GROUPS) {
+    results.push(await extendExistingTtl(group.keys, group.ttl));
+  }
+  return results.every(Boolean);
 }
 
 async function requestForecastRefreshIfEnabled(runId, assessedAt, source) {
@@ -1484,8 +1899,10 @@ async function main() {
   const { url, token } = getRedisCredentials();
   let lockReleased = false;
 
-  console.log(`=== military:flights Seed (proxy: ${PROXY_ENABLED ? 'enabled' : 'direct'}) ===`);
+  console.log('=== military:flights Seed (OpenSky disabled) ===');
 
+  // The provider waterfall is capped at 80s (20s primary + 15s Wingbits +
+  // optional 45s gap-fill), leaving the rest of this lease for publish work.
   const lockResult = await acquireLockSafely('military:flights', runId, 120_000, { label: 'military:flights' });
   if (lockResult.skipped) {
     process.exit(0);
@@ -1507,7 +1924,7 @@ async function main() {
     if (classificationAudit) {
       console.log(`  [Audit] unknownRate=${classificationAudit.unknownTypeRate} hexOnly=${classificationAudit.hexOnlyAdmissions} rejected=${classificationAudit.rejectedFlights}`);
       console.log(
-        `  [Source] wingbits=${fetchSources.wingbitsUsed ? 'yes' : 'no'} oauthConfigured=${fetchSources.oauthConfigured ? 'yes' : 'no'} authSuccess=${fetchSources.openSkyAuthSuccess ? 'yes' : 'no'}`,
+        `  [Source] adsbLol=${fetchSources.adsbLolUsed ? 'yes' : 'no'} wingbits=${fetchSources.wingbitsUsed ? 'yes' : 'no'} gapFillEnabled=${fetchSources.gapFillEnabled ? 'yes' : 'no'} gapFillAttempted=${fetchSources.gapFillAttempted ? 'yes' : 'no'} gapFillUsed=${fetchSources.gapFillUsed ? 'yes' : 'no'} openSkyDisabled=${fetchSources.openSkyDisabled ? 'yes' : 'no'}`,
       );
       console.log(
         `  [Source] regions=${fetchSources.regions.map((region) => `${region.name}:auth=${region.authStatus},seen=${region.statesSeen},added=${region.statesAdded}`).join(' | ')}`,
@@ -1525,23 +1942,14 @@ async function main() {
   } catch (err) {
     await releaseLock('military:flights', runId);
     console.error(`  FETCH FAILED: ${err.message || err}`);
-    await extendExistingTtl([LIVE_KEY, 'seed-meta:military:flights'], LIVE_TTL);
-    await extendExistingTtl([STALE_KEY, THEATER_POSTURE_STALE_KEY, MILITARY_SURGES_STALE_KEY, MILITARY_FORECAST_INPUTS_STALE_KEY, MILITARY_CLASSIFICATION_AUDIT_STALE_KEY], STALE_TTL);
-    await extendExistingTtl([THEATER_POSTURE_LIVE_KEY, MILITARY_FORECAST_INPUTS_LIVE_KEY, MILITARY_CLASSIFICATION_AUDIT_LIVE_KEY], THEATER_POSTURE_LIVE_TTL);
-    await extendExistingTtl([THEATER_POSTURE_BACKUP_KEY], THEATER_POSTURE_BACKUP_TTL);
-    await extendExistingTtl([MILITARY_SURGES_LIVE_KEY], MILITARY_SURGES_LIVE_TTL);
+    await preserveMilitaryPublicationTtls();
     console.log(`\n=== Failed gracefully (${Math.round(Date.now() - startMs)}ms) ===`);
     process.exit(0);
   }
 
   if (flights.length === 0) {
     console.log('  SKIPPED: 0 military flights — extending existing TTLs');
-    await extendExistingTtl([LIVE_KEY, 'seed-meta:military:flights'], LIVE_TTL);
-    await extendExistingTtl([STALE_KEY, THEATER_POSTURE_STALE_KEY, MILITARY_SURGES_STALE_KEY, MILITARY_FORECAST_INPUTS_STALE_KEY, MILITARY_CLASSIFICATION_AUDIT_STALE_KEY], STALE_TTL);
-    await extendExistingTtl([THEATER_POSTURE_LIVE_KEY, MILITARY_FORECAST_INPUTS_LIVE_KEY, MILITARY_CLASSIFICATION_AUDIT_LIVE_KEY], THEATER_POSTURE_LIVE_TTL);
-    await extendExistingTtl([THEATER_POSTURE_BACKUP_KEY], THEATER_POSTURE_BACKUP_TTL);
-    await extendExistingTtl([MILITARY_SURGES_LIVE_KEY], MILITARY_SURGES_LIVE_TTL);
-    await extendExistingTtl(['seed-meta:theater-posture', 'seed-meta:military-forecast-inputs', 'seed-meta:military-surges'], STALE_TTL);
+    await preserveMilitaryPublicationTtls();
     await releaseLock('military:flights', runId);
     lockReleased = true;
     process.exit(0);
@@ -1549,20 +1957,13 @@ async function main() {
 
   try {
     const assessedAt = Date.now();
-    // Declare the snapshot's ACTUAL geographic coverage, not the producer's intent.
-    // Tier 1 (Wingbits) queries QUERY_REGIONS — the two regional boxes. Only tier 2
-    // (OpenSky) is global. So when OpenSky returns nothing, this payload covers two
-    // regions no matter what the query shape aspires to.
-    //
-    // The consumer widens its authoritative-empty guard on this field. Publishing an
-    // unconditional 'global' would make list-military-flights answer a viewport over
-    // the Americas with an authoritative empty during any OpenSky outage, instead of
-    // falling through to per-viewer recovery (#6222).
-    const openSkyContributed = fetchSources.regions.some((region) => region.statesSeen > 0);
+    // adsb.lol /v2/mil is global. Wingbits and point-query gap-fill remain
+    // regional, so never overstate their coverage.
+    const globalCoverage = fetchSources.adsbLolUsed;
     const payload = {
       flights,
       fetchedAt: assessedAt,
-      coverage: openSkyContributed ? 'global' : 'regional',
+      coverage: globalCoverage ? 'global' : 'regional',
       stats: { total: flights.length, byType },
       classificationAudit,
     };
@@ -1591,7 +1992,7 @@ async function main() {
       ...theater,
       assessedAt,
     }));
-    const posturePayload = { theaters };
+    const posturePayload = { theaters, provider: source || '' };
     // Derived from `theaters`, which is already in scope here, so it must NOT live inside the
     // theater-posture lock block below: `forecastInputsPayload.stats` reads it unconditionally,
     // including on the lock-skipped branch. #6092 wrapped the publish in `else { try { … } }` and
@@ -1676,6 +2077,10 @@ async function main() {
     const durationMs = Date.now() - startMs;
     logSeedResult('military', flights.length, durationMs);
     console.log(`\n=== Done (${Math.round(durationMs)}ms) ===`);
+  } catch (err) {
+    console.warn(`  Preserving last-good military keys after publish failure: ${err.message || err}`);
+    await preserveMilitaryPublicationTtls();
+    throw err;
   } finally {
     if (!lockReleased) await releaseLock('military:flights', runId);
   }
@@ -1700,15 +2105,22 @@ export {
   deriveOperatorFromSourceMeta,
   deriveTrustedPlaOperatorFromSourceMeta,
   filterMilitaryFlights,
-  // Test seam: the OpenSky credit budget (#6222) is a property of how many
-  // requests this function issues and with what bbox, which is unobservable
-  // from the published payload. Exported so tests can assert the request
-  // shape directly rather than grepping source text.
+  normalizeResponseNowMs,
+  parseAircraftResponse,
+  buildAdsbSourceMeta,
+  convertToStates,
+  fetchAdsbLol,
+  fetchAirplanesLivePoint,
+  fetchAdsbFiPoint,
+  fetchGapFillStates,
+  // Test seam: #6224 requires this execution path to make zero OpenSky calls
+  // under successful, degraded, and fully empty provider outcomes.
   fetchAllStates,
   // Test seam: the proxy leg opens raw sockets in _proxy-utils.cjs and never
   // touches globalThis.fetch, so the rate-limit metadata this carries onto the
   // combined error cannot be observed by driving fetchOpenSkyAuthenticated (#6241).
   combineOpenSkyFetchErrors,
+  fetchOpenSkyGlobal,
   // Test seam: this parser must work on BOTH header containers the two transports
   // produce — a fetch `Headers` (direct) and a plain object (the proxy tunnel).
   // Only the direct shape is reachable by driving fetchAllStates (#6241).

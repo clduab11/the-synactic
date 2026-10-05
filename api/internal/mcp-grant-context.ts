@@ -36,16 +36,19 @@
 
 export const config = { runtime: 'edge' };
 
-import { resolveClerkSession } from '../../server/_shared/auth-session';
+import { resolveSessionUserId } from '../../server/_shared/auth-session';
 import {
   getEntitlements,
   isEntitlementBackendConfigured,
 } from '../../server/_shared/entitlement-check';
 import {
   checkProMcpAccess,
+  grantSessionVerificationUnavailableResponse,
   proMcpGateDenialResponse,
   type ProMcpEntitlement,
 } from '../../server/_shared/pro-mcp-gate';
+// @ts-expect-error — JS module, no declaration file
+import { redirectDisplayHost } from '../oauth/_redirect-uri.js';
 
 const NO_STORE_JSON: Record<string, string> = {
   'Content-Type': 'application/json',
@@ -80,7 +83,7 @@ async function rawRedisGet(key: string): Promise<unknown | null> {
 }
 
 export interface ContextDeps {
-  resolveUserId: (req: Request) => Promise<string | null>;
+  resolveUserId: (req: Request) => Promise<string | Response | null>;
   redisGet: (key: string) => Promise<unknown | null>;
   getEntitlements: (userId: string) => Promise<ProMcpEntitlement | null>;
   now: () => number;
@@ -94,6 +97,7 @@ export async function grantContextHandler(req: Request, deps: ContextDeps): Prom
   }
 
   const userId = await deps.resolveUserId(req);
+  if (userId instanceof Response) return grantSessionVerificationUnavailableResponse();
   if (!userId) {
     return jsonError('UNAUTHENTICATED', 'A valid Clerk session is required.', 401);
   }
@@ -119,7 +123,20 @@ export async function grantContextHandler(req: Request, deps: ContextDeps): Prom
   const gate = checkProMcpAccess(ent, deps.now(), {
     backendConfigured: isEntitlementBackendConfigured(),
   });
-  if (gate) return proMcpGateDenialResponse(gate);
+  // #6716: a CONFIRMED free account gets the consent card, mirroring
+  // mcp-grant-mint — the mint immediately after now accepts it, and refusing
+  // here would strand a free account mid-flow on an error page.
+  //
+  // The client-metadata disclosure this gate was written to prevent is still
+  // bounded: `resolveUserId` above rejects anonymous callers, so registered
+  // client names remain visible only to a Clerk-authenticated session. What
+  // changed is that the session no longer has to be a paying one — which the
+  // consent card itself requires, since a user cannot meaningfully approve a
+  // connection without seeing what they are approving.
+  //
+  // Every other denial kind still refuses, so an expired paid row, a malformed
+  // entitlement, or an unverifiable read discloses nothing.
+  if (gate && gate.kind !== 'free_account') return proMcpGateDenialResponse(gate);
 
   // F2 (U7+U8 review pass): if `mcp-grant:<n>` exists with a userId that
   // doesn't match the Clerk session's userId, the nonce has been claimed
@@ -167,7 +184,7 @@ export async function grantContextHandler(req: Request, deps: ContextDeps): Prom
 
   let redirectHost = '';
   try {
-    redirectHost = new URL(nonceData.redirect_uri).hostname;
+    redirectHost = redirectDisplayHost(nonceData.redirect_uri);
   } catch {
     // Already validated at registration time; defense-in-depth catch.
     return jsonError('INVALID_REDIRECT_URI', 'The registered redirect URI is malformed.', 400);
@@ -184,7 +201,7 @@ export async function grantContextHandler(req: Request, deps: ContextDeps): Prom
 
 export default async function handler(req: Request): Promise<Response> {
   return grantContextHandler(req, {
-    resolveUserId: async (r) => (await resolveClerkSession(r))?.userId ?? null,
+    resolveUserId: resolveSessionUserId,
     redisGet: rawRedisGet,
     getEntitlements: (userId) => getEntitlements(userId),
     now: () => Date.now(),

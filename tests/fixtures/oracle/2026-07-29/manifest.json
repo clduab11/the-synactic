@@ -16,27 +16,41 @@
     {
       "file": "get-country-risk-ua.response.json",
       "tool": "get_country_risk",
-      "args": { "country_code": "UA" },
+      "args": {
+        "country_code": "UA"
+      },
       "capturedAt": "2026-07-30T01:37:00Z"
     },
     {
       "file": "get-country-risk-de.response.json",
       "tool": "get_country_risk",
-      "args": { "country_code": "DE" },
+      "args": {
+        "country_code": "DE"
+      },
       "capturedAt": "2026-07-30T01:37:00Z"
     },
     {
       "file": "get-conflict-events-limit30.response.json",
       "tool": "get_conflict_events",
-      "args": { "limit": 30 },
+      "args": {
+        "limit": 30
+      },
       "capturedAt": "2026-07-30T01:37:00Z"
     },
     {
       "file": "get-country-brief-ua.response.json",
       "tool": "get_country_brief",
-      "args": { "country_code": "UA" },
+      "args": {
+        "country_code": "UA"
+      },
       "capturedAt": "2026-07-30T03:19:00Z",
-      "notes": "LLM live via LiteLLM proxy (gemini-3.6-flash). Captured AFTER three self-host fixes the earlier pending entry gated on: RPC loopback auth (sidecar token), in-process fetch Content-Length (chunked POST 405'd the gateway's POST-to-GET compat), LLM provider SSRF allowlist (docker mode). News-digest grounding still sparse at capture (LLM-backed digest seeders had not re-run)."
+      "notes": "LLM live via LiteLLM proxy (gemini-3.6-flash). Captured AFTER three self-host fixes the earlier pending entry gated on: RPC loopback auth (sidecar token), in-process fetch Content-Length (chunked POST 405'd the gateway's POST-to-GET compat), LLM provider SSRF allowlist (docker mode). News-digest grounding still sparse at capture (LLM-backed digest seeders had not re-run).",
+      "schemaDriftAllowances": [
+        {
+          "pattern": "^\\$\\.sources\\[\\d+\\]\\.sourceProvenance: required key missing$",
+          "reason": "Upstream sync 2026-10-05 (koala73/worldmonitor 9e8b2f65) made sources[].sourceProvenance a required field of get_country_brief after this capture was taken. Recapture against the merged stack (scripts/capture-mcp-fixture.mjs) to retire this allowance."
+        }
+      ]
     }
   ],
   "pending": []

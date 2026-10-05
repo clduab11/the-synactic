@@ -38,12 +38,10 @@ export const SITE_VARIANT: string = (() => {
     return buildVariant;
   }
 
-  // A partial DOM (a test harness that fakes `window` without `location`)
-  // cannot carry a hostname — behave like the headless path above. Real
-  // browsers always define location, so runtime behavior is unchanged.
-  if (typeof location === 'undefined') return buildVariant;
-
-  const h = location.hostname;
+  // window.location, not bare `location`: node-based tests stub `window`
+  // without a global `location`, and this module must stay importable there.
+  const h = window.location?.hostname;
+  if (!h) return buildVariant;
   if (h.startsWith('tech.')) return 'tech';
   if (h.startsWith('finance.')) return 'finance';
   if (h.startsWith('happy.')) return 'happy';

@@ -32,11 +32,35 @@ import {
   makeProDeps,
   proReq,
 } from './helpers/mcp-pro-deps.mjs';
+import { buildUiResourceRead, isUiResourceUri, UI_RESOURCE_LIST_RESPONSE, UI_RESOURCE_REGISTRY } from '../api/mcp/ui/registry.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const originalFetch = globalThis.fetch;
 const originalEnv = { ...process.env };
 const VALID_KEY = 'wm_test_key_resources';
+
+describe('prediction projection UI resource discovery', () => {
+  it('advertises v3 while retaining previous inline URIs as a data-free read alias', async () => {
+    const current = 'ui://worldmonitor/prediction-markets-v3.html';
+    const legacy = 'ui://worldmonitor/prediction-markets.html';
+    assert.ok(UI_RESOURCE_LIST_RESPONSE.some(resource => resource.uri === current));
+    assert.ok(!UI_RESOURCE_LIST_RESPONSE.some(resource => resource.uri === legacy));
+    assert.equal(isUiResourceUri(current), true);
+    assert.equal(isUiResourceUri(legacy), true);
+    const read = async uri => (await (await buildUiResourceRead(1, uri, {})).json()).result.contents[0];
+    const advertised = await read(current);
+    const alias = await read(legacy);
+    const previous = 'ui://worldmonitor/prediction-markets-v2.html';
+    assert.equal(isUiResourceUri(previous), true);
+    assert.ok(!UI_RESOURCE_LIST_RESPONSE.some(resource => resource.uri === previous));
+    assert.equal((await read(previous)).text, advertised.text);
+    assert.equal((await read(previous)).uri, current);
+    assert.equal(alias.text, advertised.text);
+    assert.equal(alias.uri, current);
+    assert.equal(advertised.mimeType, 'text/html;profile=mcp-app');
+    assert.match(advertised.text, /Prediction Markets/);
+  });
+});
 
 function envKeyReq(body, headers = {}) {
   return new Request(BASE_URL, {
@@ -183,7 +207,7 @@ function mountWidgetHtml(html) {
 //   - Upstash REST sliding-window ratelimit (pipeline / EVALSHA against the
 //     same host) → return null shape so the @upstash/ratelimit limiter
 //     degrades gracefully and doesn't add latency to every test.
-function installMockFetch({ riskPayload = null } = {}) {
+function installMockFetch({ riskPayload = null, keyOverrides = {} } = {}) {
   const NOW = Date.now();
   const META = { fetchedAt: NOW, recordCount: 1 };
 
@@ -222,19 +246,44 @@ function installMockFetch({ riskPayload = null } = {}) {
     // get_country_risk freshness wrap (resource-layer read, distinct from
     // the RPC's own fetch path)
     'seed-meta:intelligence:risk-scores': META,
+    ...keyOverrides,
   };
 
   globalThis.fetch = async (url, init) => {
     const u = url.toString();
+    if (u === 'https://www.worldmonitor.app/plugin/market.html') return new Response('<!DOCTYPE html><html><head></head><body><main id="marketRoot"></main><script type="module" src="/plugin/assets/market-test.js"></script></body></html>', { headers: { 'Content-Type': 'text/html' } });
+    if (u === 'https://www.worldmonitor.app/plugin/country.html') return new Response('<!DOCTYPE html><html><head></head><body><main id="countryRoot"></main><script type="module" src="/plugin/assets/country-test.js"></script></body></html>', { headers: { 'Content-Type': 'text/html' } });
+    if (u === 'https://www.worldmonitor.app/plugin/plugin.html') return new Response('<!DOCTYPE html><html><head></head><body><main id="pluginRoot"></main><script type="module" src="/plugin/assets/plugin-test.js"></script></body></html>', { headers: { 'Content-Type': 'text/html' } });
 
     // get_country_risk RPC — the sibling fetch dispatch._execute does.
     if (u.includes('/api/intelligence/v1/get-country-risk')) {
+      // GetCountryRiskResponse as the gateway actually serializes it: the
+      // proto struct, camelCase, no case conversion. This mock previously
+      // invented `country_code` / a numeric `cii` / `components{unrest,…}` /
+      // `travelAdvisory` / `sanctionsExposure` — the same fiction the tool's
+      // outputSchema advertised — so the assertions below were checking the
+      // mock against itself rather than against anything production emits.
       const body = riskPayload ?? {
-        country_code: 'DE',
-        cii: 28,
-        components: { unrest: 12, conflict: 8, security: 5, news: 3 },
-        travelAdvisory: { level: 1 },
-        sanctionsExposure: [],
+        countryCode: 'DE',
+        countryName: 'Germany',
+        cii: {
+          region: 'DE',
+          staticBaseline: 22,
+          dynamicScore: 1.5,
+          combinedScore: 28,
+          trend: 'TREND_DIRECTION_STABLE',
+          components: { newsActivity: 3, ciiContribution: 12, geoConvergence: 8, militaryActivity: 5 },
+          computedAt: 1756288800000,
+          methodologyVersion: 'cii-v4',
+          eventMultiplier: 1,
+          advisoryLevel: '',
+          advisoryProvenance: 'live',
+        },
+        advisoryLevel: 'caution',
+        sanctionsActive: false,
+        sanctionsCount: 0,
+        fetchedAt: 1756288800000,
+        upstreamUnavailable: false,
       };
       return new Response(JSON.stringify(body), {
         status: 200,
@@ -348,6 +397,23 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
   // -------------------------------------------------------------------------
   // resources/list shape
   // -------------------------------------------------------------------------
+  it('keeps the old conflict resource readable without advertising it', async () => {
+    const oldUri = 'ui://worldmonitor/conflict-events.html';
+    const newUri = 'ui://worldmonitor/conflict-events-v2.html';
+    const listed = await (await handler(anonReq({ jsonrpc: '2.0', id: 1, method: 'resources/list', params: {} }))).json();
+    assert.ok(listed.result.resources.some(resource => resource.uri === newUri));
+    assert.ok(!listed.result.resources.some(resource => resource.uri === oldUri));
+    const oldRead = await (await handler(anonReq(readBody(oldUri)))).json();
+    const newRead = await (await handler(anonReq(readBody(newUri)))).json();
+    assert.equal(oldRead.result.contents[0].uri, oldUri);
+    assert.equal(newRead.result.contents[0].uri, newUri);
+    assert.equal(oldRead.result.contents[0].text, newRead.result.contents[0].text);
+    const card = JSON.parse(readFileSync(resolve(__dirname, '../public/.well-known/mcp/server-card.json'), 'utf8'));
+    assert.ok(card.metadata.mcpApps.uiResources.includes(newUri));
+    assert.ok(!card.metadata.mcpApps.uiResources.includes(oldUri));
+    assert.match(card.metadata.mcpApps.note, /get_conflict_events → conflict-events-v2\.html/);
+  });
+
   it('resources/list returns only concrete anon-readable resources: DATA freshness probe + ui:// shell, no {template} URIs', async () => {
     const res = await handler(envKeyReq({ jsonrpc: '2.0', id: 2, method: 'resources/list', params: {} }));
     assert.equal(res.status, 200);
@@ -360,16 +426,18 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     const actualUris = body.result.resources.map((r) => r.uri);
     assert.deepEqual(actualUris, [
       'worldmonitor://seed-meta/freshness',
-      'ui://worldmonitor/country-risk.html',
-      'ui://worldmonitor/world-brief.html',
-      'ui://worldmonitor/country-brief.html',
-      'ui://worldmonitor/market-radar.html',
-      'ui://worldmonitor/chokepoint-monitor.html',
-      'ui://worldmonitor/news-intelligence.html',
-      'ui://worldmonitor/conflict-events.html',
-      'ui://worldmonitor/natural-disasters.html',
-      'ui://worldmonitor/prediction-markets.html',
-      'ui://worldmonitor/forecasts.html',
+      'ui://worldmonitor/country-risk-v2.html',
+      'ui://worldmonitor/world-brief-v2.html',
+      'ui://worldmonitor/country-brief-v3.html',
+      'ui://worldmonitor/market-radar-v3.html',
+      'ui://worldmonitor/chokepoint-monitor-v2.html',
+      'ui://worldmonitor/news-intelligence-v2.html',
+      'ui://worldmonitor/conflict-events-v2.html',
+      'ui://worldmonitor/natural-disasters-v2.html',
+      'ui://worldmonitor/prediction-markets-v3.html',
+      'ui://worldmonitor/forecasts-v3.html',
+      'ui://worldmonitor/news-dashboard-v3.html',
+      'ui://worldmonitor/country-view-v3.html',
     ], 'resources/list = concrete DATA freshness probe then the ui:// app-shell fleet, in registry order');
     for (const r of body.result.resources) {
       assert.equal(typeof r.uri, 'string', `resource ${r.uri}: uri must be a string`);
@@ -388,12 +456,12 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
       assert.equal(r.paramExtractor, undefined, `resource ${r.uri}: internal "paramExtractor" must not leak via resources/list`);
       assert.equal(r.freshnessWrap, undefined, `resource ${r.uri}: internal "freshnessWrap" must not leak via resources/list`);
       assert.equal(r.html, undefined, `resource ${r.uri}: internal "html" must not leak via resources/list`);
-      // ui:// shells advertise their CSP/render policy via _meta.ui; DATA
-      // resources carry no _meta.
+      // ui:// shells advertise their CSP/render policy via _meta.ui; the
+      // public DATA metadata probe advertises anonymous-free access.
       if (r.uri.startsWith('ui://')) {
         assert.ok(r._meta?.ui?.csp, `ui:// resource ${r.uri} must advertise _meta.ui.csp`);
       } else {
-        assert.equal(r._meta, undefined, `DATA resource ${r.uri} must not carry _meta`);
+        assert.equal(r._meta?.['worldmonitor/access'], 'free', `DATA resource ${r.uri} must advertise free access`);
       }
     }
   });
@@ -413,6 +481,24 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     assert.match(c.text, /^<!doctype html>/i, 'ui:// resource must return self-contained HTML');
     assert.match(c.text, /ui\/initialize/, 'app shell must implement the MCP Apps postMessage handshake');
     assert.match(c.text, /ui\/notifications\/tool-result/, 'app shell must consume tool-result notifications');
+  });
+
+  it('advertises Country Risk v2 while preserving the original private read URI', async () => {
+    const current = await handler(anonReq(readBody('ui://worldmonitor/country-risk-v2.html')));
+    const legacy = await handler(anonReq(readBody('ui://worldmonitor/country-risk.html')));
+    const currentContent = (await current.json()).result.contents[0];
+    const legacyContent = (await legacy.json()).result.contents[0];
+    assert.equal(currentContent.uri, 'ui://worldmonitor/country-risk-v2.html');
+    assert.equal(legacyContent.uri, 'ui://worldmonitor/country-risk.html');
+    assert.equal(currentContent.text, legacyContent.text);
+    assert.deepEqual(currentContent._meta, legacyContent._meta);
+    const listed = await handler(anonReq({ jsonrpc: '2.0', id: 102, method: 'resources/list', params: {} }));
+    const uris = (await listed.json()).result.resources.map(resource => resource.uri);
+    assert.ok(uris.includes(currentContent.uri));
+    assert.ok(!uris.includes(legacyContent.uri));
+    const tools = await handler(envKeyReq({ jsonrpc: '2.0', id: 103, method: 'tools/list', params: {} }));
+    const riskTool = (await tools.json()).result.tools.find(tool => tool.name === 'get_country_risk');
+    assert.equal(riskTool._meta.ui.resourceUri, currentContent.uri);
   });
 
   it('ui:// app-shell HTML carries the orank view-quality + view-csp signals (uppercase DOCTYPE, color-scheme, scoped CSP)', async () => {
@@ -477,6 +563,26 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     assert.equal(body.result.contents[0].mimeType, 'text/html;profile=mcp-app');
   });
 
+  it('World Brief advertises only v2 while the private original alias retains its requested URI', async () => {
+    const current = 'ui://worldmonitor/world-brief-v2.html';
+    const legacy = 'ui://worldmonitor/world-brief.html';
+    const listRes = await handler(anonReq({ jsonrpc: '2.0', id: 8, method: 'resources/list', params: {} }));
+    const listed = (await listRes.json()).result.resources.map(resource => resource.uri);
+    assert.ok(listed.includes(current));
+    assert.ok(!listed.includes(legacy));
+    const responses = [];
+    for (const uri of [current, legacy]) {
+      const res = await handler(anonReq(readBody(uri)));
+      const body = await res.json();
+      assert.equal(body.error, undefined);
+      assert.equal(body.result.contents[0].uri, uri);
+      assert.equal(body.result.contents[0].mimeType, 'text/html;profile=mcp-app');
+      responses.push(body.result.contents[0]);
+    }
+    assert.equal(responses[0].text, responses[1].text);
+    assert.deepEqual(responses[0]._meta, responses[1]._meta);
+  });
+
   it('every tool _uiResourceUri resolves to a listed ui:// resource, and every ui:// resource is reachable (bidirectional integrity)', async () => {
     // Enumerate the ui:// URIs the server actually advertises via resources/list.
     const res = await handler(envKeyReq({ jsonrpc: '2.0', id: 9, method: 'resources/list', params: {} }));
@@ -511,6 +617,39 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     }
   });
 
+  it('advertises Country Brief v3 and keeps prior URIs as a private, quota-free read alias', async () => {
+    const current = 'ui://worldmonitor/country-brief-v3.html';
+    const legacy = 'ui://worldmonitor/country-brief.html';
+    const previous = 'ui://worldmonitor/country-brief-v2.html';
+    const tool = TOOL_REGISTRY.find(tool => tool.name === 'get_country_brief');
+    assert.equal(tool._uiResourceUri, current);
+    const listed = (await (await handler(anonReq({ jsonrpc: '2.0', id: 2, method: 'resources/list' }))).json()).result.resources;
+    assert.ok(listed.some(resource => resource.uri === current));
+    assert.ok(!listed.some(resource => resource.uri === legacy));
+    assert.ok(!listed.some(resource => resource.uri === previous));
+    const { deps, pipe } = makeProDeps();
+    const bodies = [];
+    let reads = 0;
+    const mockFetch = globalThis.fetch;
+    globalThis.fetch = async (...args) => {
+      if (/\/get\/|\/api\//.test(String(args[0]))) reads++;
+      return mockFetch(...args);
+    };
+    for (const uri of [current, previous, legacy]) {
+      for (const request of [anonReq(readBody(uri)), proReq('POST', readBody(uri))]) {
+        const response = await mcpHandler(request, deps);
+        assert.equal(response.status, 200);
+        const body = await response.json();
+        assert.equal(body.error, undefined);
+        assert.equal(body.result.contents[0].uri, uri);
+        bodies.push(body.result.contents[0]);
+      }
+    }
+    assert.ok(bodies.every(body => body.text === bodies[0].text && body.mimeType === bodies[0].mimeType));
+    assert.equal(pipe.count, 0);
+    assert.equal(reads, 0);
+  });
+
   // -------------------------------------------------------------------------
   // MCP Apps fleet-wide quality — the orank view-quality / view-csp signals
   // asserted for country-risk above must hold for EVERY widget in the fleet,
@@ -518,11 +657,33 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
   // CSP / dark-mode / bridge contract. Generalises the single-widget check to
   // the whole ui:// registry read back off the wire.
   // -------------------------------------------------------------------------
+  it('FORECAST: advertises one versioned shell and preserves the saved original URI as a public read alias', async () => {
+    const listRes = await handler(anonReq({ jsonrpc: '2.0', id: 11, method: 'resources/list', params: {} }));
+    const resources = (await listRes.json()).result.resources;
+    assert.equal(resources.filter(resource => resource.uri === 'ui://worldmonitor/forecasts-v3.html').length, 1);
+    assert.equal(resources.filter(resource => resource.uri === 'ui://worldmonitor/forecasts.html').length, 0, 'saved alias must not create another advertised resource');
+    const currentRes = await handler(anonReq(readBody('ui://worldmonitor/forecasts-v3.html')));
+    const current = (await currentRes.json()).result.contents[0];
+    const legacyRes = await handler(anonReq(readBody('ui://worldmonitor/forecasts.html')));
+    const legacy = (await legacyRes.json()).result.contents[0];
+    assert.equal(current.uri, 'ui://worldmonitor/forecasts-v3.html');
+    assert.equal(legacy.uri, 'ui://worldmonitor/forecasts.html', 'read responses must preserve the requested URI');
+    assert.equal(legacy.text, current.text, 'saved alias must serve the current forecast renderer');
+    assert.equal(legacy.mimeType, current.mimeType);
+    const previousRes = await handler(anonReq(readBody('ui://worldmonitor/forecasts-v2.html')));
+    const previous = (await previousRes.json()).result.contents[0];
+    assert.equal(previous.uri, 'ui://worldmonitor/forecasts-v2.html');
+    assert.equal(previous.text, current.text);
+    assert.equal(resources.filter(resource => resource.uri === previous.uri).length, 0);
+    assert.deepEqual(legacy._meta, current._meta);
+    assert.match(resources.find(resource => resource.uri === current.uri).description, /original case/);
+  });
   it('FLEET: every ui:// shell carries the orank quality signals (DOCTYPE, color-scheme, 4-category CSP, bridge, no secrets)', async () => {
     const listRes = await handler(envKeyReq({ jsonrpc: '2.0', id: 11, method: 'resources/list', params: {} }));
     const listBody = await listRes.json();
-    const uiUris = listBody.result.resources.map((r) => r.uri).filter((u) => u.startsWith('ui://'));
-    assert.ok(uiUris.length >= 5, `expected the interactive-dashboard fleet (>=5 widgets), got ${uiUris.length}`);
+    const uiUris = listBody.result.resources.map((r) => r.uri).filter((u) => u.startsWith('ui://') && !['ui://worldmonitor/news-dashboard-v3.html', 'ui://worldmonitor/country-view-v3.html', 'ui://worldmonitor/market-radar-v3.html'].includes(u));
+    const registryUiUris = UI_RESOURCE_REGISTRY.map((resource) => resource.uri).filter(uri => uri !== 'ui://worldmonitor/market-radar-v3.html');
+    assert.deepEqual(uiUris, registryUiUris, 'inline-shell audit covers the inline registry; the compiled dashboard is checked in mcp-news-dashboard and browser tests');
 
     for (const uri of uiUris) {
       const res = await handler(envKeyReq(readBody(uri)));
@@ -583,15 +744,14 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
   // -------------------------------------------------------------------------
   it('FLEET: shared-shell widgets surface soft-error envelopes (_budget_exceeded / _jmespath_error) instead of rendering blank success', async () => {
     const shellWidgets = [
-      'ui://worldmonitor/world-brief.html',
+      'ui://worldmonitor/world-brief-v2.html',
       'ui://worldmonitor/country-brief.html',
-      'ui://worldmonitor/market-radar.html',
-      'ui://worldmonitor/chokepoint-monitor.html',
-      'ui://worldmonitor/news-intelligence.html',
-      'ui://worldmonitor/conflict-events.html',
+      'ui://worldmonitor/chokepoint-monitor-v2.html',
+      'ui://worldmonitor/news-intelligence-v2.html',
+      'ui://worldmonitor/conflict-events-v2.html',
       'ui://worldmonitor/natural-disasters.html',
-      'ui://worldmonitor/prediction-markets.html',
-      'ui://worldmonitor/forecasts.html',
+      'ui://worldmonitor/prediction-markets-v3.html',
+      'ui://worldmonitor/forecasts-v3.html',
     ];
     for (const uri of shellWidgets) {
       const res = await handler(envKeyReq(readBody(uri)));
@@ -616,14 +776,15 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
   it('EXPANSION WIDGETS: execute authoritative payloads and summary samples for all five renderers', async () => {
     const cases = [
       {
-        uri: 'ui://worldmonitor/news-intelligence.html',
+        uri: 'ui://worldmonitor/news-intelligence-v2.html',
         hostId: 'list',
         raw: { data: { insights: { topStories: [{
           primaryTitle: 'Port disruption expands', primarySource: 'MIIT (China)',
           sourceProvenance: {
             risk: 'high', type: 'gov', riskDeclared: true, typeDeclared: true,
             riskReviewed: true, typeReviewed: true,
-            stateAffiliated: 'China',
+            stateAffiliated: 'China', knownBiases: [],
+            summary: 'Official government source. State-affiliated: China. Perspective: none recorded.',
           },
           category: 'security', threatLevel: 'high', isAlert: true, countryCode: 'DE',
         }] } } },
@@ -631,15 +792,16 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
           primaryTitle: 'Summary news headline', primarySource: 'Unreviewed Source',
           sourceProvenance: {
             risk: 'unknown', type: 'unknown', riskDeclared: false, typeDeclared: false,
-            riskReviewed: false, typeReviewed: false,
+            riskReviewed: false, typeReviewed: false, knownBiases: [],
+            summary: 'Provenance not yet reviewed. Perspective: none recorded.',
           },
           category: 'politics',
         }] } } } },
-        rawTokens: [/Port disruption expands/, /MIIT \(China\)/, /Official government source: China/, /Alert/, /Germany/],
-        summaryTokens: [/Summary news headline/, /Unreviewed Source/, /\? Unreviewed/],
+        rawTokens: [/Port disruption expands/, /MIIT \(China\)/, /Official government source\. State-affiliated: China\. Perspective: none recorded\./, /Alert/, /Germany/],
+        summaryTokens: [/Summary news headline/, /Unreviewed Source/, /Provenance not yet reviewed\. Perspective: none recorded\./],
       },
       {
-        uri: 'ui://worldmonitor/conflict-events.html',
+        uri: 'ui://worldmonitor/conflict-events-v2.html',
         hostId: 'list',
         raw: { data: { 'ucdp-events': { events: [{
           sideA: 'Government forces', sideB: 'Armed group', country: 'Sudan',
@@ -672,7 +834,7 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
         summaryTokens: [/M4\.8/, /Summary quake/, /Nominal/, /Summary fire/, /brightness 301/],
       },
       {
-        uri: 'ui://worldmonitor/prediction-markets.html',
+        uri: 'ui://worldmonitor/prediction-markets-v3.html',
         hostId: 'groups',
         raw: { data: { 'markets-bootstrap': {
           geopolitical: [{ title: 'Ceasefire by September?', yesPrice: 73, source: 'Polymarket' }],
@@ -686,7 +848,7 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
         summaryTokens: [/Summary market\?/, /61%/, /Kalshi/],
       },
       {
-        uri: 'ui://worldmonitor/forecasts.html',
+        uri: 'ui://worldmonitor/forecasts-v3.html',
         hostId: 'list',
         raw: { data: { predictions: { predictions: [{
           title: 'Oil remains above $70', probability: 0.42, domain: 'energy', region: 'Global',
@@ -714,10 +876,75 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     }
   });
 
+  it('Natural Disasters advertises v2 and keeps the original URI as a private data-free alias', async () => {
+    const advertised = UI_RESOURCE_REGISTRY.find((resource) => resource.name === 'Natural Disasters (interactive)');
+    assert.equal(advertised.uri, 'ui://worldmonitor/natural-disasters-v2.html');
+    assert.equal(UI_RESOURCE_REGISTRY.some((resource) => resource.uri === 'ui://worldmonitor/natural-disasters.html'), false);
+    const original = await handler(anonReq(readBody('ui://worldmonitor/natural-disasters.html')));
+    const current = await handler(anonReq(readBody(advertised.uri)));
+    const originalContent = (await original.json()).result.contents[0];
+    const currentContent = (await current.json()).result.contents[0];
+    assert.equal(originalContent.uri, 'ui://worldmonitor/natural-disasters.html');
+    assert.equal(currentContent.uri, advertised.uri);
+    assert.equal(originalContent.text, currentContent.text);
+    assert.deepEqual(originalContent._meta, currentContent._meta);
+  });
+
+  for (const [name, project, summarize] of [
+    ['full envelope', false, false],
+    ['summary projection', true, true],
+    ['whole-envelope projection', true, false],
+    ['summary whole-envelope projection', true, true],
+  ]) {
+    it(`Natural Disasters preserves hazard rows and freshness for ${name}`, async () => {
+      const res = await handler(envKeyReq(readBody('ui://worldmonitor/natural-disasters.html')));
+      const view = mountWidgetHtml((await res.json()).result.contents[0].text);
+      const quakes = [{ place: 'Observed zero quake', magnitude: 0, occurredAt: 0 }, { place: 'Missing quake' }];
+      const fires = [{ region: 'Observed zero fire', brightness: 0 }, { region: 'Missing fire' }];
+      const envelope = {
+        cached_at: '2026-10-03T16:00:00Z', stale: true,
+        data: {
+          earthquakes: { earthquakes: summarize ? { count: 8, sample: quakes } : quakes },
+          fires: { fireDetections: summarize ? { count: 7, sample: fires } : fires },
+        },
+      };
+      view.sendToolResult(project ? { projection: envelope } : envelope);
+      assert.equal(view.nodes('groups').filter((node) => node.className === 'drow').length, 4);
+      assert.match(view.text('groups'), /M0\.0Observed zero quake1970-01-01/);
+      assert.match(view.text('groups'), /—Missing quake/);
+      assert.match(view.text('groups'), /Observed zero firebrightness 0/);
+      assert.doesNotMatch(view.text('groups'), /Missing firebrightness/);
+      assert.equal(view.text('foot'), 'Snapshot: 2026-10-03T16:00:00Z (stale)');
+      assert.equal(view.posted.some((message) => ['tools/call', 'ui/call-tool'].includes(message.method)), false);
+
+      view.sendToolResult({ projection: { cached_at: '2026-10-04T00:00:00Z', stale: false, data: {
+        earthquakes: { earthquakes: [] }, fires: { fireDetections: [] },
+      } } });
+      assert.match(view.text('groups'), /No natural-hazard events available\./);
+      assert.doesNotMatch(view.text('groups'), /Observed zero|unavailable/);
+      assert.equal(view.text('foot'), 'Snapshot: 2026-10-04T00:00:00Z');
+    });
+  }
+
+  it('Natural Disasters preserves direct data maps and rejects unsupported projection shapes', async () => {
+    const res = await handler(envKeyReq(readBody('ui://worldmonitor/natural-disasters.html')));
+    const view = mountWidgetHtml((await res.json()).result.contents[0].text);
+    view.sendToolResult({ fires: { fireDetections: [{ region: 'Direct fire' }] } });
+    assert.match(view.text('groups'), /Direct fire/);
+    assert.match(view.text('groups'), /Earthquake data is temporarily unavailable/);
+    for (const projection of [null, 'Direct fire', ['Direct fire'], { places: ['Direct fire'] }]) {
+      view.sendToolResult({ projection });
+      assert.equal(view.nodes('groups').filter((node) => node.className === 'drow').length, 0);
+      assert.match(view.text('groups'), /Earthquake data is temporarily unavailable/);
+      assert.match(view.text('groups'), /Wildfire data is temporarily unavailable/);
+      assert.equal(view.text('foot'), '');
+    }
+  });
+
   it('EXPANSION WIDGETS: probability nulls remain unknown and visual ranges clamp safely', async () => {
     const payloads = [
       {
-        uri: 'ui://worldmonitor/prediction-markets.html', hostId: 'groups',
+        uri: 'ui://worldmonitor/prediction-markets-v3.html', hostId: 'groups',
         payload: { data: { 'markets-bootstrap': { geopolitical: [
           { title: 'Unknown market', yesPrice: null },
           { title: 'Low outlier', yesPrice: -5 },
@@ -725,7 +952,7 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
         ] } } },
       },
       {
-        uri: 'ui://worldmonitor/forecasts.html', hostId: 'list',
+        uri: 'ui://worldmonitor/forecasts-v3.html', hostId: 'list',
         payload: { data: { predictions: { predictions: [
           { title: 'Unknown forecast', probability: null },
           { title: 'Fraction forecast', probability: 0.25 },
@@ -749,8 +976,171 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     }
   });
 
+  // country-risk shipped for a long time reading fields that do not exist on
+  // the wire (`country_code`, a numeric `cii`, `components.unrest`,
+  // `travelAdvisory`, `sanctionsExposure`), so every read returned undefined:
+  // a country under thousands of active OFAC designations rendered "None", and
+  // a total upstream outage rendered identically to a calm, low-risk country.
+  // Nothing caught it because this shell was the one widget never mounted in
+  // the harness above. These drive the real script, so they fail on a field
+  // rename regardless of what the outputSchema claims.
+  const COUNTRY_RISK_HTML = async () => {
+    const res = await handler(envKeyReq(readBody('ui://worldmonitor/country-risk.html')));
+    return (await res.json()).result.contents[0].text;
+  };
+
+  // GetCountryRiskResponse for a tracked, sanctioned, high-risk country.
+  const RISK_RU = {
+    countryCode: 'RU',
+    countryName: 'Russia',
+    cii: {
+      region: 'RU',
+      staticBaseline: 62,
+      dynamicScore: 4.2,
+      combinedScore: 78.4,
+      trend: 'TREND_DIRECTION_RISING',
+      components: { newsActivity: 71, ciiContribution: 44, geoConvergence: 88, militaryActivity: 65 },
+      computedAt: 1756288800000,
+      methodologyVersion: 'cii-v4',
+      eventMultiplier: 1.8,
+      advisoryLevel: 'do-not-travel',
+      advisoryProvenance: 'live',
+    },
+    advisoryLevel: 'do-not-travel',
+    sanctionsActive: true,
+    sanctionsCount: 3417,
+    fetchedAt: 1756288800000,
+    upstreamUnavailable: false,
+  };
+
+  // Every upstream read failed. get-country-risk.ts fails closed into this
+  // shape: the risk fields are zeroed, but they mean UNKNOWN, not calm.
+  const RISK_OUTAGE = {
+    countryCode: 'DE', countryName: 'Germany', advisoryLevel: '',
+    sanctionsActive: false, sanctionsCount: 0, fetchedAt: 0, upstreamUnavailable: true,
+  };
+
+  // A real, healthy answer that simply carries no CII score.
+  const RISK_UNTRACKED = {
+    countryCode: 'LU', countryName: 'Luxembourg', advisoryLevel: '',
+    sanctionsActive: false, sanctionsCount: 0, fetchedAt: 0, upstreamUnavailable: false,
+  };
+
+  it('country-risk widget renders the real GetCountryRiskResponse field names', async () => {
+    const view = mountWidgetHtml(await COUNTRY_RISK_HTML());
+    view.sendToolResult(RISK_RU);
+
+    assert.equal(view.text('country'), 'Russia');
+    // The original defect: sanctionsExposure did not exist, so this printed
+    // "None" for a country carrying 3417 active designations.
+    assert.equal(view.text('sanctions'), '3417 OFAC-listed');
+    // cii is a CiiScore object, never a bare number.
+    assert.equal(view.text('cii'), '78');
+    assert.equal(view.text('level'), 'Severe');
+    assert.equal(view.text('advisory'), 'do not travel');
+    assert.equal(view.text('trend'), 'Rising');
+    assert.equal(view.text('foot'), 'Snapshot: 2025-08-27T10:00:00.000Z');
+  });
+
+  it('country-risk widget labels CII components by meaning, not by their misnamed wire keys', async () => {
+    const view = mountWidgetHtml(await COUNTRY_RISK_HTML());
+    view.sendToolResult(RISK_RU);
+    const rendered = view.text('components');
+
+    // proto CiiComponents names are historical misnomers — cii_contribution is
+    // unrest, geo_convergence is armed conflict, military_activity is
+    // security/mobility. A reader must never see the raw key.
+    assert.match(rendered, /Domestic unrest44/);
+    assert.match(rendered, /Armed conflict88/);
+    assert.match(rendered, /Security & mobility65/);
+    assert.match(rendered, /Information environment71/);
+    for (const wireName of ['ciiContribution', 'geoConvergence', 'militaryActivity', 'newsActivity']) {
+      assert.doesNotMatch(rendered, new RegExp(wireName), `must not surface the raw wire name ${wireName}`);
+    }
+  });
+
+  it('country-risk widget reports an upstream outage as unknown, never as calm', async () => {
+    const view = mountWidgetHtml(await COUNTRY_RISK_HTML());
+    view.sendToolResult(RISK_OUTAGE);
+
+    assert.equal(view.text('cii'), '—');
+    assert.equal(view.text('level'), 'Unknown');
+    // The zeroed fields must not read as a clean bill of health.
+    assert.equal(view.text('sanctions'), '—');
+    assert.equal(view.text('advisory'), '—');
+    assert.equal(view.text('trend'), '—');
+    assert.match(view.text('components'), /unavailable/i);
+    assert.equal(view.text('foot'), 'Upstream unavailable — no snapshot time.');
+  });
+
+  it('country-risk widget separates an outage from a genuinely untracked country', async () => {
+    const view = mountWidgetHtml(await COUNTRY_RISK_HTML());
+    view.sendToolResult(RISK_UNTRACKED);
+
+    // "None" here is a real finding: no advisory, no designations. The outage
+    // above must not be able to produce the same reading.
+    assert.equal(view.text('sanctions'), 'None');
+    assert.equal(view.text('advisory'), 'None');
+    assert.match(view.text('components'), /No component breakdown available/);
+    assert.equal(view.text('foot'), '', 'fetchedAt 0 means unknown — do not print epoch 0');
+  });
+
+  it('country-risk widget does not let one result\'s severity bleed into the next', async () => {
+    // The host posts results into one long-lived shell, so render() must fully
+    // own the score visuals on every branch. Leaving them untouched when cii
+    // is null showed an outage as "Unknown" above the PREVIOUS country's full
+    // red bar — the exact outage-reads-as-a-verdict failure the banner exists
+    // to prevent.
+    const view = mountWidgetHtml(await COUNTRY_RISK_HTML());
+    const barWidth = () => view.nodes('ciibar').find((n) => n.id === 'ciibar')?.style.width;
+
+    view.sendToolResult(RISK_RU);
+    assert.equal(barWidth(), '78.4%');
+    assert.match(view.text('components'), /Armed conflict88/);
+
+    view.sendToolResult(RISK_OUTAGE);
+    assert.equal(barWidth(), '0%', 'score bar must be emptied when the score is unknown');
+    assert.doesNotMatch(view.text('components'), /Armed conflict/, 'components must be rebuilt, not appended to');
+  });
+
+  it('country-risk widget normalises and caps server strings without eating characters', async () => {
+    const view = mountWidgetHtml(await COUNTRY_RISK_HTML());
+
+    // The shell is a TS template literal, so a regex written `\s` reaches the
+    // browser as a literal "s" and silently collapses every letter s in the
+    // value ("Russia" -> "Ru ia"). Only an executed render catches that.
+    view.sendToolResult(RISK_RU);
+    assert.equal(view.text('country'), 'Russia');
+
+    // Whitespace collapses, and an unbounded value cannot flood the card:
+    // the tool's output budget is 256 KB, and this shell has no shared
+    // collapseWs helper behind it.
+    view.sendToolResult({
+      ...RISK_UNTRACKED,
+      countryName: '  Bosnia\n\nand   Herzegovina  ',
+      advisoryLevel: 'x'.repeat(5000),
+    });
+    assert.equal(view.text('country'), 'Bosnia and Herzegovina');
+    assert.ok(view.text('advisory').length <= 64, 'an unbounded advisory string must be capped');
+  });
+
+  it('country-risk widget resolves sanctions and trend without trusting the prototype chain', async () => {
+    const view = mountWidgetHtml(await COUNTRY_RISK_HTML());
+
+    // sanctionsActive is authoritative over the count.
+    view.sendToolResult({ ...RISK_UNTRACKED, sanctionsActive: true, sanctionsCount: undefined });
+    assert.equal(view.text('sanctions'), 'Active');
+
+    // A bare label-map index also resolves inherited members, so these would
+    // print an Object internal into the Trend row instead of the em-dash.
+    for (const hostile of ['__proto__', 'constructor', 'toString', 'hasOwnProperty']) {
+      view.sendToolResult({ ...RISK_RU, cii: { ...RISK_RU.cii, trend: hostile } });
+      assert.equal(view.text('trend'), '—', `trend "${hostile}" must fall back to the em-dash`);
+    }
+  });
+
   it('conflict-events widget distinguishes byte-truncated responses from complete results', async () => {
-    const res = await handler(envKeyReq(readBody('ui://worldmonitor/conflict-events.html')));
+    const res = await handler(envKeyReq(readBody('ui://worldmonitor/conflict-events-v2.html')));
     const html = (await res.json()).result.contents[0].text;
     const payload = {
       data: {
@@ -777,11 +1167,11 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     const hostile = '<img src=x onerror="globalThis.pwned=true">';
     const cases = [
       {
-        uri: 'ui://worldmonitor/news-intelligence.html', hostId: 'list',
+        uri: 'ui://worldmonitor/news-intelligence-v2.html', hostId: 'list',
         payload: { data: { insights: { topStories: [{ primaryTitle: hostile, primarySource: hostile }] } } },
       },
       {
-        uri: 'ui://worldmonitor/conflict-events.html', hostId: 'list',
+        uri: 'ui://worldmonitor/conflict-events-v2.html', hostId: 'list',
         payload: { data: { 'ucdp-events': { events: [{ sideA: hostile, sideB: 'Other side' }] } } },
       },
       {
@@ -792,11 +1182,11 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
         } },
       },
       {
-        uri: 'ui://worldmonitor/prediction-markets.html', hostId: 'groups',
+        uri: 'ui://worldmonitor/prediction-markets-v3.html', hostId: 'groups',
         payload: { data: { 'markets-bootstrap': { geopolitical: [{ title: hostile, yesPrice: 50 }] } } },
       },
       {
-        uri: 'ui://worldmonitor/forecasts.html', hostId: 'list',
+        uri: 'ui://worldmonitor/forecasts-v3.html', hostId: 'list',
         payload: { data: { predictions: { predictions: [{ title: hostile, probability: 0.5 }] } } },
       },
     ];
@@ -815,13 +1205,13 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
   it('MULTI-CACHE WIDGETS: missing labels show unavailable while present empty lists show genuine empty copy', async () => {
     const cases = [
       {
-        uri: 'ui://worldmonitor/news-intelligence.html', hostId: 'list',
+        uri: 'ui://worldmonitor/news-intelligence-v2.html', hostId: 'list',
         missing: { data: { 'gdelt-intel': {} } },
         empty: { data: { insights: { topStories: [] } } },
         emptyCopy: /No news stories available\./,
       },
       {
-        uri: 'ui://worldmonitor/conflict-events.html', hostId: 'list',
+        uri: 'ui://worldmonitor/conflict-events-v2.html', hostId: 'list',
         missing: { data: { acled: {} } },
         empty: { data: { 'ucdp-events': { events: [] } } },
         emptyCopy: /No conflict events available\./,
@@ -942,9 +1332,62 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     assert.equal(typeof payload.stale, 'boolean', 'stale must be a boolean');
     // The RPC-backed payload merges through — assert the country-risk
     // shape survived the freshness wrap.
-    assert.equal(payload.country_code, 'DE', 'country_code must round-trip through the freshness wrap');
-    assert.equal(payload.cii, 28);
+    assert.equal(payload.countryCode, 'DE', 'countryCode must round-trip through the freshness wrap');
+    assert.equal(payload.cii.combinedScore, 28, 'cii is a CiiScore object; the score lives on combinedScore');
+    assert.equal(payload.sanctionsActive, false);
+    assert.equal(payload.upstreamUnavailable, false);
   });
+
+  it('country-risk freshness uses the preview namespace that owns the risk data', async () => {
+    process.env.VERCEL_ENV = 'preview';
+    process.env.VERCEL_GIT_COMMIT_SHA = 'deadbeefcafebabe';
+
+    const productionFetchedAt = Date.now();
+    const previewFetchedAt = productionFetchedAt - 31 * 60_000;
+    installMockFetch({
+      keyOverrides: {
+        'seed-meta:intelligence:risk-scores': { fetchedAt: productionFetchedAt, recordCount: 1 },
+        'preview:deadbeef:seed-meta:intelligence:risk-scores': { fetchedAt: previewFetchedAt, recordCount: 1 },
+      },
+    });
+
+    const res = await handler(envKeyReq(readBody('worldmonitor://countries/de/risk')));
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.error, undefined, `unexpected error: ${JSON.stringify(body.error)}`);
+    const payload = JSON.parse(body.result.contents[0].text);
+    assert.equal(payload.cached_at, new Date(previewFetchedAt).toISOString());
+    assert.equal(payload.stale, true, 'preview risk data must use the preview freshness verdict');
+  });
+
+  for (const method of ['tools/call', 'resources/read']) {
+    it(`withholds cached corridor prose with a null baseline row through ${method}`, async () => {
+      const capture = JSON.parse(readFileSync(resolve(__dirname, 'fixtures/chokepoints-routing-advice-2026-09-10.json'), 'utf8'));
+      const captured = capture.body.chokepoints.find(cp => cp.id === 'hormuz_strait').transitSummary;
+      const baseline = { id: 'hormuz_strait', name: 'Strait of Hormuz' };
+      for (const advice of [captured.riskReportAction, undefined, null, { route: 'Suez', cost: '$50-80K' }]) {
+        const summary = { ...captured, todayTotal: null, riskSummary: advice, riskReportAction: advice };
+        installMockFetch({ keyOverrides: {
+          'supply_chain:transit-summaries:v1': { summaries: { hormuz_strait: summary }, fetchedAt: capture.retrievedAt },
+          'energy:chokepoint-baselines:v1': { chokepoints: [null, baseline, { id: 'suez' }] },
+        } });
+        const request = method === 'tools/call'
+          ? callBody('get_chokepoint_status', { chokepoint: 'hormuz' })
+          : readBody('worldmonitor://chokepoints/strait-of-hormuz/status');
+        const response = await handler(envKeyReq(request));
+        assert.equal(response.status, 200);
+        const body = await response.json();
+        assert.equal(body.error, undefined);
+        const text = body.result.contents?.[0]?.text ?? body.result.content?.[0]?.text;
+        const payload = JSON.parse(text);
+        const served = payload.data['transit-summaries'].summaries.hormuz_strait;
+        assert.deepEqual(served, { ...summary, riskSummary: '', riskReportAction: '' });
+        assert.equal(payload.data['transit-summaries'].fetchedAt, capture.retrievedAt);
+        assert.deepEqual(payload.data['chokepoint-baselines'].chokepoints, [baseline]);
+        assert.doesNotMatch(text, /REROUTE|50-80K|Salalah/);
+      }
+    });
+  }
 
   it('resources/read worldmonitor://chokepoints/suez/status returns the transit-summary envelope with cached_at + stale', async () => {
     const res = await handler(envKeyReq(readBody('worldmonitor://chokepoints/suez/status')));
@@ -1333,6 +1776,67 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     } finally {
       globalThis.Date = RealDate;
     }
+  });
+
+  it('resources/read forwards a mid-call billing 503 (X-Billing-Verification + Retry-After + no-store)', async () => {
+    // #7269: buildResourceResponse used to copy only Retry-After when
+    // re-emitting dispatcher errors, so a mid-call unverified billing denial
+    // lost its marker and the outer handler classified it as dispatch/rate-limit
+    // degradation. Parity with tools/call (mcp.test.mjs mid-call 503).
+    const { deps } = makeProDeps();
+    globalThis.fetch = async () => new Response(
+      JSON.stringify({ error: 'Renewal verification pending', code: 'renewal_verification_pending' }),
+      {
+        status: 503,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+          'Retry-After': '21',
+          'X-Billing-Verification': 'renewal_verification_pending',
+        },
+      },
+    );
+    const res = await mcpHandler(
+      proReq('POST', readBody('worldmonitor://countries/de/risk')),
+      deps,
+    );
+    assert.equal(res.status, 503);
+    assert.equal(res.headers.get('Retry-After'), '21');
+    assert.equal(res.headers.get('Cache-Control'), 'no-store');
+    assert.equal(res.headers.get('X-Billing-Verification'), 'renewal_verification_pending');
+    const body = await res.json();
+    assert.equal(body.error?.code, -32603);
+    assert.equal(body.error?.data?.code, 'renewal_verification_pending');
+    assert.equal(body.id, 100);
+  });
+
+  it('resources/read forwards a mid-call confirmed-lapse 403 (X-Billing-Verification + no-store)', async () => {
+    // #7269: a gateway-backed subscription_lapsed 403 must keep the billing
+    // marker so the handler classifies it as billing/tier_403, not an ordinary
+    // precheck denial. Parity with tools/call (mcp.test.mjs mid-call 403).
+    const { deps } = makeProDeps();
+    globalThis.fetch = async () => new Response(
+      JSON.stringify({ error: 'Subscription lapsed', code: 'subscription_lapsed' }),
+      {
+        status: 403,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+          'X-Billing-Verification': 'subscription_lapsed',
+        },
+      },
+    );
+    const res = await mcpHandler(
+      proReq('POST', readBody('worldmonitor://countries/de/risk')),
+      deps,
+    );
+    assert.equal(res.status, 403);
+    assert.equal(res.headers.get('Cache-Control'), 'no-store');
+    assert.equal(res.headers.get('X-Billing-Verification'), 'subscription_lapsed');
+    const body = await res.json();
+    assert.equal(body.error?.code, -32002);
+    assert.equal(body.error?.data?.code, 'subscription_lapsed');
+    assert.equal(body.id, 100);
   });
 
   it('_budget_exceeded soft envelope from country-risk RPC passes through unchanged (no freshness merge)', async () => {

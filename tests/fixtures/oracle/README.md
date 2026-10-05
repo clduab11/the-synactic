@@ -81,3 +81,14 @@ script refuses `--dir`/`--name` values that resolve outside `tests/fixtures/`.
 
 Record the capture date, target endpoint, and auth class in the capture
 subdirectory so future diffing knows exactly what it is comparing.
+
+## Schema drift after a capture
+
+When an upstream sync adds a REQUIRED field to a tool's `outputSchema`, every
+earlier capture of that tool fails the one-directional check until it is
+retaken. Until then, the capture's manifest entry may carry a
+`schemaDriftAllowances` list — one `{ pattern, reason }` per drifted key, where
+`pattern` is a regex over the validator's error strings (for example
+`^\$\.sources\[\d+\]\.sourceProvenance: required key missing$`). The test
+ignores matching errors AND fails if an allowance matches nothing, so a retaken
+capture forces the allowance to be deleted rather than lingering as a waiver.

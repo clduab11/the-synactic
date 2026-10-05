@@ -143,6 +143,7 @@ function analysisPayloads() {
           lastSeenMs: Date.now(),
           operator: 'usaf',
           aircraftType: 'fighter',
+          sourceMeta: { source: 'wingbits' },
         },
       ],
       fetchedAt: Date.now(),
@@ -225,16 +226,18 @@ function analysisPayloads() {
       ],
     },
     'theater-posture:sebuf:v1': {
+      provider: 'wingbits',
       theaters: [{ theater: 'iran-theater', trackedVessels: 2 }],
     },
     'military:surges:v1': {
+      sourceVersion: 'wingbits',
       surges: [{ theaterId: 'iran-theater', surgeType: 'fighter', surgeMultiple: 2.1, strikeCapable: true }],
     },
     'military:surges:history:v1': {
       history: [
-        { assessedAt: Date.now() - 2 * HOUR, theaters: [{ theaterId: 'iran-theater', totalFlights: 1 }] },
-        { assessedAt: Date.now() - HOUR, theaters: [{ theaterId: 'iran-theater', totalFlights: 2 }] },
-        { assessedAt: Date.now(), theaters: [{ theaterId: 'iran-theater', totalFlights: 3 }] },
+        { assessedAt: Date.now() - 2 * HOUR, sourceVersion: 'wingbits', theaters: [{ theaterId: 'iran-theater', totalFlights: 1 }] },
+        { assessedAt: Date.now() - HOUR, sourceVersion: 'wingbits', theaters: [{ theaterId: 'iran-theater', totalFlights: 2 }] },
+        { assessedAt: Date.now(), sourceVersion: 'wingbits', theaters: [{ theaterId: 'iran-theater', totalFlights: 3 }] },
       ],
     },
     'wildfire:fires:v1': { fireDetections: fires },
@@ -524,9 +527,9 @@ describe('infrastructure-cascade seed adapters', () => {
 describe('military-surge seed adapters', () => {
   const flights = () => ({
     flights: [
-      { id: 'opensky-a', hexCode: 'AE1', callsign: 'RCH123', lat: 26.5, lon: 51.0, operator: 'usaf', operatorCountry: 'USA', aircraftType: 'transport', aircraftModel: 'C-17' },
-      { id: 'opensky-b', callsign: 'SHELL21', lat: 27.1, lon: 50.2, operator: 'usaf', aircraftType: 'tanker' },
-      { id: 'opensky-c', callsign: 'VIPER11', lat: 25.9, lon: 52.4, operator: 'usaf', aircraftType: 'fighter' },
+      { id: 'wingbits-a', hexCode: 'AE1', callsign: 'RCH123', lat: 26.5, lon: 51.0, operator: 'usaf', operatorCountry: 'USA', aircraftType: 'transport', aircraftModel: 'C-17', sourceMeta: { source: 'wingbits' } },
+      { id: 'wingbits-b', callsign: 'SHELL21', lat: 27.1, lon: 50.2, operator: 'usaf', aircraftType: 'tanker', sourceMeta: { source: 'wingbits' } },
+      { id: 'wingbits-c', callsign: 'VIPER11', lat: 25.9, lon: 52.4, operator: 'usaf', aircraftType: 'fighter', sourceMeta: { source: 'wingbits' } },
     ],
     fetchedAt: NOW,
   });
@@ -535,7 +538,7 @@ describe('military-surge seed adapters', () => {
     const mapped = militaryFlightsToSurgeInputs(flights());
     assert.equal(mapped.length, 3);
     assert.deepEqual(mapped[0], {
-      id: 'opensky-a',
+      id: 'wingbits-a',
       callsign: 'RCH123',
       aircraftType: 'transport',
       aircraftModel: 'C-17',
@@ -552,15 +555,28 @@ describe('military-surge seed adapters', () => {
     assert.deepEqual(militaryFlightsToSurgeInputs(null), []);
     assert.deepEqual(militaryFlightsToSurgeInputs({ flights: 'nope' }), []);
     const mapped = militaryFlightsToSurgeInputs({
-      flights: [null, { id: 'x', lat: 'nope', lon: 5 }, { id: 'y', lat: 200, lon: 5 }, { id: 'z', lat: 26.5, lon: 51.0 }],
+      flights: [
+        null,
+        { id: 'x', sourceMeta: { source: 'wingbits' }, lat: 'nope', lon: 5 },
+        { id: 'y', sourceMeta: { source: 'wingbits' }, lat: 200, lon: 5 },
+        { id: 'z', sourceMeta: { source: 'wingbits' }, lat: 26.5, lon: 51.0 },
+      ],
     });
     assert.deepEqual(mapped.map((f) => f.id), ['z']);
     assert.equal(mapped[0].operator, 'unknown');
     assert.equal(mapped[0].aircraftType, 'unknown');
+    assert.deepEqual(militaryFlightsToSurgeInputs({
+      flights: [
+        { id: 'open', sourceMeta: { source: 'OpenSky Network' }, lat: 26.5, lon: 51.0 },
+        { id: 'wingbits', sourceMeta: { source: 'wingbits' }, lat: 26.6, lon: 51.1 },
+        { id: 'missing', lat: 26.7, lon: 51.2 },
+      ],
+    }).map((flight) => flight.id), ['wingbits']);
   });
 
   it('reads per-theater vessel counts out of the theater-posture payload', () => {
     const counts = theaterPostureVesselCounts({
+      provider: 'wingbits',
       theaters: [
         { theater: 'iran-theater', postureLevel: 'elevated', activeFlights: 9, trackedVessels: 6 },
         { theater: 'taiwan-theater', postureLevel: 'normal', activeFlights: 2, trackedVessels: 0 },
@@ -573,6 +589,8 @@ describe('military-surge seed adapters', () => {
     assert.equal(counts.get('bogus'), undefined);
     assert.equal(theaterPostureVesselCounts(null).size, 0);
     assert.equal(theaterPostureVesselCounts({ theaters: 'nope' }).size, 0);
+    assert.equal(theaterPostureVesselCounts({ provider: 'opensky', theaters: [{ theater: 'iran-theater', trackedVessels: 6 }] }).size, 0);
+    assert.equal(theaterPostureVesselCounts({ theaters: [{ theater: 'iran-theater', trackedVessels: 6 }] }).size, 0);
   });
 
   it('applies vessel counts and lets naval strength drive the posture level', () => {
@@ -593,10 +611,12 @@ describe('military-surge seed adapters', () => {
       history: [
         {
           assessedAt: NOW - 2 * HOUR,
+          sourceVersion: 'wingbits',
           theaters: [{ theaterId: 'iran-theater', totalFlights: 4, transport: 1, fighters: 2, reconnaissance: 1 }],
         },
         {
           assessedAt: NOW - HOUR,
+          sourceVersion: 'wingbits',
           theaters: [{ theaterId: 'iran-theater', totalFlights: 12, transport: 5, fighters: 5, reconnaissance: 2 }],
         },
       ],
@@ -621,6 +641,17 @@ describe('military-surge seed adapters', () => {
     for (const payload of [null, undefined, {}, { history: 'nope' }, { history: [null, { theaters: 'nope' }] }]) {
       assert.equal(surgeHistoryToActivityHistory(payload).size, 0);
     }
+  });
+
+  it('drops OpenSky and unattributed surge-history runs', () => {
+    const history = surgeHistoryToActivityHistory({
+      history: [
+        { assessedAt: NOW - 2 * HOUR, theaters: [{ theaterId: 'iran-theater', totalFlights: 3 }] },
+        { assessedAt: NOW - HOUR, sourceVersion: 'OpenSky Network', theaters: [{ theaterId: 'iran-theater', totalFlights: 4 }] },
+        { assessedAt: NOW, sourceVersion: 'wingbits', theaters: [{ theaterId: 'iran-theater', totalFlights: 5 }] },
+      ],
+    });
+    assert.deepEqual(history.get('iran-theater')?.map((entry) => entry.totalMilitary), [5]);
   });
 });
 
@@ -688,6 +719,35 @@ describe('wave-2 analysis tools: cache-backed orchestration', () => {
       );
     });
   }
+
+  it('resolves focal-point country names and alpha-3 codes before entity matching', async () => {
+    installUpstashStub(analysisPayloads());
+    const tool = findTool('get_focal_points');
+    const expected = await tool._execute({ country_code: 'IR' }, '', {}, {});
+    assert.ok(expected.data.focal_points.length > 0);
+    for (const country_code of ['Iran', 'IRN', ' ir ']) {
+      const actual = await tool._execute({ country_code }, '', {}, {});
+      assert.deepEqual(actual.data, expected.data);
+    }
+  });
+
+  it('reports unsupported focal-point coverage for Iraq instead of an empty calm answer', async () => {
+    installUpstashStub(analysisPayloads());
+    for (const country_code of ['Iraq', 'IQ', 'IRQ']) {
+      await assert.rejects(
+        () => findTool('get_focal_points')._execute({ country_code }, '', {}, {}),
+        (error) => error.name === 'RpcValidationError' && /No focal-point coverage for IQ/.test(error.violations[0].description),
+      );
+    }
+  });
+
+  it('rejects an unresolved focal-point country before reading caches', async () => {
+    globalThis.fetch = async () => { throw new Error('unexpected fetch'); };
+    await assert.rejects(
+      () => findTool('get_focal_points')._execute({ country_code: 'Atlantis' }, '', {}, {}),
+      (error) => error.name === 'RpcValidationError' && error.violations[0].field === 'country_code',
+    );
+  });
 
   it('executes every hybrid success path against producer-shaped cache payloads', async () => {
     installUpstashStub(analysisPayloads());
@@ -1012,6 +1072,22 @@ describe('wave-2 analysis tools: cache-backed orchestration', () => {
     assert.equal(result.data.seeded_surges_available, true);
   });
 
+  it('does not expose OpenSky or unattributed seeded surges', async () => {
+    for (const sourceVersion of [undefined, '', 'OpenSky Network']) {
+      const payloads = analysisPayloads();
+      if (sourceVersion === undefined) {
+        delete payloads['military:surges:v1'].sourceVersion;
+      } else {
+        payloads['military:surges:v1'].sourceVersion = sourceVersion;
+      }
+      installUpstashStub(payloads);
+
+      const result = await findTool('get_military_surge')._execute({}, '', {}, {});
+      assert.deepEqual(result.data.seeded_surges, []);
+      assert.equal(result.data.seeded_surges_available, false);
+    }
+  });
+
   it('does not synthesize CII-only military postures when both asset feeds are unavailable', async () => {
     installUpstashStub(analysisPayloads(), {
       misses: ['military:flights:v1', 'theater-posture:sebuf:v1'],
@@ -1024,31 +1100,41 @@ describe('wave-2 analysis tools: cache-backed orchestration', () => {
     assert.equal(result.data.cii_available, true);
   });
 
-  it('keeps foreign-presence detections when filtering by theater id', async () => {
-    const payloads = analysisPayloads();
-    payloads['military:flights:v1'].flights = Array.from({ length: 2 }, (_, i) => ({
-      id: `gulf-flight-${i}`,
-      callsign: `GULF${i}`,
-      lat: 26.5,
-      lon: 52,
-      lastSeenMs: Date.now(),
-      operator: 'usaf',
-      aircraftType: 'fighter',
-    }));
-    installUpstashStub(payloads);
+  for (const [theater, regionId, lat, lon] of [
+    ['iran-theater', 'persian-gulf', 26.5, 52],
+    ['korea-theater', 'japan-sea', 40, 135],
+    ['east-med-theater', 'east-med', 34.5, 33],
+    ['israel-gaza-theater', 'east-med', 34.5, 33],
+    ['yemen-redsea-theater', 'horn-africa', 10, 45],
+    ['south-china-sea', 'south-china-sea', 14, 114],
+  ]) {
+    it(`keeps foreign-presence detections when filtering by ${theater}`, async () => {
+      const payloads = analysisPayloads();
+      payloads['military:flights:v1'].flights = Array.from({ length: 2 }, (_, i) => ({
+        id: `gulf-flight-${i}`,
+        callsign: `GULF${i}`,
+        lat,
+        lon,
+        lastSeenMs: Date.now(),
+        operator: 'usaf',
+        aircraftType: 'fighter',
+        sourceMeta: { source: 'wingbits' },
+      }));
+      installUpstashStub(payloads);
 
-    const result = await findTool('get_military_surge')._execute(
-      { theater: 'iran-theater' },
-      '',
-      {},
-      {},
-    );
+      const result = await findTool('get_military_surge')._execute(
+        { theater },
+        '',
+        {},
+        {},
+      );
 
-    assert.deepEqual(
-      result.data.foreign_presence.map((alert) => alert.region_id),
-      ['persian-gulf'],
-    );
-  });
+      assert.deepEqual(
+        result.data.foreign_presence.map((alert) => alert.region_id),
+        [regionId],
+      );
+    });
+  }
 
   it('ranks every producer event before applying the final exposure limit', async () => {
     const payloads = analysisPayloads();
@@ -1080,6 +1166,65 @@ describe('wave-2 analysis tools: cache-backed orchestration', () => {
     assert.equal(result.data.events.length, 1);
     assert.equal(result.data.events[0].id, 'palestine-quake');
   });
+
+  for (const view of ['today', 'weekly']) {
+    for (const sourceVersion of ['wingbits', 'OpenSky Network', undefined, '', '   ', 42]) {
+      it(`${view} digest enforces surge attribution ${JSON.stringify(sourceVersion)}`, async () => {
+        const payloads = analysisPayloads();
+        payloads['military:surges:v1'].sourceVersion = sourceVersion;
+        const fetchedAt = Date.now() - MIN;
+        payloads['seed-meta:intelligence:risk-scores'] = { fetchedAt, recordCount: 3 };
+        installUpstashStub(payloads);
+
+        const result = await findTool('get_alert_digest')._execute({ view }, '', {}, {});
+        const allowed = sourceVersion === 'wingbits';
+        const military = result.data.tripped.filter((alert) => alert.domain === 'military_surge');
+        assert.equal(military.length, allowed ? 1 : 0);
+        if (allowed) assert.equal(military[0].value, 2.1);
+        assert.equal(result.data.unavailable.includes('military_surge'), !allowed);
+        assert.equal(result.data.quiet.includes('military_surge'), false);
+        assert.equal(result.stale, !allowed);
+        assert.equal(result.cached_at, new Date(fetchedAt).toISOString());
+        assert.deepEqual(result.unavailable_inputs, allowed ? [] : ['military:surges:v1']);
+        assert.deepEqual(result.failed_inputs, []);
+        for (const domain of ['cable_health', 'outages', 'thermal', 'shipping_stress']) {
+          assert.ok(result.data.tripped.some((alert) => alert.domain === domain));
+        }
+        assert.ok(result.data.quiet.includes('temporal_anomaly'));
+        if (view === 'weekly') {
+          assert.equal(result.data.weekly.history_available, true);
+          assert.ok(result.data.weekly.trends.length > 0);
+        } else {
+          assert.equal(result.data.weekly, null);
+        }
+      });
+    }
+
+    it(`${view} digest keeps an attributed empty surge feed quiet`, async () => {
+      installUpstashStub({ 'military:surges:v1': { sourceVersion: 'wingbits', surges: [] } });
+      const result = await findTool('get_alert_digest')._execute({ view }, '', {}, {});
+      assert.ok(result.data.quiet.includes('military_surge'));
+      assert.ok(!result.data.unavailable.includes('military_surge'));
+      assert.ok(!result.unavailable_inputs.includes('military:surges:v1'));
+    });
+
+    for (const sourceVersion of ['opensky', undefined]) {
+      it(`${view} digest rejects when only withheld surges are available (${sourceVersion})`, async () => {
+        installUpstashStub({
+          'military:surges:v1': { ...analysisPayloads()['military:surges:v1'], sourceVersion },
+        });
+        await assert.rejects(
+          () => findTool('get_alert_digest')._execute({ view }, '', {}, {}),
+          (error) => {
+            assert.ok(error instanceof McpSourceUnavailableError);
+            assert.ok(error.unavailableInputs.includes('military:surges:v1'));
+            assert.deepEqual(error.failedInputs, []);
+            return true;
+          },
+        );
+      });
+    }
+  }
 
   it('surfaces missing weekly history in both freshness and digest availability', async () => {
     installUpstashStub(analysisPayloads(), { misses: ['military:surges:history:v1'] });

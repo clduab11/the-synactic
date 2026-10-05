@@ -189,12 +189,6 @@ const stubSources: Record<string, string> = {
       fn({ addBreadcrumb: () => {}, captureMessage: () => {}, captureException: () => {} });
     }
   `,
-  'dodopayments-checkout': `
-    export const DodoPayments = {
-      Initialize() {},
-      Checkout: { isOpen: () => false, close: () => {}, open: () => {} },
-    };
-  `,
   // The one behavioural knob: which runtime the case is asserting. The real
   // detector has its own coverage in tests/desktop-external-handoff.test.mts,
   // which drives it from a synthesised Tauri window.
@@ -211,7 +205,9 @@ const stubSources: Record<string, string> = {
     export const openSignIn = () => {};
   `,
   './analytics': `
-    export const trackCheckoutStart = () => {};
+    export const trackCheckoutStart = (_productId, _authed, surface, _attribution, context) => (
+      context ?? { eventSurface: surface, origin: { kind: 'dashboard' } }
+    );
   `,
   './auth-state': `
     export const subscribeAuthState = () => () => {};
@@ -231,10 +227,16 @@ const stubSources: Record<string, string> = {
   './checkout-banner-state': `
     export const CLASSIC_AUTO_DISMISS_MS = 5000;
     export const EXTENDED_UNLOCK_TIMEOUT_MS = 30000;
+    export const ENTITLEMENT_POLL_MS = 1000;
+    export const LATE_ACTIVATION_GRACE_MS = 300000;
     export const maskEmail = (email) => email ?? null;
   `,
   './referral-capture': `
     export const loadActiveReferral = () => null;
+    // Re-exported real, never faked: startCheckout gates its outgoing
+    // referral on this, so a stub that always returns true would make any
+    // referral assertion in this harness vacuous (#6493).
+    export { isAffiliateCode } from './src/services/referral-capture.ts';
   `,
   './checkout-duplicate-dialog': `
     export const showDuplicateSubscriptionDialog = () => {};
@@ -244,11 +246,6 @@ const stubSources: Record<string, string> = {
   `,
   './checkout-plan-names': `
     export const resolvePlanDisplayName = () => 'Pro';
-  `,
-  './entitlement-watchdog': `
-    export function createEntitlementWatchdog() {
-      return { start: () => {}, stop: () => {}, isActive: () => false };
-    }
   `,
 };
 
@@ -261,6 +258,8 @@ const harnessPlugin: Plugin = {
     buildApi.onLoad({ filter: /.*/, namespace: 'dch-stub' }, (args) => ({
       contents: stubSources[args.path],
       loader: 'js',
+      // Lets a stub re-export the real module it partially replaces.
+      resolveDir: process.cwd(),
     }));
   },
 };
@@ -342,7 +341,10 @@ describe('startCheckout on desktop (#5911)', () => {
     const harness = globalThis.__desktopCheckoutHarness;
     assert.deepEqual(harness.assignedUrls, [], 'the app must not be replaced by /pro');
     assert.deepEqual(harness.invocations, [
-      { command: 'open_url', payload: { url: 'https://worldmonitor.app/pro' } },
+      {
+        command: 'open_url',
+        payload: { url: 'https://worldmonitor.app/pro?wm_checkout_handoff=desktop' },
+      },
     ]);
   });
 
@@ -357,21 +359,25 @@ describe('startCheckout on desktop (#5911)', () => {
     const harness = globalThis.__desktopCheckoutHarness;
     assert.deepEqual(harness.assignedUrls, []);
     assert.deepEqual(harness.invocations, [
-      { command: 'open_url', payload: { url: 'https://worldmonitor.app/pro' } },
+      {
+        command: 'open_url',
+        payload: { url: 'https://worldmonitor.app/pro?wm_checkout_handoff=desktop' },
+      },
     ]);
   });
 
-  it('does not claim the OS browser when it only fell back to a WebView window', async () => {
-    // openExternalUrl returns 'popup' here: the bridge refused and
-    // window.open succeeded INSIDE Tauri. That is the bug this branch exists
-    // to prevent, so it must not be reported to the buyer as success.
+  it('does not open a checkout WebView when the native browser launch fails', async () => {
+    // Checkout must not open a WebView and then invite a duplicate retry.
     resetHarness(true, { invokeRejects: true });
     const checkout = await loadCheckoutModule();
 
     assert.equal(await checkout.startCheckout('pro_monthly'), false);
 
+    await new Promise(resolve => setTimeout(resolve, 0));
     const harness = globalThis.__desktopCheckoutHarness;
-    assert.deepEqual(harness.toasts, [], 'a WebView fallback is not "opened in your browser"');
+    assert.equal(harness.invocations.length, 2, 'hosted checkout and default pricing fallback both attempted native launch');
+    assert.deepEqual(harness.openedWindows, [], 'hosted checkout requires a native browser');
+    assert.deepEqual(harness.toasts, [], 'must not claim a successful native launch');
     assert.equal(harness.errorToasts.length, 1);
   });
 

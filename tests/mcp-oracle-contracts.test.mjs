@@ -317,26 +317,6 @@ const TOOL_ASSERTIONS = {
     assert.deepEqual(s.triggers?.watching, [], 'triggers.watching must remain an empty husk');
   },
 
-  get_gold_intelligence(payload) {
-    assert.equal(payload.unavailable, false, 'unavailable must be false on a seeded stack');
-    // The healthy-unenriched pair: updatedAt '' while unavailable false is
-    // VALID (enrichment key unseeded by design). A consumer treating '' as an
-    // error would misread a healthy response — this pin keeps that documented
-    // semantic true. If gold-extended gets seeded, update this tooth AND the
-    // manifest note together.
-    assert.equal(payload.updatedAt, '', 'updatedAt must be the empty string while gold-extended is unseeded');
-    assert.ok(payload.goldPrice > 0, 'goldPrice must be positive');
-    // The numeric-as-string trap, pinned from the wire.
-    assert.equal(typeof payload.cot.managedMoney.longPositions, 'string', 'COT longPositions must be a STRING');
-    assert.equal(typeof payload.cot.openInterest, 'string', 'COT openInterest must be a STRING');
-    assert.equal(payload.crossCurrencyPrices.length, 6, 'crossCurrencyPrices must carry all 6 FX legs');
-    assert.equal(typeof payload.goldSilverRatio, 'number', 'goldSilverRatio must be present');
-    for (const k of ['session', 'returns', 'range52w']) {
-      assert.ok(!(k in payload), `${k} must be ABSENT while gold-extended is unseeded`);
-    }
-    assert.equal(payload.cbReserves.totalTonnes, 0, 'cbReserves.totalTonnes is 0 on this deployment (producer gap — update on producer fix)');
-    assert.ok(payload.cbReserves.topHolders.length >= 5, 'cbReserves.topHolders must be populated despite the zero total');
-  },
 
   // get_population_exposure validator removed at the 2026-08 upstream sync:
   // the fork wrapper it asserted was retired in favour of upstream's
@@ -404,7 +384,19 @@ describe('MCP oracle contract coverage (real captures, presence/absence teeth)',
       it('validates against the declared outputSchema (one-directional check)', () => {
         const tool = __testing__.TOOL_REGISTRY.find((t) => t.name === cap.tool);
         assert.ok(tool, `tool ${cap.tool} not found in registry`);
-        const errors = validate(tool.outputSchema, cap.payload);
+        const rawErrors = validate(tool.outputSchema, cap.payload);
+        // A manifest `schemaDriftAllowances` entry names, by regex over the
+        // validator's error strings, a REQUIRED key the schema gained AFTER
+        // this capture was taken (an upstream sync is the usual cause). It is
+        // a reasoned, visible deferral until the capture is retaken — never a
+        // blanket waiver: an allowance that matches nothing is itself a
+        // failure, so it cannot outlive the drift it was written for.
+        const allowances = (cap.schemaDriftAllowances ?? []).map((a) => ({ ...a, re: new RegExp(a.pattern) }));
+        const errors = rawErrors.filter((e) => !allowances.some((a) => a.re.test(e)));
+        for (const a of allowances) {
+          assert.ok(rawErrors.some((e) => a.re.test(e)),
+            `stale schemaDriftAllowance /${a.pattern}/ on ${cap.file} matches no validator error — retire it (${a.reason})`);
+        }
         assert.deepEqual(errors, [], `capture fails declared schema:\n  ${errors.join('\n  ')}`);
       });
 
@@ -444,12 +436,8 @@ describe('MCP declared-schema absence teeth (husk fields must stay undeclared)',
       'verdict is free text with inconsistent casing — an enum would reject live values');
   });
 
-  it('get_gold_intelligence does not declare the gold-extended husks (session/returns/range52w/drivers)', () => {
-    const schema = JSON.stringify(tool('get_gold_intelligence').outputSchema);
-    for (const k of ['"session"', '"returns"', '"range52w"', '"drivers"']) {
-      assert.ok(!schema.includes(k), `${k} must stay undeclared while market:gold-extended:v1 is unseeded`);
-    }
-  });
+  // get_gold_intelligence: upstream's tool (2026-10-05 sync) superseded the fork's;
+  // its declared shape is upstream's contract, so the fork husk-absence teeth retired.
 
   it('get_regional_snapshot does not declare the producer husks (narrative/leverageEdges/transmissionPaths/mobility/triggers)', () => {
     const schema = JSON.stringify(tool('get_regional_snapshot').outputSchema);

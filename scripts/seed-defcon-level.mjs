@@ -158,7 +158,7 @@ runSeed('intelligence', 'defcon-level', CANONICAL_KEY, fetchDefconLevel, {
   recordCount: (data) => (Array.isArray(data?.commands) ? data.commands.length : 0),
   declareRecords,
   schemaVersion: 1,
-  maxStaleMin: 180,
+  maxStaleMin: 135,
 }).catch((err) => {
   console.error('FATAL:', err.message || err);
   process.exit(1);

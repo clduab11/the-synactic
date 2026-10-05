@@ -16,6 +16,7 @@
  * and `body.live-news-fullscreen-active` hides every non-fullscreen grid child, which
  * would blank this overlay whenever one of those modes is already open.
  */
+import { declareOverlay } from '@/utils/open-modal';
 import { createMarketChartFocusController } from '@/components/market-chart-interactions';
 import type { PanelFocusView } from '@/components/Panel';
 import { t } from '@/services/i18n';
@@ -110,6 +111,8 @@ export function openPanelFocusView(opts: {
   overlay.dataset.panelFocus = panelId;
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
+  // Read-only expansion of a panel's own data: a reload loses nothing here.
+  declareOverlay(overlay, { reload: 'safe' });
   overlay.setAttribute('aria-labelledby', 'panel-focus-title');
 
   const closeLabel = t('components.panel.closePanel') ?? 'Close';

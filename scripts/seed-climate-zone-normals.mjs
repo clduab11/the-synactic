@@ -3,7 +3,7 @@
 import { pathToFileURL } from 'node:url';
 import { loadEnvFile, runSeed, sleep } from './_seed-utils.mjs';
 import { CLIMATE_ZONES, MIN_CLIMATE_ZONE_COUNT, hasRequiredClimateZones } from './_climate-zones.mjs';
-import { chunkItems, fetchOpenMeteoArchiveBatch } from './_open-meteo-archive.mjs';
+import { OPEN_METEO_DEADLINE_CODE, chunkItems, fetchOpenMeteoArchiveBatch } from './_open-meteo-archive.mjs';
 
 loadEnvFile(import.meta.url);
 
@@ -16,6 +16,16 @@ const NORMALS_START_YEAR = 1991;
 const NORMALS_END_YEAR = 2020;
 const NORMALS_BATCH_SIZE = 2;
 const NORMALS_BATCH_DELAY_MS = 3_000;
+export const NORMALS_FETCH_PHASE_SOFT_DEADLINE_MS = 225_000;
+
+function createNormalsFailure(message, deadlineExhausted) {
+  const error = new Error(message);
+  if (deadlineExhausted) {
+    error.code = OPEN_METEO_DEADLINE_CODE;
+    error.nonRetryable = true;
+  }
+  return error;
+}
 
 // ─── NASA POWER — PRIMARY source ────────────────────────────────────────────
 //
@@ -296,7 +306,12 @@ export function buildZoneNormalsFromBatch(zones, batchPayloads) {
   });
 }
 
-export async function fetchClimateZoneNormals() {
+export async function fetchClimateZoneNormals({
+  runStartedAtMs = Date.now(),
+  _now = Date.now,
+  _sleep = sleep,
+  _fetchArchiveBatch = fetchOpenMeteoArchiveBatch,
+} = {}) {
   const normals = [];
   // Honesty contract: every zone that fails records a concrete reason here and
   // the reasons are published with the payload. A failure is never swallowed
@@ -335,18 +350,37 @@ export async function fetchClimateZoneNormals() {
     (zone) => !normals.some((entry) => entry.zone === zone.name),
   );
 
+  // The fallback shares the run's soft fetch-phase deadline (upstream's
+  // NORMALS_FETCH_PHASE_SOFT_DEADLINE_MS): once it is spent the remaining
+  // batches are recorded as failures instead of pushing the run past the
+  // seeder's wall-clock budget.
+  const deadlineAtMs = runStartedAtMs + NORMALS_FETCH_PHASE_SOFT_DEADLINE_MS;
+  let deadlineExhausted = false;
+
   if (missingZones.length > 0) {
     console.log(`  [CLIMATE_NORMALS] falling back to Open-Meteo for ${missingZones.length} zone(s): ${missingZones.map((z) => z.name).join(', ')}`);
 
-    for (const batch of chunkItems(missingZones, NORMALS_BATCH_SIZE)) {
+    const batches = chunkItems(missingZones, NORMALS_BATCH_SIZE);
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      if (deadlineExhausted || _now() >= deadlineAtMs) {
+        deadlineExhausted = true;
+        for (const zone of batch) {
+          failures.push({ zone: zone.name, source: 'open-meteo-archive', reason: 'fetch-phase deadline exhausted before this batch' });
+        }
+        continue;
+      }
       try {
-        const payloads = await fetchOpenMeteoArchiveBatch(batch, {
+        const payloads = await _fetchArchiveBatch(batch, {
           startDate: NORMALS_START,
           endDate: NORMALS_END,
           daily: ['temperature_2m_mean', 'precipitation_sum'],
           timeoutMs: 30_000,
           maxRetries: 4,
           retryBaseMs: 5_000,
+          deadlineAtMs,
+          _now,
+          _sleep,
           label: `normals batch (${batch.map((zone) => zone.name).join(', ')})`,
         });
         for (const entry of buildZoneNormalsFromBatch(batch, payloads)) {
@@ -355,11 +389,16 @@ export async function fetchClimateZoneNormals() {
       } catch (err) {
         const reason = err?.message ?? String(err);
         console.log(`  [CLIMATE_NORMALS] ${reason}`);
+        if (err?.code === OPEN_METEO_DEADLINE_CODE) deadlineExhausted = true;
         for (const zone of batch) {
           failures.push({ zone: zone.name, source: 'open-meteo-archive', reason });
         }
       }
-      await sleep(NORMALS_BATCH_DELAY_MS);
+      if (batchIndex < batches.length - 1) {
+        const remainingMs = deadlineAtMs - _now();
+        if (remainingMs <= 0) { deadlineExhausted = true; continue; }
+        await _sleep(Math.min(NORMALS_BATCH_DELAY_MS, remainingMs));
+      }
     }
   }
 
@@ -368,15 +407,18 @@ export async function fetchClimateZoneNormals() {
     .filter((name) => !normals.some((entry) => entry.zone === name));
 
   if (normals.length < MIN_CLIMATE_ZONE_COUNT) {
-    throw new Error(`Only ${normals.length}/${CLIMATE_ZONES.length} zones returned normals (${failures.length} errors; missing: ${stillMissing.join(', ') || 'none'})`);
+    throw createNormalsFailure(
+      `Only ${normals.length}/${CLIMATE_ZONES.length} zones returned normals (${failures.length} errors; missing: ${stillMissing.join(', ') || 'none'})`,
+      deadlineExhausted,
+    );
   }
   if (!hasRequiredClimateZones(normals, (zone) => zone.zone)) {
-    throw new Error('Missing one or more required climate-specific zone normals');
+    throw createNormalsFailure('Missing one or more required climate-specific zone normals', deadlineExhausted);
   }
 
   return {
     referencePeriod: '1991-2020',
-    fetchedAt: Date.now(),
+    fetchedAt: _now(),
     sources: CLIMATE_NORMALS_SOURCES,
     failures,
     normals,

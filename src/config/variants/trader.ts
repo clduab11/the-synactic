@@ -128,6 +128,9 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   resilienceScore: false,
   webcams: false,
   diseaseOutbreaks: false,
+  // Upstream-added layers (Canada 511 roads/alerts): off by default here.
+  canadaRoads: false,
+  canadaAlerts: false,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,6 +194,9 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
   resilienceScore: false,
   webcams: false,
   diseaseOutbreaks: false,
+  // Upstream-added layers (Canada 511 roads/alerts): off by default here.
+  canadaRoads: false,
+  canadaAlerts: false,
 };
 
 export const VARIANT_CONFIG: VariantConfig = {

@@ -29,12 +29,12 @@ being able to say where a number came from.
 
 163 autonomous collectors sweeping conflict events, sanctions programs,
 maritime chokepoints, energy flows, airspace, cyber threat feeds,
-macroeconomics, and climate anomalies — drawing on 568+ curated news feeds backed by 531+ observed upstream hosts
-and 29 stock exchanges. 70 typed MCP tools any agent can
+macroeconomics, and climate anomalies — drawing on a curated news-feed corpus backed by hundreds of attributed upstream hosts
+and the major stock exchanges. A typed MCP tool surface any agent can
 call — composite country-risk scoring (server-authoritative
 CII v8 stress scoring for 31 Tier-1 countries), conflict-event retrieval,
 LLM-grounded country briefs, chokepoint status — with server-side projection
-keeping context windows lean. 56 map layer types render it, in 26 languages.
+keeping context windows lean. Dozens of map layer types render it, in every supported interface language.
 190+ routed model endpoints behind one
 gateway, budget-enveloped per route. 400+ tests in the clean-room
 orchestration core alone, with mutation-tested guards on the paths that
@@ -77,7 +77,7 @@ API. Machines collect and compute — a human signs every conclusion.
 flowchart LR
   W((World)) --> C[Collection fleet<br/>163 autonomous seeders]
   C --> D[(Self-hosted<br/>data plane)]
-  D --> I[The instrument<br/>70 MCP tools · risk scoring · briefs]
+  D --> I[The instrument<br/>typed MCP tools · risk scoring · briefs]
   I --> O[Orchestration ring<br/>contracts · tool policy · model router]
   O --> A[Analyst]
   A --> R[[Human-authored<br/>client reports]]
@@ -91,7 +91,7 @@ A real-time TypeScript intelligence dashboard and its 150-strong collection
 fleet, hardened for sovereign self-hosting — one compose stack: app, relay,
 cache, vector store, verification tooling. An MCP-native tool surface with
 adversarially reviewed, contract-truthed schemas, typed end to end by
-Protocol Buffers (295 protos across 36 services). A clean-room orchestration
+Protocol Buffers, one typed service per domain. A clean-room orchestration
 core — original contracts, provenance envelopes, and a default-deny
 tool-policy engine — built to put an agent council on rails rather than on
 vibes. A vector-indexed semantic memory layer for similar-event recall and
@@ -112,7 +112,7 @@ Three doors, all typed, all provenance-carrying. The instrument is a tool
 the interesting engineering is in keeping those three from leaking into each
 other.
 
-**Outbound — what agents call.** 70 typed MCP tools over one endpoint, plus 25
+**Outbound — what agents call.** A typed MCP tool surface over one endpoint, plus the
 [Agent Skills](public/.well-known/agent-skills/) published at
 `/.well-known/agent-skills/` against the agentskills.io discovery schema. A tool
 surface tells an agent *what it can call*; a skill directory tells it *when the
@@ -121,7 +121,7 @@ can reach and one it actually reaches for. Every tool accepts a server-side
 JMESPath projection, so a context window carries the three fields the task needs
 rather than the ninety the record happens to have.
 
-**Inbound — what the instrument calls.** 16 curated MCP connectors, each one
+**Inbound — what the instrument calls.** A curated set of MCP connectors, each one
 live-verified rather than listed on faith: Exa, Tavily, Perigon, Robtex, Pyth,
 LunarCrush, NOAA weather records, Alpha Vantage, GitHub, Cloudflare Radar,
 Google Maps, Browser Fetch, Linear, PostHog, Stripe, Data Commons.
@@ -138,7 +138,7 @@ what an operator just typed is the kind of behaviour that costs an afternoon.
 **Verified, not assumed.** Every connector in that list has been exercised end to
 end against its real upstream with the injected credential — because a
 "configured" badge derived from an environment variable being *present* is a
-weaker claim than it looks, and two connectors sat green while returning 401 and
+weaker claim than it looks, and a pair of connectors sat green while returning 401 and
 405 until something actually called them. Three were removed rather than left
 showing a lock that could never be opened: two hosted servers accept only
 OAuth-issued tokens, which a stateless relay cannot obtain, and one pointed at a

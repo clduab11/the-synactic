@@ -11,9 +11,10 @@ import {
   assessOilDemandChange,
   computeOilDemandChange,
   jodiSourceYears,
+  jodiCsvCandidates,
+  fetchYearCsv,
   validateCoverage,
   mergeSourceRows,
-  jodiCsvCandidates,
   assertParseableCsv,
   CANONICAL_KEY,
   COUNTRY_KEY_PREFIX,
@@ -56,8 +57,8 @@ describe('CANONICAL_KEY contract', () => {
     assert.equal(COUNTRY_KEY_PREFIX, 'energy:jodi-oil:v1:');
   });
 
-  it('JODI_TTL is 35 days in seconds', () => {
-    assert.equal(JODI_TTL, 35 * 24 * 3600);
+  it('JODI_TTL is 70 days in seconds', () => {
+    assert.equal(JODI_TTL, 70 * 24 * 3600);
   });
 });
 
@@ -669,58 +670,6 @@ describe('validateCoverage', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Current-year filename fallback
-//
-// JODI names the still-open year <dataset>/<dataset>year<YYYY>.csv and only
-// renames it to <dataset>/<YYYY>.csv once the year is archived. Building only
-// the archived shape silently missed every current-year publication.
-// [VERIFIED probe 2026-08-03] primary/primaryyear2026.csv -> HTTP 206 while
-// primary/2026.csv -> HTTP 404; exactly reversed for 2025.
-// ---------------------------------------------------------------------------
-
-describe('jodiCsvCandidates', () => {
-  it('puts the in-progress shape first for the current year', () => {
-    assert.deepEqual(
-      jodiCsvCandidates('primary', 2026, true),
-      ['primary/primaryyear2026.csv', 'primary/2026.csv'],
-    );
-  });
-
-  it('builds the secondary in-progress shape with the dataset name doubled', () => {
-    assert.deepEqual(
-      jodiCsvCandidates('secondary', 2026, true),
-      ['secondary/secondaryyear2026.csv', 'secondary/2026.csv'],
-    );
-  });
-
-  it('puts the archived shape first for a prior year', () => {
-    assert.deepEqual(
-      jodiCsvCandidates('primary', 2025, false),
-      ['primary/2025.csv', 'primary/primaryyear2025.csv'],
-    );
-  });
-
-  it('regression: current-year list contains the probe-verified working name', () => {
-    // The old code produced only `primary/2026.csv`, which is a hard 404.
-    assert.ok(
-      jodiCsvCandidates('primary', 2026, true).includes('primary/primaryyear2026.csv'),
-      'current-year candidates must include the <dataset>year<YYYY> shape',
-    );
-  });
-
-  it('offers both shapes for either year so the year-end rollover is covered', () => {
-    for (const isCurrent of [true, false]) {
-      const got = jodiCsvCandidates('secondary', 2027, isCurrent);
-      assert.equal(got.length, 2);
-      assert.deepEqual(
-        [...got].sort(),
-        ['secondary/2027.csv', 'secondary/secondaryyear2027.csv'],
-      );
-    }
-  });
-});
-
 describe('assertParseableCsv', () => {
   const HEADER = 'REF_AREA,TIME_PERIOD,ENERGY_PRODUCT,FLOW_BREAKDOWN,UNIT_MEASURE,OBS_VALUE,ASSESSMENT_CODE';
 
@@ -730,11 +679,11 @@ describe('assertParseableCsv', () => {
   });
 
   it('accepts a BOM-prefixed header', () => {
-    const csv = `﻿`;
-    // `csv` above holds a raw U+FEFF taken straight from this source file.
-    // Assert it survived, so an editor or normalizer silently stripping it
-    // makes this test fail loudly instead of passing vacuously.
-    assert.equal(csv.charCodeAt(0), 0xFEFF, 'source-literal BOM was stripped');
+    // Written as an escape, not a raw BOM: a literal U+FEFF in an executable
+    // file trips scripts/check-unicode-safety.mjs (the pre-push guard), and the
+    // escape resolves to the identical code point at runtime.
+    const csv = `\uFEFF`;
+    assert.equal(csv.charCodeAt(0), 0xFEFF, 'escaped BOM did not resolve to U+FEFF');
     // The payload actually under test builds its BOM by code point, so it is
     // independent of however this file happens to be encoded on disk.
     const csvWithBom = String.fromCharCode(0xFEFF) + HEADER + '\r\nAE,2026-01,CRUDEOIL,CLOSTLV,KBD,x,3\r\n';
@@ -809,5 +758,66 @@ describe('golden fixture (JODI Oil CSV)', () => {
         assert.ok(val === null || typeof val === 'number', `${prod}.${field} should be number|null, got ${typeof val}`);
       }
     }
+  });
+});
+
+describe('JODI current-year source resolution (#6799)', () => {
+  // JODI publishes every past year as `<kind>/<year>.csv`, but named the 2026
+  // files `<kind>/<kind>year<year>.csv`. The seeder asked only for the first
+  // shape, got a 404, and its `.catch(() => '')` turned that into "publish from
+  // last year's file" — so production served December 2025 oil data from
+  // January to August 2026 while reporting recordCount 50 and a fresh
+  // fetchedAt. Nothing on the seed clock could see it; only the content clock
+  // added in #6395 eventually surfaced it.
+
+  it('offers both published filename conventions, plain name first', () => {
+    assert.deepEqual(jodiCsvCandidates('primary', 2026), [
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/primary/2026.csv',
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/primary/primaryyear2026.csv',
+    ]);
+    assert.deepEqual(jodiCsvCandidates('secondary', 2026), [
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/secondary/2026.csv',
+      'https://www.jodidata.org/_resources/files/downloads/oil-data/annual-csv/secondary/secondaryyear2026.csv',
+    ]);
+  });
+
+  // Fork: fetchYearCsv rejects a 200 whose body is not a JODI CSV
+  // (assertParseableCsv), so these stubs answer with the real header.
+  it('falls through to the second convention when the first 404s', async () => {
+    const asked = [];
+    const fetchCsv = async (url) => {
+      asked.push(url);
+      if (url.endsWith('/2026.csv')) throw new Error('HTTP 404');
+      return 'REF_AREA,TIME_PERIOD,ENERGY_PRODUCT,FLOW_BREAKDOWN,UNIT_MEASURE,OBS_VALUE,ASSESSMENT_CODE\nDE,2026-05,CRUDEOIL,INDPROD,KBD,1,3\n';
+    };
+    const result = await fetchYearCsv('primary', 2026, { fetchCsv, retries: 0 });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.text, 'REF_AREA,TIME_PERIOD,ENERGY_PRODUCT,FLOW_BREAKDOWN,UNIT_MEASURE,OBS_VALUE,ASSESSMENT_CODE\nDE,2026-05,CRUDEOIL,INDPROD,KBD,1,3\n');
+    assert.match(result.url, /primaryyear2026\.csv$/);
+    assert.equal(asked.length, 2, 'must try the plain name before the prefixed one');
+  });
+
+  it('stops at the first convention that answers', async () => {
+    const asked = [];
+    const fetchCsv = async (url) => { asked.push(url); return 'REF_AREA,TIME_PERIOD,ENERGY_PRODUCT,FLOW_BREAKDOWN,UNIT_MEASURE,OBS_VALUE,ASSESSMENT_CODE\nrows'; };
+    const result = await fetchYearCsv('secondary', 2025, { fetchCsv, retries: 0 });
+
+    assert.equal(result.ok, true);
+    assert.match(result.url, /secondary\/2025\.csv$/);
+    assert.equal(asked.length, 1, 'a working plain name must not trigger a second request');
+  });
+
+  it('reports a total miss instead of silently returning an empty string', async () => {
+    // The silent-empty return is the actual defect: a year that cannot be
+    // fetched AT ALL must be distinguishable from a year that is legitimately
+    // empty, or the next rename degrades to stale data just as quietly.
+    const fetchCsv = async () => { throw new Error('HTTP 404'); };
+    const result = await fetchYearCsv('primary', 2026, { fetchCsv, retries: 0 });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.text, '');
+    assert.match(result.error, /404/);
+    assert.deepEqual(result.attempted, jodiCsvCandidates('primary', 2026));
   });
 });

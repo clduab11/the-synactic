@@ -3,6 +3,101 @@
 **This file is fork-specific. `AGENTS.md` in this directory is upstream's and is still authoritative for architecture, build, and conventions — read both.**
 Kept as a separate file so upstream merges never conflict with fork knowledge.
 
+**v10 — 2026-10-05. Upstream sync: koala73/worldmonitor `9e8b2f65` merged (2,850 commits since
+the 2026-08-05 sync; 175 conflicted paths).** Every fork boundary below survived the merge; the
+decisions that took judgment are recorded here so the next sync does not re-litigate them:
+
+- **Boundary 2 posture kept where upstream re-added retry-through-refusal.** Upstream rebuilt its
+  Open-Meteo Decodo proxy cascade around a soft deadline; the fork keeps the honest-UA, no-proxy
+  helper (`scripts/_open-meteo-archive.mjs`) and ported only the deadline seam
+  (`deadlineAtMs` / `OPEN_METEO_DEADLINE_CODE`) so `seed-climate-zone-normals` still budgets its
+  fetch phase. Same call in `seed-jodi-oil`: upstream's `fetchYearCsv` advanced through every
+  error; the fork's "advance on 404 or non-CSV, stop on a refusal" rule is ported into it. JODI,
+  Yahoo (`YAHOO_UA`), HDX and the prediction venues stay on declared bot UAs.
+- **Free-tier LLM policy kept.** Upstream pinned paid models at several new call sites
+  (`deepseek-v4-flash`, `gemini-3.5-flash-lite`, `deepseek-v4.1-flash` for relay classification).
+  Primary OpenRouter slots stay on `openrouterModel()` / `OPENROUTER_MODEL`; upstream's new
+  `openrouter-free` / `openrouter-free-backup` / Groq fallback entries are kept behind them. The
+  brief's `BRIEF_LLM_SKIP_PROVIDERS` override replaces upstream's hard `allowedProviders` pin.
+- **Fork tools migrated to upstream's registry contract.** `_seedMetaKey`/`_maxStaleMin` became
+  `_freshnessChecks`; `classify_event_keyword` declares `_apiPaths: []`; registry downstream
+  calls go through `fetchMcpDownstream(url, init, execution)`; the 10 fork tools
+  (`get_defcon_level`, `get_kraken_market_data`, `get_security_advisories`,
+  `get_sovereign_stress_screen`, `get_rates_fx_credit_pressure`, `get_financial_conditions_regime`,
+  `get_stablecoin_stress`, `get_chokepoint_history`, `get_regional_snapshot`,
+  `classify_event_keyword`) sit beside upstream's new ones. The fork's `get_gold_intelligence`
+  was dropped in favour of upstream's tool of the same name (same identity, richer schema).
+  `get_chokepoint_history` now rejects an unknown id with `RpcValidationError` instead of a
+  result-level `error` key, so its outputSchema stays a strict subset of the wire shape. Tool
+  counts quoted in older entries below (69/70) are superseded by the registry-derived product
+  facts; the MCP registry ledger pins `1.30.0` at 99 tools.
+- **Widget catalog excludes the two licence-bearing fork keys.** `defconLevel` and
+  `krakenMarkets` are listed in `EXCLUDED_BOOTSTRAP_KEYS` (`scripts/_widget-data-policy.cjs`)
+  because the embeddable widget path attaches no attribution / usage-restriction rider; both
+  stay reachable only through their MCP tools, where the rider travels in-band.
+- **MCP auth adopted upstream's posture.** `api/mcp/auth.ts` is now identical to upstream
+  (HMAC `buildAuthHeaders` for `user_key`); the fork's raw-forward and
+  `addLocalSidecarTransportToken` paths are gone. Self-host still unlocks client-side via
+  `VITE_SELFHOST_PRO` (boundary 4), unchanged.
+- **Brief grounding relaxation narrowed.** Upstream's tokenizer now ends a proper-noun sequence
+  at a plain "and" and retains it only inside a registered expansion or a repeated-name entity
+  ("Johnson and Johnson"). The fork's coordinator-split relaxation therefore only ever fired on
+  the names that retention exists to protect, so it was removed; the verbatim-run,
+  reordered-window and headline-side hyphen relaxations stay (`shared/brief-llm-core.js` and
+  its `scripts/shared/` mirror, pinned by `tests/brief-llm-core-mirror-parity.test.mjs`).
+- **Taken from upstream, replacing fork work it subsumed:** the `#5947` brief-synthesis
+  rewrite (`composeSynthesizedBriefResult` + `BRIEF_REJECTIONS`) replaces the fork's
+  `splitLeadSentences` gate and its tests; the country-risk MCP app and `get_country_risk`
+  schema now describe `cii.components` as upstream does; `_open-meteo` aside, upstream's
+  HAPI snapshot-primary ordering (`#7658`) stands, with the fork's 444/scraping bot-block tests
+  re-appended.
+- **Sources retired in the attribution manifest** because nothing references them any more:
+  `api.reliefweb.int`, `reliefweb.int` (owner removal, v5), `open-meteo.caseyjhand.com` and
+  `radar.mcp.cloudflare.com` (preset curation), `web.archive.org`. Fork hosts gained the
+  origin-country (`scripts/source-origin.mjs`) and catalog-domain
+  (`scripts/crawlable-sources-page.mjs`) entries upstream's build guards now require.
+- **Upstream's acquisition-copy lint** (`docs-stats --check`) forbids hard inventory counts in
+  hand-authored copy; the README's flagged lines were reworded, not exempted. Upstream now builds
+  `public/pro/` at deploy time (no longer committed) and generates the MCP server card.
+- New upstream locales (`sw`, `zh-TW`) carry the fork keys via `sync:locales` / `locales:zh-tw`
+  (the latter needs `pip install opencc-python-reimplemented`).
+- **Preset curation kept, one endpoint followed upstream.** `src/services/mcp-store.ts` still
+  ships the fork list (NOAA Weather Records instead of the Open-Meteo community server; PostHog;
+  no Slack / Sentry / Datadog / Notion / Airtable / PostgreSQL). Cloudflare Radar moved to
+  upstream's current `https://radar.mcp.cloudflare.com/sse` endpoint. `tests/mcp-presets.test.mjs`
+  pins that list. Climate news stays at seven feeds (ReliefWeb removed, v5); the dangling
+  `mapReliefItem` export that crashed `seed-climate-disasters` on import is gone.
+- **Forecast chain resolves the primary model per call.** `resolveForecastLlmProviders` reads
+  `openrouterModel()` at call time (not module load), so an `OPENROUTER_MODEL` set after import —
+  by an operator or a test — is the model actually sent, and the Flash fail-fast/timeout policy
+  keys off it. Tests that exercise Flash-specific budgets pin Flash explicitly; tests that pinned
+  upstream's paid defaults (`classify-event-model-override`, `seeder-llm-telemetry`,
+  `regional-snapshot-weekly-brief`, `news-digest-methodology-parity`) now expect the fork default.
+- **Bootstrap byte ledger carries fork estimates apart from the capture.** The frozen
+  2026-08-21 ledger in `scripts/_bootstrap-payload-budget.mjs` must reconstruct the captured
+  bodies byte-for-byte, so `defconLevel` / `krakenMarkets` live in a separate
+  `FORK_ESTIMATED_KEY_DECODED_BYTES` table (measured from representative payloads built to each
+  seeder's shape) that `ledgerBytesForKey()` consults; re-measure from a live `tier=slow`
+  capture when one is taken. `api/download.js` accepts `trader`; `index.html` writes
+  the raw `&` in the title/meta so the VARIANT_META build replacement is a no-op; `shell.documentTitle`
+  stays absent from `en.json` (the fork keeps its static index.html title), so the key upstream's
+  new `sw` locale carried was dropped rather than resurrected.
+- **`docs/mcp-tools-reference.mdx` is upstream's page plus the ten fork sections** (kraken after
+  `get_market_data`, DEFCON after `get_military_posture`, the seven finance/chokepoint/regional
+  tools at the head of Meta, `classify_event_keyword` before `describe_tool`). An earlier splice
+  had truncated it to one screen; `tests/mcp-tools-reference-docs.test.mjs` and `docs:check`
+  guard it now. `tests/cii-docs-drift.test.mts` no longer lists README.md as a canonical-page
+  surface — the fork README does not market the hosted worldmonitor.app pages.
+- **Known environment-only test failures** (reproduced identically on a pristine upstream
+  checkout, so not fork regressions): `natural-events-request-diagnostics`,
+  `natural-events-transport`, `market-physical-freshness`, `widget-agent-relay-failure`,
+  `dashboard-build-guards`, `map-viewport-runtime`, `social-velocity-boundary` (its Docker
+  sandbox copy of `shared/bootstrap-tier-keys.js` lacks the named export);
+  `dry-run-resilience-education-flip` hashes the harness at HEAD and only passes on a committed
+  tree; `pretest:data` (`docs:dates`) needs full git history, so run
+  `node scripts/run-data-tests.mjs tests/*.test.mjs tests/*.test.mts cli/test/*.test.mjs
+  api/security/report.test.mjs` directly on a shallow clone.
+
 **v2 — 2026-07-29.** Corrected after `docs/plans/recon-01.md`, which refuted three v1 claims from source. Every correction is marked. Line numbers re-pinned to this checkout.
 
 **v3 — 2026-07-30.** Charter change by the owner: the-synactic is now an MCP-accessible **read-only intelligence provider** for downstream authorized actors, not report-only. AGPL §13 escalation language removed (owner decision, legal cleared). The instrument stays read-only in its own code; execution lives downstream. README lineage credit and the LICENSE file are unchanged (attribution, not charter).

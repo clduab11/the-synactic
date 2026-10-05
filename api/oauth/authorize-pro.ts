@@ -25,9 +25,9 @@
  *      be up to 5 minutes old; tier may have lapsed since mint. A denial here
  *      is split three ways (#5622): an unverifiable entitlement or in-flight
  *      renewal check renders a retryable 503 page (`Retry-After` +
- *      `X-Billing-Verification`), a provider-confirmed lapse renders a distinct
- *      403, and only a confirmed non-Pro row gets the "Pro Subscription
- *      Required" upsell.
+ *      `X-Billing-Verification`), provider-confirmed ended coverage continues
+ *      as a restricted free account, and only a genuinely insufficient non-free
+ *      row gets the "Pro Subscription Required" upsell.
  *   7. Calls `issueProMcpTokenForUser` to insert a Convex `mcpProTokens`
  *      row. NO `wm_` key, NO `WORLDMONITOR_VALID_KEYS` write — Pro identity
  *      lives only in Convex, the OAuth code carries the row id.
@@ -127,6 +127,14 @@ function htmlError(
 <p class="footer"><a href="https://www.worldmonitor.app" target="_blank" rel="noopener">worldmonitor.app</a></p>
 </body></html>`,
     { status, headers: { ...PAGE_HEADERS, ...extraHeaders } },
+  );
+}
+
+function proRequiredPage(): Response {
+  return htmlError(
+    'Pro Subscription Required',
+    'A WorldMonitor Pro subscription is required for this connection. Please subscribe and try again.',
+    403,
   );
 }
 
@@ -246,6 +254,8 @@ export interface NonceData {
   redirect_uri: string;
   code_challenge: string;
   state?: string;
+  /** RFC 9207 issuer captured by GET /oauth/authorize; absent on older nonces. */
+  iss?: string;
   created_at?: number;
 }
 
@@ -433,13 +443,17 @@ export async function authorizeProHandler(req: Request, deps: AuthorizeProDeps):
   const gate = checkProMcpAccess(ent, deps.now(), {
     backendConfigured: isEntitlementBackendConfigured(),
   });
-  if (gate) {
-    if (gate.kind === 'billing_verification') return billingVerificationPage(gate.denial);
-    return htmlError(
-      'Pro Subscription Required',
-      'A WorldMonitor Pro subscription is required for this connection. Please subscribe and try again.',
-      403,
-    );
+  // #6716: a CONFIRMED free account completes authorization. This is the last
+  // of the three edge gates and it must agree with grant-context, grant-mint,
+  // and Convex issuance — a free account that cleared consent and minted a
+  // grant only to fail on the final redirect is worse than one refused up
+  // front. Their token meters against the free allowance on every gated call
+  // and is restricted to cache-backed tools.
+  if (gate && gate.kind !== 'free_account') {
+    if (gate.kind === 'billing_verification') {
+      return billingVerificationPage(gate.denial);
+    }
+    return proRequiredPage();
   }
 
   // ----- 8. Issue the Convex mcpProTokens row -----
@@ -450,11 +464,7 @@ export async function authorizeProHandler(req: Request, deps: AuthorizeProDeps):
   } catch (err) {
     if (err instanceof ProMcpIssueFailed) {
       if (err.kind === 'pro-required') {
-        return htmlError(
-          'Pro Subscription Required',
-          'A WorldMonitor Pro subscription is required for this connection. Please subscribe and try again.',
-          403,
-        );
+        return proRequiredPage();
       }
       if (err.kind === 'invalid-user-id') {
         return htmlError(
@@ -522,6 +532,7 @@ export async function authorizeProHandler(req: Request, deps: AuthorizeProDeps):
       );
       captureSilentError(err, {
         tags: { route: 'api/oauth/authorize-pro', step: 'rollback-revoke' },
+        fingerprint: ['api/oauth/authorize-pro', 'rollback-revoke', err instanceof Error ? err.name : 'Error'],
       });
     }
     return htmlError(
@@ -535,6 +546,10 @@ export async function authorizeProHandler(req: Request, deps: AuthorizeProDeps):
   const redirectUrl = new URL(redirect_uri);
   redirectUrl.searchParams.set('code', code);
   if (state) redirectUrl.searchParams.set('state', state);
+  // The issuer the client discovered, not this host (always api.*).
+  if (typeof nonceData.iss === 'string' && nonceData.iss) {
+    redirectUrl.searchParams.set('iss', nonceData.iss);
+  }
 
   return new Response(null, {
     status: 302,

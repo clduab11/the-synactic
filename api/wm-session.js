@@ -3,7 +3,7 @@
 // caller submits legacy tester keys during migration, those keys are moved into
 // short-lived HttpOnly cookies so they stop living in JS-readable storage.
 
-import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCorsHeaders, getOriginDeniedCorsHeaders, isDisallowedOrigin } from './_cors.js';
 import { timingSafeEqualSecret, timingSafeIncludes } from './_crypto.js';
 import { checkRateLimit } from './_rate-limit.js';
 import { issueSessionToken, validateSessionToken } from './_session.js';
@@ -12,8 +12,8 @@ import { emitWmSessionUsage } from './_usage-telemetry.js';
 export const config = { runtime: 'edge' };
 
 const SESSION_COOKIE = 'wm-session';
-const WIDGET_KEY_COOKIE = 'wm-widget-key';
-const PRO_KEY_COOKIE = 'wm-pro-key';
+const WIDGET_KEY_COOKIE = '__Host-wm-widget-key';
+const PRO_KEY_COOKIE = '__Host-wm-pro-key';
 const COOKIE_MAX_AGE_SECONDS = 12 * 60 * 60;
 const LEGACY_KEY_MAX_LEN = 512;
 const SESSION_RATE_LIMIT_SCOPE = 'wm-session';
@@ -86,7 +86,17 @@ function cookieDomainAttribute(req) {
 }
 
 function sessionCookie(req, name, value) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}${cookieDomainAttribute(req)}; HttpOnly; Secure; SameSite=Lax`;
+  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}${name === SESSION_COOKIE ? cookieDomainAttribute(req) : ''}; HttpOnly; Secure; SameSite=Lax`;
+}
+
+/**
+ * Host-only Max-Age=0 tombstone for the same name/path. An older api-host
+ * wm-session (no Domain) would otherwise shadow the new Domain=.worldmonitor.app
+ * cookie: browsers send both, and first-match readers keep the stale host-only
+ * value. Only emit this on shared-domain production hosts.
+ */
+function hostOnlySessionTombstone() {
+  return `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
 }
 
 function clearReadableCookie(name) {
@@ -157,17 +167,25 @@ export default async function handler(req, ctx) {
     return response;
   };
 
+  // Preflight must succeed even for origins we refuse on POST — otherwise the
+  // browser never sends the actual request and the client sees a network error
+  // instead of a readable 403 (#6411). Allowed origins get normal CORS;
+  // disallowed origins get refusal-specific headers that echo their Origin.
+  if (req.method === 'OPTIONS') {
+    const preflight = isDisallowedOrigin(req)
+      ? getOriginDeniedCorsHeaders(req, 'POST, OPTIONS')
+      : getCorsHeaders(req, 'POST, OPTIONS');
+    return new Response(null, { status: 204, headers: preflight });
+  }
+
   if (isDisallowedOrigin(req)) {
-    const response = new Response('Forbidden', { status: 403 });
+    const deniedCors = getOriginDeniedCorsHeaders(req, 'POST, OPTIONS');
+    const response = new Response('Forbidden', { status: 403, headers: deniedCors });
     emitWmSessionUsage(ctx, req, response, startedAt, 'origin_403');
     return response;
   }
 
   const cors = getCorsHeaders(req, 'POST, OPTIONS');
-
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: cors });
-  }
 
   if (req.method !== 'POST') {
     return respond({ error: 'Method not allowed' }, 405, cors, 'method_not_allowed');
@@ -217,17 +235,30 @@ export default async function handler(req, ctx) {
     return respond({ error: 'Invalid session key' }, 401, cors, 'auth_401');
   }
 
-  let headers = appendHeader(cors, 'Set-Cookie', sessionCookie(req, SESSION_COOKIE, issued.token));
-
-  // Best-effort cleanup for old JS-readable cookies only when replacing that
-  // key. A no-key session refresh must preserve existing HttpOnly key cookies.
-  if (widgetKey) {
-    headers = appendHeader(headers, 'Set-Cookie', clearReadableCookie(WIDGET_KEY_COOKIE));
-    headers = appendHeader(headers, 'Set-Cookie', sessionCookie(req, WIDGET_KEY_COOKIE, widgetKey));
+  let headers = cors;
+  if (shouldUseSharedCookieDomain(req)) {
+    // Tombstone first so the subsequent Domain cookie is the only live wm-session.
+    headers = appendHeader(headers, 'Set-Cookie', hostOnlySessionTombstone());
   }
-  if (proKey) {
-    headers = appendHeader(headers, 'Set-Cookie', clearReadableCookie(PRO_KEY_COOKIE));
-    headers = appendHeader(headers, 'Set-Cookie', sessionCookie(req, PRO_KEY_COOKIE, proKey));
+  headers = appendHeader(headers, 'Set-Cookie', sessionCookie(req, SESSION_COOKIE, issued.token));
+
+  // Retire both old scopes on every refresh. Never consume these names: a
+  // parent-domain cookie cannot prove which sibling issued it. __Host- also
+  // prevents siblings from planting a Domain cookie under the replacement name.
+  for (const name of ['wm-widget-key', 'wm-pro-key']) {
+    headers = appendHeader(headers, 'Set-Cookie', clearReadableCookie(name));
+    headers = appendHeader(headers, 'Set-Cookie', `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+  }
+  for (const [field, name, key] of [
+    ['widgetKey', WIDGET_KEY_COOKIE, widgetKey],
+    ['proKey', PRO_KEY_COOKIE, proKey],
+  ]) {
+    if (key) {
+      headers = appendHeader(headers, 'Set-Cookie', sessionCookie(req, name, key));
+    } else if (typeof body[field] === 'string' && !body[field].trim()) {
+      // Explicit empty string clears; an omitted field preserves the session.
+      headers = appendHeader(headers, 'Set-Cookie', `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+    }
   }
 
   // The HttpOnly cookie remains the primary transport. The anonymous token is
