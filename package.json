@@ -326,7 +326,7 @@
     "srvx": "^0.11.13",
     "protobufjs": "^7.6.2",
     "ws": "$ws",
-    "shell-quote": "^1.8.4",
+    "shell-quote": "1.11.0",
     "ip-address": "^10.3.1",
     "brace-expansion@1": "^1.1.21",
     "brace-expansion@2": "^2.1.7",
