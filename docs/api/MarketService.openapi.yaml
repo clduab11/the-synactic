@@ -4967,6 +4967,12 @@ components:
                 winRate:
                     type: number
                     format: double
+                    description: |-
+                        The five simulated-performance metrics are OPTIONAL and are omitted
+                         whenever `available` is false. They are measurements, not counters: a
+                         hard 0 on an unavailable response reads as "0% win rate" to any consumer
+                         that skips the `available` check, which is a fabricated measurement.
+                         Absent means "not measured"; present means "measured, possibly 0".
                 directionAccuracy:
                     type: number
                     format: double
