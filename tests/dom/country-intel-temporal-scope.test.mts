@@ -115,7 +115,9 @@ it('refreshes deep-dive signal chips and breakdown when updateScore receives new
   const chips = body.querySelector('.cdp-signal-chips')?.textContent ?? '';
   expect(chips).toContain('3');
   expect(chips).not.toContain('Temporal observations unavailable');
-  // low bucket = earthquakes + temporal + satellite fires
-  expect(body.querySelector('.cdp-signal-breakdown')?.textContent).toContain('6');
+  expect(body.querySelector('.cdp-signal-breakdown')?.textContent).toBe('Qualified country observations are loading.');
+  expect(body.querySelector('.cdp-signal-breakdown')?.textContent).not.toContain('6');
+  panel.updateScore(null, { ...refreshed, militaryFlights: 0, militaryVessels: 0 });
+  expect(body.querySelector('.cdp-signal-breakdown')?.textContent).toBe('Qualified country observations are loading.');
   document.body.replaceChildren();
 });

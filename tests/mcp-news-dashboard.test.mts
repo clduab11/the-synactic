@@ -149,10 +149,21 @@ test('brief analysis retains the full dashboard variant and requested summary la
   const tool = TOOL_REGISTRY.find(t => t.name === 'analyze_news_headlines')!;
   globalThis.fetch = async (_input, init) => {
     const request = JSON.parse(String(init?.body));
+    assert.equal(request.provider, 'openrouter');
     assert.equal(request.mode, 'brief');
     assert.equal(request.variant, 'full');
     assert.equal(request.lang, 'fr');
     return Response.json({ summary: 'Résumé', status: 'success' });
   };
   await tool._execute!({ headlines: ['First', 'Second'], lang: 'fr' }, 'https://www.worldmonitor.app', { kind: 'env_key', apiKey: 'fixture-key' }, undefined);
+});
+
+test('headline schema advertises the summarize-article per-headline cap', async () => {
+  // summarize-article refuses a longer translation and cuts a longer brief
+  // headline, so the schema must not advertise more than the handler reads.
+  const { MAX_TRANSLATE_INPUT_LEN } = await import('../server/worldmonitor/news/v1/summarize-article.ts');
+  const tool = TOOL_REGISTRY.find(t => t.name === 'analyze_news_headlines')!;
+  const validate = new Ajv2020({ strict: false }).compile(buildPublicTool(tool, { compressDescriptions: false }).inputSchema);
+  assert.equal(validate({ headlines: ['x'.repeat(MAX_TRANSLATE_INPUT_LEN)], mode: 'translate', lang: 'fr' }), true);
+  assert.equal(validate({ headlines: ['x'.repeat(MAX_TRANSLATE_INPUT_LEN + 1)], mode: 'translate', lang: 'fr' }), false);
 });

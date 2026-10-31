@@ -1,6 +1,6 @@
 # Temporary dependency security backports
 
-These packages retain the upstream names and CommonJS APIs. Their private versions identify WorldMonitor security backports, not published upstream releases.
+These packages retain the upstream names and runtime APIs. Their private versions identify WorldMonitor backports, not published upstream releases.
 
 The root and Pro projects use `braces` 3.0.4-worldmonitor.1. The blog uses `http-cache-semantics` 4.2.1-worldmonitor.2. Each project declares the local source directly and uses an npm `$` override to select it for every transitive consumer. `install-links=true` makes npm copy the package into each installation. Pro does not need the root installation to resolve `fill-range`.
 
@@ -14,7 +14,15 @@ Connection and Vary fields use literal comma splitting and per-field trimming to
 
 Neither backport has an install script. The committed source is the installed artifact, including when lifecycle scripts are disabled.
 
+`stream-json` starts from the npm 1.9.1 package, with its BSD-3-Clause license. Root and Pro select the private 1.9.2-worldmonitor.1 backport. Only `Assembler.js` changes. Both value assignment paths create an own data property for `__proto__`, following the [upstream fix](https://github.com/uhop/stream-json/commit/2f2d35bbb547306991ded6487a279154d865a358). The backport preserves the CommonJS import paths and streaming API used by `jayson`; upstream 3.6.0 changes those contracts. Its package manifest removes lifecycle scripts and development dependencies. The other upstream files remain unchanged. The 1.x package has no JSONC parser or verifier.
+
+Run `node --test tests/dependency-security-regression.test.mjs tests/dependency-backports.test.mjs` after a clean install. The regressions exercise the installed `jayson` stream parser, nested and primitive prototype keys, identity and deleting revivers, consecutive JSON values, and KaTeX trust options. Replace the stream-json backport when `jayson` supports a patched upstream version or upstream publishes a compatible 1.x fix.
+
 ## Verification and removal
+
+`@vercel/og` uses the private `1.0.3-worldmonitor.1` package in the root project. It retains upstream 1.0.3 and Satori 0.33.5, including the SVG serialization security fix. The published bundle eagerly starts HarfBuzz without its WASM binary and includes unused Node worker initialization in the Edge build. The backport supplies HarfBuzz's pinned binary and disables its filesystem loader. It removes only the unused worker initialization from the bundled synchronous font decompressor. The API, fonts, Yoga and resvg binaries remain upstream artifacts. The package has no install scripts and works with lifecycle scripts disabled.
+
+To reproduce the package, download `@vercel/og` 1.0.3 and `harfbuzzjs` 0.10.0 with `npm pack`, then run `node scripts/vendor-vercel-og.mjs /absolute/path/vercel-og-1.0.3.tgz /absolute/path/harfbuzzjs-0.10.0.tgz`. The script checks both npm archive integrity values before patching. The original MPL-2.0 and HarfBuzz MIT licenses ship with the package. Run `node --import tsx --test tests/brief-carousel.test.mjs tests/brief-carousel-cache.test.mts tests/vercel-og-backport.test.mjs`. Replace this backport when an upstream release passes both the Node renderer checks and the Edge render check while retaining the SVG security fix.
 
 Run `node --test tests/dependency-backports.test.mjs tests/security-audit-baseline.test.mjs` after clean root and blog installs. Verify a separate Pro install and build. The tests exercise hostile input, directly supplied ASTs, restored cache policies, restricted stale reuse, and allowed cache responses.
 

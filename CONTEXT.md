@@ -3,6 +3,30 @@
 **This file is fork-specific. `AGENTS.md` in this directory is upstream's and is still authoritative for architecture, build, and conventions — read both.**
 Kept as a separate file so upstream merges never conflict with fork knowledge.
 
+**v11 — 2026-10-31. Upstream sync: koala73/worldmonitor `e3268a4a8` merged (870 commits since
+the 2026-10-05 `9e8b2f650` sync; 97 conflicted paths).** Key decisions and adaptations:
+
+- **Single-source health verdict (`#9883`) adopted.** Upstream retired `seed-freshness-baseline.json`
+  and `expiring-ack` cutovers; all 37 new upstream probes since `9e8b2f650` carry `activation-marker`
+  cutovers and pass `check-health-probe-cutovers.mts` against `origin/main`. Fork standalone probes
+  (`defconLevel`, `krakenMarkets`) remain in `STANDALONE_KEYS` / `SEED_META` (total 351 probes).
+- **Boundary 2 & Free-tier LLM policy preserved.** `seed-jodi-oil.mjs` composes upstream's streaming
+  `stallMs`/`budgetMs` reader with the fork's `JODI_UA`, 4xx `nonRetryable` refusal handling, and
+  `assertParseableCsv`. `seed-prediction-markets.mjs` keeps `HONEST_UA` across the new Kalshi
+  order-book liquidity pass. Primary OpenRouter slots in `seed-forecasts.mjs`,
+  `seed-forecast-resolutions.mjs` (`liveJudgeModelIds().a`), `brief-llm.mjs`, and `classify_event`
+  remain on `openrouterModel()` (`nvidia/nemotron-3-ultra-550b-a55b:free`), while adopting upstream's
+  removal of the retired Groq fallback.
+- **MCP domain and annotation contracts (`1.47.0`, 109 tools).** The 10 fork MCP tools are registered
+  in `api/mcp/domains.ts`, carry human-readable `title` annotations, and obey the tool-description
+  policy (no cross-tool references, ≤1024 B per tool, 76 KiB total budget across 109 tools).
+  Cloudflare Radar preset uses `https://radar.mcp.cloudflare.com/mcp`.
+- **CII v14 & TypeScript 7 (`#9489`, `#9506`).** `get-risk-scores.ts` passes `acled.rows` to
+  `assessCiiInputAvailability` while preserving `degraded: acled.unavailable`; `intel-history-client.ts`
+  preserves the local Chroma `useLocalBackend()` branch under the paginated `nextCursor` signature;
+  `McpConnectModal.ts` wraps `premiumFetch` in `Promise.resolve().then(...)` so mock/test callers
+  never throw before `.catch()`.
+
 **v10 — 2026-10-05. Upstream sync: koala73/worldmonitor `9e8b2f65` merged (2,850 commits since
 the 2026-08-05 sync; 175 conflicted paths).** Every fork boundary below survived the merge; the
 decisions that took judgment are recorded here so the next sync does not re-litigate them:

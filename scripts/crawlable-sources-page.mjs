@@ -103,13 +103,14 @@ const SOURCE_DOMAIN_MATCHERS = [
   ['infrastructure', /infrastructure|cyber|cable|cloudflare|service-status|pipeline|internet-outage|portwatch|chokepoint|maritime|navigational-warning|abuseipdb|abuse\.ch/],
   ['finance', /econom|market|finance|stock|crypto|coin|exchange-rate|\bfx\b|yield|central-bank|trade|supply-chain|grocery|bigmac|debt|bis-|ecb-|eurostat|world-bank|comtrade|fao-food|treasury|fiscaldata|world-cpi|oecd|e-stat|abs\.gov\.au/],
   ['technology', /research|company|github|agentskills|technology|regulatory|tender|patent|startup|product-hunt|ossinsight|exa\.ai|firecrawl/],
-  ['geopolitics', /conflict|unrest|acled|ucdp|gdelt|security-advisor|sanction|travel-advisor|displacement|resilience|country-fact|prediction-market|forecast-market|hapi/],
+  ['geopolitics', /conflict|unrest|acled|ucdp|gdelt|security-advisor|sanction|travel-advisor|displacement|cross-border|resilience|country-fact|prediction-market|forecast-market|hapi/],
 ];
 
 // The manifest records providers and code references, not a marketing domain.
 // Keep ambiguous structured providers explicit so a new unmatched provider
 // fails the build instead of silently becoming "geopolitics".
 const SOURCE_DOMAIN_OVERRIDES = new Map([
+  ['hormuz.data-tracking.net', 'infrastructure'],
   ['Alberta Emergency Alert', 'environment'],
   ['B.C. Evacuation Orders and Alerts', 'environment'],
   ['SaskAlert', 'environment'],
@@ -117,8 +118,14 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
   ['Barchart', 'finance'],
   ['TradingView', 'finance'],
   ['api.rainviewer.com', 'environment'],
+  // #9094: locates published fact-checks for /verify and verify_claim.
+  ['factchecktools.googleapis.com', 'news'],
   // BestTime live busyness is the fallback feed for the PizzINT (Pentagon pizza) panel.
   ['besttime.app', 'military'],
+  // Turkey's crude imports by origin for the energy shock model.
+  ['www.epdk.gov.tr', 'energy'],
+  // UN M49 region table behind media-perspective outlet_regions (build-time only).
+  ['unstats.un.org', 'news'],
   ['api.scrapecreators.com', 'news'],
   ['api.telegram.org', 'news'],
   ['api.tzevaadom.co.il', 'military'],
@@ -130,6 +137,8 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
   ['api.windy.com', 'environment'],
   ['archive-api.open-meteo.com', 'environment'],
   ['open-meteo.caseyjhand.com', 'environment'],
+  ['identity.dataspace.copernicus.eu', 'environment'],
+  ['sh.dataspace.copernicus.eu', 'environment'],
   ['British Geological Survey World Mineral Statistics', 'energy'],
   ['Bank of Canada', 'finance'],
   ['bothsidesofthetable.com', 'technology'],
@@ -196,7 +205,9 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
 // Keep the hostname as the traceability link, but never make it do double duty
 // as the visible provider title.
 const SOURCE_NAME_OVERRIDES = new Map([
+  ['hormuz.data-tracking.net', 'UK Maritime Trade Operations (UKMTO) via hormuz.data-tracking.net'],
   ['acleddata.com', 'ACLED'],
+  ['factchecktools.googleapis.com', 'Google Fact Check Tools API'],
   ['adsb.lol', 'ADSB.lol'],
   ['aerotime.aero', 'AeroTime'],
   ['agentskills.io', 'Agent Skills'],
@@ -224,6 +235,7 @@ const SOURCE_NAME_OVERRIDES = new Map([
   ['api.ted.europa.eu', 'Tenders Electronic Daily (TED)'],
   ['api.tzevaadom.co.il', 'Tzeva Adom'],
   ['api.unhcr.org', 'UNHCR'],
+  ['data.unhcr.org', 'UNHCR Operational Data Portal'],
   ['api.usaspending.gov', 'USAspending.gov'],
   ['api.weather.gc.ca', 'Environment and Climate Change Canada (ECCC)'],
   ['api.weather.gov', 'U.S. National Weather Service'],
@@ -270,6 +282,8 @@ const SOURCE_NAME_OVERRIDES = new Map([
   ['feodotracker.abuse.ch', 'Feodo Tracker'],
   ['finance.yahoo.com', 'Yahoo Finance'],
   ['firms.modaps.eosdis.nasa.gov', 'NASA FIRMS'],
+  ['identity.dataspace.copernicus.eu', 'Copernicus Data Space Ecosystem (identity)'],
+  ['sh.dataspace.copernicus.eu', 'Copernicus Sentinel Hub (Sentinel-5P TROPOMI)'],
   ['gain.nd.edu', 'Notre Dame Global Adaptation Initiative'],
   ['gamma-api.polymarket.com', 'Polymarket'],
   ['geospatial-usace.opendata.arcgis.com', 'U.S. Army Corps of Engineers'],
@@ -375,6 +389,7 @@ const SOURCE_NAME_OVERRIDES = new Map([
   ['www.ecb.europa.eu', 'European Central Bank (ECB)'],
   ['www.ecdc.europa.eu', 'European Centre for Disease Prevention and Control'],
   ['www.eia.gov', 'U.S. Energy Information Administration (EIA)'],
+  ['www.epdk.gov.tr', 'Energy Market Regulatory Authority of Türkiye (EPDK)'],
   ['www.fao.org', 'UN Food and Agriculture Organization (FAO)'],
   ['www.federalreserve.gov', 'U.S. Federal Reserve'],
   ['www.gdacs.org', 'Global Disaster Alert and Coordination System (GDACS)'],
@@ -398,6 +413,7 @@ const SOURCE_NAME_OVERRIDES = new Map([
   ['www.stats.gov.cn', 'National Bureau of Statistics of China'],
   ['www.szse.cn', 'Shenzhen Stock Exchange'],
   ['www.unep.org', 'UN Environment Programme (UNEP)'],
+  ['www.unognewsroom.org', 'UN Geneva Newsroom'],
   ['www.war.gov', 'Pentagon'],
   ['www.weather.gov.hk', 'Hong Kong Observatory'],
   ['www.whitehouse.gov', 'The White House'],
@@ -809,6 +825,17 @@ export function buildSourcePages(sourceCatalog) {
   });
 }
 
+function sourceCategoryDocumentTitle(name) {
+  const longTitle = `${name}: Data Sources and Providers | World Monitor`;
+  const title = [...longTitle].length > 60
+    ? `${name} Data Sources | World Monitor`
+    : longTitle;
+  if ([...title].length > 60) {
+    throw new Error(`${name} document title is ${[...title].length} characters: ${title}`);
+  }
+  return title;
+}
+
 export function renderSourcesIndex({ sourceStats, sourceCatalog, catalogDatasets = [], baseUrl, lastmod, helpers, directoryPages = null, sourcePage = null, catalogAnchors = sourceCardAnchors(sourceCatalog), siblingPages = [] }) {
   const { absoluteUrl, breadcrumbLd, dataCatalogLd, escapeHtml, pageDocument } = helpers;
   const path = sourcePage?.path || '/sources/';
@@ -870,6 +897,7 @@ export function renderSourcesIndex({ sourceStats, sourceCatalog, catalogDatasets
         </a>
         <span class="source-nav-links">
           <a href="/sources/" aria-current="page">Sources</a>
+          <a href="/reference/coverage/">Coverage</a>
           <a href="/blog/">Blog</a>
           <a href="/docs/documentation">Docs</a>
           <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noreferrer">GitHub</a>
@@ -1157,7 +1185,7 @@ ${providerCards}
   return pageDocument({
     baseUrl,
     path,
-    title: sourcePage ? `${sourcePage.name} sources | World Monitor` : 'Data Source Catalog | World Monitor',
+    title: sourcePage ? sourceCategoryDocumentTitle(sourcePage.name) : 'Global Data Sources: OSINT, Markets, Energy | World Monitor',
     description,
     lastmod,
     jsonLd: [

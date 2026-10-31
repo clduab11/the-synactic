@@ -22,6 +22,9 @@ const REFRESH_HINT =
   'ANTHROPIC_API_KEY=... node scripts/translate-locales.mjs && npm run locales:zh-tw';
 
 const NEW_TRANSLATED_KEYS = [
+  ...['upcomingForecast', 'currentForecast', 'expiredForecast', 'validFrom', 'validUntil']
+    .map(key => `popups.${key}`),
+  'countryBrief.chips.normalPrecautions',
   'popups.militaryFlight.climbRate',
   'popups.militaryFlight.manufacturer',
   'popups.militaryFlight.owner',
@@ -43,11 +46,11 @@ const ENGLISH_CEILING = {
   // placeholders in every locale by design on a private, English-operated
   // self-host. Each ceiling is that locale's current English-identical count
   // plus the same three values of reviewable headroom upstream uses.
-  ar: 444, bg: 334, cs: 378, de: 366, el: 445, es: 519,
-  fa: 2646, fr: 513, hi: 229, hr: 367, hu: 343, it: 328,
-  ja: 477, ko: 326, nl: 599, pl: 547, pt: 553, ro: 479,
-  ru: 462, sv: 576, sw: 482, th: 394, tr: 491, uk: 2780,
-  vi: 271, zh: 358, 'zh-TW': 358,
+  ar: 409, bg: 296, cs: 352, de: 251, el: 407, es: 221,
+  fa: 2493, fr: 487, hi: 210, hr: 341, hu: 312, it: 313,
+  ja: 434, ko: 295, nl: 569, pl: 508, pt: 511, ro: 448,
+  ru: 146, sv: 536, sw: 450, th: 362, tr: 452, uk: 181,
+  vi: 252, zh: 133, 'zh-TW': 133,
 };
 
 function lookup(value, dotted) {

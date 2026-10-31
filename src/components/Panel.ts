@@ -800,7 +800,7 @@ export class Panel {
     this.statusBadgeEl.style.display = 'none';
   }
 
-  private updateFreshnessBadge(summary: PanelFreshnessSummary | null = dataFreshness.getPanelFreshness(this.panelId)): void {
+  protected updateFreshnessBadge(summary: PanelFreshnessSummary | null = dataFreshness.getPanelFreshness(this.panelId)): void {
     if (!this.freshnessBadgeEl) return;
     if (!summary) {
       this.freshnessBadgeEl.style.display = 'none';
@@ -1106,7 +1106,8 @@ export class Panel {
       h('div', { className: 'panel-radar-dot error' }),
     );
 
-    const msgEl = h('div', { className: 'panel-error-msg' }, message || t('common.failedToLoad'));
+    const msgEl = h('div', { className: 'panel-error-msg' });
+    msgEl.textContent = message || t('common.failedToLoad');
 
     const children: (HTMLElement | string)[] = [radarEl, msgEl];
 

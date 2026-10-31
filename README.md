@@ -32,7 +32,7 @@ maritime chokepoints, energy flows, airspace, cyber threat feeds,
 macroeconomics, and climate anomalies — drawing on a curated news-feed corpus backed by hundreds of attributed upstream hosts
 and the major stock exchanges. A typed MCP tool surface any agent can
 call — composite country-risk scoring (server-authoritative
-CII v8 stress scoring for 31 Tier-1 countries), conflict-event retrieval,
+CII v14 stress scoring for 31 Tier-1 countries), conflict-event retrieval,
 LLM-grounded country briefs, chokepoint status — with server-side projection
 keeping context windows lean. Dozens of map layer types render it, in every supported interface language.
 190+ routed model endpoints behind one
