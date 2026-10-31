@@ -36,7 +36,7 @@ import test, { afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS,
+  LONG_COMPLETION_TIMEOUT_MS,
   OPENROUTER_BLOCKED_PROVIDERS,
 } from '../scripts/_llm-model-timeouts.mjs';
 import {
@@ -94,14 +94,14 @@ test('the Flash completion timeout clears the measured p90 (the 15s clamp made t
   // The old 15s clamp sat BELOW the fastest observed completion for this call
   // shape, so no amount of retrying could ever succeed.
   assert.ok(
-    DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS > Math.min(...MEASURED_THROUGHPUT_ROUTED_MS),
+    LONG_COMPLETION_TIMEOUT_MS > Math.min(...MEASURED_THROUGHPUT_ROUTED_MS),
     'timeout must exceed the FASTEST observed completion, or the primary can never succeed',
   );
   // The user's bar: succeed 90%+ of the time.
   assert.ok(
-    coverage(DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS) >= 0.9,
-    `timeout ${DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS}ms only covers `
-      + `${(coverage(DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS) * 100).toFixed(0)}% of measured runs; need >=90%`,
+    coverage(LONG_COMPLETION_TIMEOUT_MS) >= 0.9,
+    `timeout ${LONG_COMPLETION_TIMEOUT_MS}ms only covers `
+      + `${(coverage(LONG_COMPLETION_TIMEOUT_MS) * 100).toFixed(0)}% of measured runs; need >=90%`,
   );
 });
 
@@ -116,7 +116,7 @@ test('the provider-level timeout does not re-clamp Flash below its completion bu
   assert.equal(openrouter.name, 'openrouter');
   assert.equal(
     openrouter.timeout,
-    DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS,
+    LONG_COMPLETION_TIMEOUT_MS,
     'the effective attempt timeout must equal the Flash cap, not a lower provider timeout',
   );
   assert.ok(coverage(openrouter.timeout) >= 0.9);
@@ -166,7 +166,7 @@ test('the market_implications admission reservation covers exactly its own chain
   // rungs would reserve 40+25+25+5 = 95s, raising the admission bar (=> MORE
   // starvation).
   const reservation = getMarketImplicationsMinRunBudgetMs(getForecastLlmCallOptions('market_implications'));
-  assert.equal(reservation, DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS + 5_000, 'openrouter attempt + guard only');
+  assert.equal(reservation, LONG_COMPLETION_TIMEOUT_MS + 5_000, 'openrouter attempt + guard only');
 });
 
 test('the run budget leaves the tail its reservation, and still fits inside the seed lock', () => {
@@ -176,11 +176,16 @@ test('the run budget leaves the tail its reservation, and still fits inside the 
   // finish inside the lock or a slow run gets its lock stolen mid-write.
   const reservation = getMarketImplicationsMinRunBudgetMs(getForecastLlmCallOptions('market_implications'));
 
-  // Upstream would have to burn (200s - 45s) = 155s to starve the tail. Throughput-
-  // routed stages are p90 26s / capped at 40s, so this cannot happen in practice.
+  // Upstream must burn (run budget - reservation) to starve the tail. Widening the
+  // completion cap to 60s deliberately BUYS tail robustness with upstream headroom:
+  // the reservation grew from 45s to 65s, so this margin fell from 155s to 135s.
+  // Still far beyond reach — throughput-routed stages measured p90 26s — but the
+  // trade is real, and the floor is stated in terms of the reservation so a further
+  // cap rise shows up here as a decision rather than as a surprise.
   assert.ok(
-    FORECAST_LLM_RUN_BUDGET_MS - reservation >= 150_000,
-    'run budget must leave upstream ample room while still preserving the tail reservation',
+    FORECAST_LLM_RUN_BUDGET_MS - reservation >= 130_000,
+    `run budget must leave upstream ample room while still preserving the tail reservation `
+      + `(margin ${FORECAST_LLM_RUN_BUDGET_MS - reservation}ms)`,
   );
   // The run budget must stay strictly under the lock, with cleanup headroom.
   assert.ok(

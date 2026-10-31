@@ -43,12 +43,21 @@ export const OPENROUTER_BLOCKED_PROVIDERS = OPENROUTER_PROVIDER_ROUTING.ignore;
 // long-generation caller, pass a bigger cap instead.
 export const DEEPSEEK_V4_FLASH_COMPLETION_TIMEOUT_MS = 15_000;
 
-// LONG (40s): large generations, e.g. forecast stages at max_tokens 2500, which emit
-// ~1.2-1.9k completion tokens. Measured against production under the routing above:
-// p50 15.3s, p90 22.4s, max 25.0s across 14 samples => 40s covers 100% with margin.
-// The old behaviour clamped these to 15s — BELOW the fastest observed completion —
-// so the primary provider could never succeed and every run wrote a SEED_ERROR.
-export const DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS = 40_000;
+// LONG (60s): large generations, e.g. forecast stages at max_tokens 2500, which emit
+// ~1.2-1.9k completion tokens. Named for the CALL SHAPE, not a model — it was
+// DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS, and every consumer gated it behind
+// isDeepseekV4FlashModel(). When the forecast chain moved to free models that
+// predicate went false, so this cap stopped applying at all and the stages silently
+// fell back to the provider table's 25s — below the 25.0s max of the samples below,
+// i.e. tighter than the budget that was measured to be necessary.
+//
+// PROVENANCE: 40s was measured on deepseek-v4-flash under compliant routing —
+// p50 15.3s, p90 22.4s, max 25.0s across 14 samples. 60s is NOT a measurement of
+// the current free models; it is a deliberate widening for a 550B model on a
+// rate-limited free tier doing the same generation, chosen by the owner. Do not
+// re-describe it as calibrated until someone runs the market_implications call
+// shape against the model actually in use.
+export const LONG_COMPLETION_TIMEOUT_MS = 60_000;
 
 // Point releases of the same Flash line (`deepseek-v4.1-flash`, used by headline
 // classification) share its latency profile and must keep the cap: measured on 413

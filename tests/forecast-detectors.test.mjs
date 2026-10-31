@@ -91,7 +91,7 @@ import {
   __setForecastLlmTransportForTests,
   __setForecastLlmRunDeadlineForTests,
 } from '../scripts/seed-forecasts.mjs';
-import { OPENROUTER_PROVIDER_ROUTING } from '../scripts/_llm-model-timeouts.mjs';
+import { LONG_COMPLETION_TIMEOUT_MS, OPENROUTER_PROVIDER_ROUTING } from '../scripts/_llm-model-timeouts.mjs';
 import { CONFLICT_COUNT_SOURCE_FEED } from '../scripts/_forecast-resolution.mjs';
 import { assessFunnelDiversity } from '../scripts/_forecast-funnel.mjs';
 import { ingestHistory } from '../scripts/seed-forecast-resolutions.mjs';
@@ -1941,7 +1941,7 @@ describe('forecast llm overrides', () => {
     // 22.4s, so a 15s cutoff did not prevent stalls — it GUARANTEED failure, and
     // every market_implications run wrote a SEED_ERROR. Flash now gets a completion
     // deadline that covers its measured distribution.
-    assert.equal(providers[0]?.timeout, 25_000, 'non-Flash default keeps the provider window (fork)');
+    assert.equal(providers[0]?.timeout, LONG_COMPLETION_TIMEOUT_MS, 'the long-generation leg carries the long completion cap, whatever model rides it');
     assert.equal(providers[1]?.name, 'openrouter-free');
     assert.equal(providers[1]?.model, 'google/gemma-4-26b-a4b-it:free');
     assert.equal(providers[2]?.name, 'openrouter-free-backup');
@@ -1965,7 +1965,7 @@ describe('forecast llm overrides', () => {
     assert.equal(providers.length, 1);
     assert.equal(providers[0]?.name, 'openrouter');
     assert.equal(providers[0]?.model, 'nvidia/nemotron-3-ultra-550b-a55b:free'); // fork: free-tier critical default
-    assert.equal(providers[0]?.timeout, 25_000, 'the DeepSeek stall cutoff must not change the pinned Gemini model');
+    assert.equal(providers[0]?.timeout, LONG_COMPLETION_TIMEOUT_MS, 'the pinned stage rides the openrouter long-generation leg, so it carries the long cap');
     assert.deepEqual(
       providers[0]?.extraBody,
       { provider: OPENROUTER_PROVIDER_ROUTING },
@@ -2039,12 +2039,18 @@ describe('forecast llm overrides', () => {
     assert.equal(combinedProviders.length, 1);
     assert.equal(combinedProviders[0]?.name, 'openrouter');
     assert.equal(combinedProviders[0]?.model, 'google/gemini-2.5-pro');
-    assert.equal(combinedProviders[0]?.timeout, 25_000, 'model overrides outside DeepSeek Flash keep the original timeout');
+    assert.equal(
+      combinedProviders[0]?.timeout,
+      LONG_COMPLETION_TIMEOUT_MS,
+      'a model override rides the same long-generation leg and so keeps the long cap — '
+        + 'the previous expectation of 25s came from keying the window on the model id, '
+        + 'which silently dropped the cap the moment the default model changed',
+    );
 
     assert.deepEqual(scenarioOptions.providerOrder, ['openrouter', 'openrouter-free', 'openrouter-free-backup']);
     assert.equal(scenarioProviders[0]?.name, 'openrouter');
     assert.equal(scenarioProviders[0]?.model, 'nvidia/nemotron-3-ultra-550b-a55b:free');
-    assert.equal(scenarioProviders[0]?.timeout, 25_000, 'non-Flash default keeps the provider window (fork)');
+    assert.equal(scenarioProviders[0]?.timeout, LONG_COMPLETION_TIMEOUT_MS, 'scenario defaults ride the same long-generation leg, so they carry the same cap');
     assert.equal(scenarioProviders[1]?.model, 'google/gemma-4-26b-a4b-it:free');
     assert.equal(scenarioProviders[2]?.model, 'nvidia/nemotron-3-super-120b-a12b:free');
     assert.equal(scenarioProviders.length, 3);

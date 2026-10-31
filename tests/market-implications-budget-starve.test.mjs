@@ -29,6 +29,18 @@ import {
   __setForecastLlmCallOverrideForTests,
 } from '../scripts/seed-forecasts.mjs';
 
+import { LONG_COMPLETION_TIMEOUT_MS } from '../scripts/_llm-model-timeouts.mjs';
+
+// The reservations the admission guard computes, derived from the constant the
+// source uses rather than restated as literals. These budgets were previously
+// written as bare numbers calibrated against a 40s cap; when the cap moved they
+// silently stopped describing the boundary they were chosen to sit either side
+// of, and the tests failed for arithmetic reasons rather than behavioural ones.
+const GUARD_MS = 5_000;         // FORECAST_LLM_STAGE_BUDGET_GUARD_MS
+const FREE_FALLBACK_ATTEMPT_MS = 25_000; // the openrouter-free entry's own table timeout
+const PRIMARY_ONLY_RESERVATION_MS = LONG_COMPLETION_TIMEOUT_MS + GUARD_MS;
+const FULL_CHAIN_RESERVATION_MS = LONG_COMPLETION_TIMEOUT_MS + FREE_FALLBACK_ATTEMPT_MS + GUARD_MS;
+
 // callForecastLLM's failure-reason contract (mirrors the FORECAST_LLM_FAILURE_*
 // constants in seed-forecasts.mjs; not exported, asserted here as the wire value).
 const BUDGET_EXHAUSTED = 'budget_exhausted';
@@ -204,15 +216,13 @@ test('a genuine provider failure that drains the run deadline is still recorded 
   seedLastGood(store);
   process.env.OPENROUTER_API_KEY = 'test-key';
   process.env.FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER = 'openrouter';
-  // 40s: the resolved chain here is openrouter-only (pinned below), so the
-  // reservation is just 15s + 5s guard = 20s — a 40s budget admits it (the static
-  // all-provider 40s reservation would also admit, but the test still proves the
-  // resolved provider chain drives admission). The mock then drains
-  // the deadline mid-flight to prove a real failure is not reclassified as a starve.
-  // 50s > the openrouter-only reservation (40s Flash + 5s guard = 45s), so the call
-  // is ADMITTED. (Was 40s against a 15s-Flash chain; the Flash completion deadline is
-  // now 40s — see _llm-model-timeouts.)
-  __setForecastLlmRunDeadlineForTests(Date.now() + 50_000);
+  // Above the openrouter-only reservation, so the call is ADMITTED — the point of
+  // the test is what happens AFTER admission: the mock drains the deadline
+  // mid-flight, and a real provider failure must still be recorded as a failure
+  // rather than reclassified as a budget starve. Derived from the reservation so
+  // it keeps meaning that when the cap moves; it has already been rewritten twice
+  // for exactly this reason (15s -> 40s -> 60s).
+  __setForecastLlmRunDeadlineForTests(Date.now() + PRIMARY_ONLY_RESERVATION_MS + 10_000);
 
   let providerCalls = 0;
   __setForecastLlmTransportForTests({
@@ -328,12 +338,15 @@ test('a budget covering only the primary — not the fallback — skips instead 
   process.env.FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER = 'openrouter,openrouter-free';
   delete process.env.FORECAST_LLM_PROVIDER_ORDER;
 
-  // The reported bug class: admitting only the primary can strand the fallback
-  // ("llm budget exhausted") after a timeout and misreport a recoverable timeout as
-  // SEED_ERROR. The full-chain reservation makes this SKIP and preserve last-good
-  // (green) instead. 50s covers the primary (40s Flash + 5s guard = 45s) but NOT the
-  // full openrouter→openrouter-free chain (40 + 25 + 5 = 70s) => must SKIP.
-  __setForecastLlmRunDeadlineForTests(Date.now() + 50_000);
+  // 30s budget: enough for the primary openrouter attempt (the long cap) + guard, but NOT
+  // the full openrouter→openrouter-free chain (40s). The reported bug class is unchanged:
+  // admitting only the primary can strand the fallback ("llm budget exhausted")
+  // after a timeout and misreport a recoverable timeout as SEED_ERROR. The full-
+  // chain reservation makes this SKIP and preserve last-good (green) instead.
+  // Sits ABOVE the primary-only reservation and BELOW the full openrouter→groq
+  // chain, which is the whole point: admitting only the primary is what strands
+  // the fallback, so the guard must SKIP instead.
+  __setForecastLlmRunDeadlineForTests(Date.now() + PRIMARY_ONLY_RESERVATION_MS + 10_000);
 
   let providerCalls = 0;
   __setForecastLlmTransportForTests({
@@ -365,10 +378,10 @@ test('an admitted primary timeout falls through to the fallback in ONE attempt e
 
   // 75s admits the full two-provider chain (40s Flash + 25s free + 5s guard = 70s).
   // Every attempt times out. PRE-FIX, openrouter's 3 retries (4 attempts) drained the
-  // run budget and the fallback was NEVER reached — a recoverable timeout became a
-  // SEED_ERROR without trying the fallback. With maxRetries:0 each provider gets
-  // exactly ONE attempt, so the fallback IS reached.
-  __setForecastLlmRunDeadlineForTests(Date.now() + 75_000);
+  // run budget and the fallback was NEVER reached — a recoverable timeout became a SEED_ERROR
+  // without trying the fallback. With maxRetries:0 each provider gets exactly ONE
+  // attempt, so the fallback IS reached.
+  __setForecastLlmRunDeadlineForTests(Date.now() + FULL_CHAIN_RESERVATION_MS + 10_000);
 
   const calls = { openrouter: 0, 'openrouter-free': 0 };
   __setForecastLlmTransportForTests({
@@ -396,9 +409,9 @@ test('a single-provider override reserves only that provider — admitted where 
   // Pin to openrouter only → resolved chain reserves just 40s Flash + 5s guard = 45s.
   process.env.FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER = 'openrouter';
 
-  // 50s: below the 2-provider 70s reservation (would skip) but above the pinned
-  // single-provider 45s reservation — so this MUST be admitted, not skipped.
-  __setForecastLlmRunDeadlineForTests(Date.now() + 50_000);
+  // Below the 2-provider reservation (which would skip) but above the pinned
+  // single-provider one — so this MUST be admitted, not skipped.
+  __setForecastLlmRunDeadlineForTests(Date.now() + PRIMARY_ONLY_RESERVATION_MS + 10_000);
 
   let providerCalls = 0;
   __setForecastLlmTransportForTests({

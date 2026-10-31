@@ -17,12 +17,10 @@ import { alignPriorToPublication, applyPublishedCalibration, archiveCalibrationP
 import { resolveR2StorageConfig, putR2JsonObject, putR2JsonBody, getR2JsonObject, serializeR2JsonBody, sha256Hex } from './_r2-storage.mjs';
 import { extractFirstJsonObject, extractFirstJsonArray, cleanJsonText } from './_llm-json.mjs';
 import {
-  getLlmAttemptTimeoutMs,
-  isDeepseekV4FlashModel,
+  LONG_COMPLETION_TIMEOUT_MS,
   OPENROUTER_FREE_BACKUP_MODEL,
   OPENROUTER_FREE_PRIMARY_MODEL,
   OPENROUTER_PROVIDER_ROUTING,
-  DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS,
 } from './_llm-model-timeouts.mjs';
 import { loadTickerSet } from './_ticker-validation.mjs';
 import { computeEmaWindows, computeRisk24h } from './_ema-threat-engine.mjs';
@@ -15201,10 +15199,14 @@ const FORECAST_LLM_PROVIDERS = [
   // this is the routing that DEEPSEEK_V4_FLASH_COMPLETION_TIMEOUT_MS has always
   // assumed but never had. Fallbacks stay enabled, so a fast backend going down
   // degrades latency rather than hard-failing the call.
-  // This 25s timeout governs NON-Flash models only (critical_signals overrides this
-  // same entry onto google/gemini-2.5-flash and must keep its 25s window). Flash uses
-  // its own completion deadline via getLlmAttemptTimeoutMs — see _llm-model-timeouts.
-  { name: 'openrouter', envKey: 'OPENROUTER_API_KEY', apiUrl: 'https://openrouter.ai/api/v1/chat/completions', model: openrouterModel(), timeout: 25_000, extraBody: { reasoning: { enabled: false }, provider: OPENROUTER_PROVIDER_ROUTING } },
+  // longGeneration marks the leg that carries forecast stages' max_tokens 2500
+  // work. It replaces an isDeepseekV4FlashModel(model) check that went false the
+  // moment the chain moved to free models, silently dropping this leg from the
+  // long requested window, the long cap, AND fail-fast-on-timeout. Keying on the
+  // call shape rather than a model id is what keeps those three applied when the
+  // model changes again — which, for free models, it will. The entry's own 25s is
+  // what the free fallbacks below keep, since they do not carry the flag.
+  { name: 'openrouter', envKey: 'OPENROUTER_API_KEY', apiUrl: 'https://openrouter.ai/api/v1/chat/completions', model: openrouterModel(), timeout: 25_000, longGeneration: true, extraBody: { reasoning: { enabled: false }, provider: OPENROUTER_PROVIDER_ROUTING } },
   { name: 'openrouter-free', envKey: 'OPENROUTER_API_KEY', apiUrl: 'https://openrouter.ai/api/v1/chat/completions', model: OPENROUTER_FREE_PRIMARY_MODEL, timeout: 25_000, maxRetries: 0, extraBody: { reasoning: { enabled: false }, provider: OPENROUTER_PROVIDER_ROUTING } },
   { name: 'openrouter-free-backup', envKey: 'OPENROUTER_API_KEY', apiUrl: 'https://openrouter.ai/api/v1/chat/completions', model: OPENROUTER_FREE_BACKUP_MODEL, timeout: 25_000, maxRetries: 0, extraBody: { reasoning: { enabled: false }, provider: OPENROUTER_PROVIDER_ROUTING } },
 ];
@@ -15266,10 +15268,11 @@ function buildForecastGenericLlmProvider() {
 // FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER.
 const MARKET_IMPLICATIONS_DEFAULT_PROVIDER_ORDER = ['openrouter'];
 
-// Requested window for DeepSeek-Flash in forecast stages. Kept above the Flash
-// completion cap so the cap (not this) is the binding constraint; the provider
-// entry's own 25s stays reserved for the non-Flash models stages pin onto it.
-const FORECAST_FLASH_REQUESTED_TIMEOUT_MS = 45_000;
+// Requested window for the long-generation forecast leg. MUST stay above
+// LONG_COMPLETION_TIMEOUT_MS so the cap, not this, is the binding constraint —
+// tests/forecast-llm-flash-routing-and-timeout.test.mjs pins that ordering, and
+// inverting it silently re-clamps the leg to this value instead.
+const FORECAST_LONG_GENERATION_REQUESTED_TIMEOUT_MS = 65_000;
 const FORECAST_LLM_PROVIDER_NAMES = new Set(FORECAST_LLM_PROVIDERS.map(provider => provider.name));
 // 3 retries (=4 attempts/provider): during an OpenRouter slowdown 2 retries all timed
 // out and market_implications wrote an error seed-meta. Bounded by the per-stage /
@@ -15376,6 +15379,20 @@ function getForecastLlmCallOptions(stage = 'default') {
         // ONLY the stage-scoped model env may change the pinned model —
         // a global FORECAST_LLM_MODEL_OPENROUTER must not move the
         // probability-coupled stage either (review finding on #4965).
+        //
+        // OWNER RULING (2026-08-29), narrower than the repo-wide
+        // OPENROUTER_PROVIDER_ROUTING policy: that one blocks China-HOSTED
+        // providers while accepting the weights. For THIS stage the concern is
+        // the weights themselves — a Mainland-China-guardrailed model must not
+        // skew a geopolitical-risk score, and relocating inference does not
+        // change what the model was trained to refuse or soften. So free models
+        // with Chinese-origin weights are excluded here even when they declare
+        // structured outputs. The decorrelated pick that ruling chose
+        // (poolside/laguna-xs-2.1:free) was delisted by OpenRouter before it
+        // could land, so the slot stays on the table default — correlated with
+        // the primary, which is a known weakness: one nemotron rate-limit takes
+        // out the general chain and this fallback together. Revisit when a
+        // non-Chinese free model with structured-output support is listed.
         openrouter: process.env.FORECAST_LLM_CRITICAL_MODEL_OPENROUTER || 'nvidia/nemotron-3-ultra-550b-a55b:free',
       },
       // Legacy request-body parity: the pinned models predate the
@@ -15410,21 +15427,25 @@ function resolveForecastLlmProviders(options = {}) {
     // for — including Flash, whose fail-fast and timeout policy keys off it.
     const model = options.modelOverrides?.[provider.name]
       || (provider.name === 'openrouter' ? openrouterModel() : provider.model);
-    const failFastOnTimeout = isDeepseekV4FlashModel(model);
+    // Provider-keyed, not model-keyed: a stage that overrides onto a different
+    // model is still the same long-generation call, and the old model check
+    // dropped fail-fast the moment the default model changed.
+    const failFastOnTimeout = Boolean(provider.longGeneration);
     providers.push({
       ...provider,
       model,
-      // #5246: cut off Flash's 25s stall tail while preserving enough room for
-      // the pinned endpoint's observed median completion. Other models are unchanged.
-      // Flash is a LONG generation here (max_tokens 2500 => ~1.2-1.9k completion
-      // tokens, p90 22.4s) and needs its own requested window: the entry's 25s is
-      // calibrated for the NON-Flash models stages override onto it (Gemini), so
-      // reusing it would re-clamp Flash to 25s. getLlmAttemptTimeoutMs still MINs
-      // this against the Flash cap, and leaves non-Flash models on provider.timeout.
-      timeout: getLlmAttemptTimeoutMs(
-        model,
-        isDeepseekV4FlashModel(model) ? FORECAST_FLASH_REQUESTED_TIMEOUT_MS : provider.timeout,
-        DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS,
+      // #5246: cut off the long leg's stall tail while preserving room for its
+      // observed median completion. The long-generation leg gets its own
+      // requested window because the entry's 25s is calibrated for the shorter
+      // models stages override onto it; reusing 25s re-clamps the long call.
+      // Every other provider stays on its own table timeout.
+      //
+      // MIN, so the cap is binding while a provider asking for LESS still gets
+      // less. Both arms are provider-keyed now: the previous model check made
+      // all of this inert as soon as the default model stopped being Flash.
+      timeout: Math.min(
+        provider.longGeneration ? FORECAST_LONG_GENERATION_REQUESTED_TIMEOUT_MS : provider.timeout,
+        LONG_COMPLETION_TIMEOUT_MS,
       ),
       failFastOnTimeout,
       // `null` explicitly clears the table entry's extraBody (R13 pin);
@@ -15444,16 +15465,18 @@ function resolveForecastLlmProviders(options = {}) {
     && !process.env.OPENROUTER_API_KEY
     && !seen.has(FORECAST_GENERIC_LLM_PROVIDER_SPEC.name)) {
     const generic = buildForecastGenericLlmProvider();
-    const genericModel = generic.model;
-    const failFastOnTimeout = isDeepseekV4FlashModel(genericModel);
+    // This substitute stands in for the whole chain, so it carries the same
+    // long-generation work — but it points at an operator-supplied endpoint of
+    // unknown speed, so it keeps its own declared window and is only bounded by
+    // the cap. Fail-fast stays off here: a self-hosted endpoint has no stall
+    // tail to cut, and there is no second provider to fall through to.
     providers.push({
       ...generic,
-      timeout: getLlmAttemptTimeoutMs(
-        genericModel,
+      timeout: Math.min(
         FORECAST_GENERIC_LLM_PROVIDER_SPEC.defaultTimeout,
-        DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS,
+        LONG_COMPLETION_TIMEOUT_MS,
       ),
-      failFastOnTimeout,
+      failFastOnTimeout: false,
       extraBody: undefined,
     });
   }
