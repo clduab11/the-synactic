@@ -4,10 +4,11 @@
 Kept as a separate file so upstream merges never conflict with fork knowledge.
 
 **v11 — 2026-10-31. Upstream sync: koala73/worldmonitor `e3268a4a8` merged (870 commits since
-the 2026-10-05 `9e8b2f650` sync; 97 conflicted paths).** Key decisions and adaptations:
+the 2026-10-05 `9e8b2f650` sync; 101 conflicted paths).** Key decisions and adaptations:
 
 - **Single-source health verdict (`#9883`) adopted.** Upstream retired `seed-freshness-baseline.json`
-  and `expiring-ack` cutovers; all 37 new upstream probes since `9e8b2f650` carry `activation-marker`
+  and the `expiring-ack` mode for new cutovers (23 pre-existing `expiring-ack` entries remain in
+  `SEED_META`); all 37 new upstream probes since `9e8b2f650` carry `activation-marker`
   cutovers and pass `check-health-probe-cutovers.mts` against `origin/main`. Fork standalone probes
   (`defconLevel`, `krakenMarkets`) remain in `STANDALONE_KEYS` / `SEED_META` (total 351 probes).
 - **Boundary 2 & Free-tier LLM policy preserved.** `seed-jodi-oil.mjs` composes upstream's streaming
@@ -26,6 +27,12 @@ the 2026-10-05 `9e8b2f650` sync; 97 conflicted paths).** Key decisions and adapt
   preserves the local Chroma `useLocalBackend()` branch under the paginated `nextCursor` signature;
   `McpConnectModal.ts` wraps `premiumFetch` in `Promise.resolve().then(...)` so mock/test callers
   never throw before `.catch()`.
+- **Same-day review correction.** The merge had dropped the fork's `companyMonitoringWorker`
+  activation-marker cutover from `SEED_META` and edited its test to match; restored, and
+  `check-health-probe-cutovers.mts origin/main` still passes. The `shell-quote` override floor had
+  come back as upstream's `^1.8.4`; raised to `^1.12.0` (the lockfile already resolved 1.12.0) so
+  the advisory-affected range stays excluded. CI did not run on this PR (Actions budget exhausted);
+  `typecheck:all` and `lint` pass locally, `generate:check` and `docs:check` do not — see the PR.
 
 **v10 — 2026-10-05. Upstream sync: koala73/worldmonitor `9e8b2f65` merged (2,850 commits since
 the 2026-08-05 sync; 175 conflicted paths).** Every fork boundary below survived the merge; the
