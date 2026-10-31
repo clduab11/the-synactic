@@ -792,7 +792,23 @@ const SEED_META = {
   chinaCoverage:   { key: 'seed-meta:health:china-coverage',   maxStaleMin: 180 },
   // Always-on loop publishes every few seconds. Five minutes tolerates deploy
   // churn while still detecting a stopped worker well before leases age out.
-  companyMonitoringWorker: { key: 'seed-meta:company-monitoring:worker', maxStaleMin: 5, workerControl: true },
+  companyMonitoringWorker: {
+    key: 'seed-meta:company-monitoring:worker',
+    maxStaleMin: 5,
+    workerControl: true,
+    // Fork cutover: this probe is new relative to the-synactic's main (it landed
+    // upstream in #6386 before the cutover gate existed). The worker SETs the
+    // durable marker (COMPANY_MONITORING_WORKER_ACTIVATION_KEY in
+    // scripts/company-monitoring-worker.mjs) once it is actually running, so the
+    // probe stays softened until that first activation.
+    activationKey: 'seed-activated:company-monitoring:worker',
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 6386,
+      activationKey: 'seed-activated:company-monitoring:worker',
+    },
+  },
   // Ticks every 5 minutes; 15 tolerates 2 missed ticks across a deploy.
   shippingWebhookWorker: {
     key: 'seed-meta:shipping:webhook-worker',
@@ -2540,7 +2556,7 @@ const ACTIVATION_MARKERS = {
   pizzintHistory: SEED_META.pizzintHistory.activationKey,
   riskScoresHistory: SEED_META.riskScoresHistory.activationKey,
   countryHistory: SEED_META.countryHistory.activationKey,
-  companyMonitoringWorker: 'seed-activated:company-monitoring:worker',
+  companyMonitoringWorker: SEED_META.companyMonitoringWorker.activationKey,
   shippingWebhookWorker: SEED_META.shippingWebhookWorker.activationKey,
   sanctionsChanges: SEED_META.sanctionsChanges.activationKey,
   // Written by scripts/seed-cbr-rates.mjs (CBR_ACTIVATION_KEY) in runSeed's

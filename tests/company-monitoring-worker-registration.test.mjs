@@ -76,10 +76,19 @@ describe('company monitoring worker deployment registration', () => {
 
   it('softens only the pre-activation window and registers strict worker freshness', () => {
     assert.equal(health.STANDALONE_KEYS.companyMonitoringWorker, 'company-monitoring:worker-health:v1');
+    // Fork: the probe is new relative to the-synactic's main, so it carries an
+    // activation-marker cutover bound to the worker's durable marker.
     assert.deepEqual(health.SEED_META.companyMonitoringWorker, {
       key: 'seed-meta:company-monitoring:worker',
       maxStaleMin: 5,
       workerControl: true,
+      activationKey: 'seed-activated:company-monitoring:worker',
+      cutover: {
+        mode: 'activation-marker',
+        fromKey: null,
+        issue: 6386,
+        activationKey: 'seed-activated:company-monitoring:worker',
+      },
     });
     assert.equal(health.ON_DEMAND_KEYS.has('companyMonitoringWorker'), true);
     assert.equal(
