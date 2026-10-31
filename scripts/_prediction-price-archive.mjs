@@ -34,6 +34,10 @@ export const ARCHIVE_KEY_PREFIX = 'seed-data/prediction-price-archive/v1';
 // to the backtester's archive-gap refusal gate.
 export const PRICE_ARCHIVE_COVERAGE_KEY = 'prediction:price-archive:coverage:v1';
 export const PRICE_ARCHIVE_META_KEY = 'seed-meta:prediction:price-archive';
+// Durable (no TTL) marker the archiver SETs after its first cycle that archived
+// at least one window and wrote its companions. api/health.js keeps the probe
+// softened until this exists, then strict forever (activation-marker cutover).
+export const PRICE_ARCHIVE_ACTIVATION_KEY = 'seed-activated:prediction:price-archive';
 export const PRICE_ARCHIVE_COVERAGE_TTL_SECONDS = 45 * 24 * 60 * 60;
 
 // ~8.3 days of 30-minute windows across two venues. Old windows leaving the

@@ -1520,7 +1520,24 @@ const SEED_META = {
     },
   },
   forecastBets:        { key: 'seed-meta:forecast:bets',            maxStaleMin: 2880 }, // #5233 shadow bet-engine seeder; daily cron (05:00 UTC), 48h = 2× interval
-  predictionPriceArchive: { key: 'seed-meta:prediction:price-archive', maxStaleMin: 180 }, // price archiver rides the self-host seed-loop (~45-75 min cycle); 180 = >2× worst cadence. Every silent window is unrecoverable history, so this is deliberately tight.
+  // Price archiver rides the self-host seed-loop (~45-75 min cycle); 180 = >2×
+  // worst cadence. Every silent window is unrecoverable history, so this is
+  // deliberately tight.
+  predictionPriceArchive: {
+    key: 'seed-meta:prediction:price-archive',
+    maxStaleMin: 180,
+    // Fork probe (the-synactic PR #1 lineage; `issue` is that PR, there is no
+    // upstream issue). scripts/seed-prediction-price-archive.mjs SETs the durable
+    // marker (PRICE_ARCHIVE_ACTIVATION_KEY) after its first cycle that archived a
+    // window and wrote its companions; the probe stays softened until then.
+    activationKey: 'seed-activated:prediction:price-archive',
+    cutover: {
+      mode: 'activation-marker',
+      fromKey: null,
+      issue: 1,
+      activationKey: 'seed-activated:prediction:price-archive',
+    },
+  },
   forecastMarketsResolution: { key: 'seed-meta:prediction:markets-resolution', maxStaleMin: 2160 }, // #5525 market settlement feed; written every resolver run (even zero-due), so it shares the resolver's 36h window
   forecastFunnel:      { key: 'seed-meta:forecast:funnel:health:v1', maxStaleMin: 180 }, // funnel-diversity guardrail (#5233); written by seed-forecasts afterPublish each hourly run (3× cadence). A collapsed funnel (too few domains / mostly synthetic) is recorded as information and never sets status:'error' (#8990)
   sectors:          { key: 'seed-meta:market:sectors',             maxStaleMin: 30 },
@@ -2369,6 +2386,10 @@ const ON_DEMAND_KEYS = new Set([
   // activation marker after its first successful publish; after that, a
   // missing/stale summary is strict forever.
   'chinaCoverage',
+  // Same bridge for the fork's prediction-market price archiver: the probe
+  // ships with the reader, the archiver SETs its durable marker after the
+  // first cycle that archived a window; strict from then on.
+  'predictionPriceArchive',
   // Deployment-order bridge (#9509): Vercel can ship the summary readers before
   // seed-fire-detections' next 10-minute tick writes the key. The seeder SETs
   // the durable marker on every successful publish; strict from then on.
@@ -2545,6 +2566,7 @@ const ON_DEMAND_KEYS = new Set([
 // publish; when the marker exists the key leaves ON_DEMAND softening and
 // normal EMPTY/STALE_SEED rules apply.
 const ACTIVATION_MARKERS = {
+  predictionPriceArchive: SEED_META.predictionPriceArchive.activationKey,
   globalTendersColombiaSecop: SEED_META.globalTendersColombiaSecop.activationKey,
   globalTendersKenyaPpip: SEED_META.globalTendersKenyaPpip.activationKey,
   globalTendersSouthAfricaEtenders: SEED_META.globalTendersSouthAfricaEtenders.activationKey,

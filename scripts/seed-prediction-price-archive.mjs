@@ -33,6 +33,7 @@ import { gzipSync } from 'node:zlib';
 import { HONEST_UA, loadEnvFile, sleep } from './_seed-utils.mjs';
 import { getR2StorageClient, resolveR2StorageConfig, withSettleTimeout } from './_r2-storage.mjs';
 import {
+  PRICE_ARCHIVE_ACTIVATION_KEY,
   PRICE_ARCHIVE_COVERAGE_KEY,
   PRICE_ARCHIVE_COVERAGE_TTL_SECONDS,
   PRICE_ARCHIVE_META_KEY,
@@ -238,6 +239,11 @@ async function writeRedisJsonLive(key, value, ttlSeconds) {
   await redisCommand(['SET', key, JSON.stringify(value), 'EX', ttlSeconds]);
 }
 
+// No TTL on purpose: this is the health cutover's durable activation marker.
+async function setActivationMarkerLive() {
+  await redisCommand(['SET', PRICE_ARCHIVE_ACTIVATION_KEY, '1']);
+}
+
 /**
  * One archive cycle over injected I/O. Every dependency is a plain async
  * function so the tests exercise fetch failures, sink failures, and Redis
@@ -249,6 +255,7 @@ export async function runArchiveCycle({
   storeObject,
   readCoverage = readCoverageLive,
   writeRedisJson = writeRedisJsonLive,
+  setActivationMarker = setActivationMarkerLive,
   now = Date.now,
 } = {}) {
   const store = storeObject ?? makeDefaultStoreObject();
@@ -328,6 +335,20 @@ export async function runArchiveCycle({
     redisFailed = true;
     failures.push(`redis companions: ${err?.message || err}`);
     console.warn(`  [price-archive] coverage/seed-meta write failed: ${err?.message || err}`);
+  }
+
+  // Activation marker: only once the archiver has actually archived a window
+  // AND its companions landed, so health never goes strict on a deployment
+  // where the archiver is wired up but has not yet produced anything. A failed
+  // SET is a degraded cycle, not a failed one — the next cycle retries it.
+  if (venueResults.length > 0 && !redisFailed) {
+    try {
+      await setActivationMarker();
+    } catch (err) {
+      redisFailed = true;
+      failures.push(`activation marker: ${err?.message || err}`);
+      console.warn(`  [price-archive] activation marker write failed: ${err?.message || err}`);
+    }
   }
 
   const exitCode = venueResults.length === 0 || storeFailed

@@ -5,10 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
+import { __testing__ as health } from '../api/health.js';
+
 import {
   ARCHIVE_SCHEMA_VERSION,
   ARCHIVE_WINDOW_MS,
   MAX_COVERAGE_WINDOWS,
+  PRICE_ARCHIVE_ACTIVATION_KEY,
   PRICE_ARCHIVE_COVERAGE_KEY,
   archiveObjectKey,
   archiveWindowStart,
@@ -314,15 +317,18 @@ describe('runArchiveCycle (injected I/O)', () => {
   function makeDeps(overrides = {}) {
     const stored = [];
     const redisWrites = [];
+    const markerSets = { count: 0 };
     return {
       stored,
       redisWrites,
+      markerSets,
       deps: {
         fetchKalshi: async () => ({ payloads: [kalshiPayload], observedAt: OBSERVED_AT }),
         fetchGamma: async () => ({ payloads: [gammaPayload], observedAt: OBSERVED_AT }),
         storeObject: async (key, object) => { stored.push({ key, object }); },
         readCoverage: async () => null,
         writeRedisJson: async (key, value) => { redisWrites.push({ key, value }); },
+        setActivationMarker: async () => { markerSets.count += 1; },
         now: () => INGESTED_AT,
         ...overrides,
       },
@@ -393,6 +399,46 @@ describe('runArchiveCycle (injected I/O)', () => {
     const result = await runArchiveCycle(deps);
     assert.equal(stored.length, 2);
     assert.equal(result.exitCode, 75);
+  });
+
+  it('SETs the durable activation marker once, only after a cycle that archived a window and wrote its companions', async () => {
+    const ok = makeDeps();
+    assert.equal((await runArchiveCycle(ok.deps)).exitCode, 0);
+    assert.equal(ok.markerSets.count, 1, 'a healthy cycle activates the probe');
+
+    const blip = makeDeps({ writeRedisJson: async () => { throw new Error('redis blip'); } });
+    await runArchiveCycle(blip.deps);
+    assert.equal(blip.markerSets.count, 0, 'companions did not land, so health must not go strict yet');
+
+    const sink = makeDeps({ storeObject: async () => { throw new Error('sink unavailable'); } });
+    await runArchiveCycle(sink.deps);
+    assert.equal(sink.markerSets.count, 0, 'nothing was archived, so nothing was activated');
+
+    const markerDown = makeDeps({ setActivationMarker: async () => { throw new Error('marker SET failed'); } });
+    const degraded = await runArchiveCycle(markerDown.deps);
+    assert.equal(degraded.exitCode, 75, 'a failed marker write degrades the cycle; the next cycle retries it');
+    assert.match(degraded.failures.join(' '), /activation marker/);
+  });
+});
+
+describe('health probe registration', () => {
+  it('declares the activation-marker cutover and binds it to the key the archiver SETs', () => {
+    assert.equal(PRICE_ARCHIVE_ACTIVATION_KEY, 'seed-activated:prediction:price-archive');
+    assert.deepEqual(health.SEED_META.predictionPriceArchive, {
+      key: 'seed-meta:prediction:price-archive',
+      maxStaleMin: 180,
+      activationKey: PRICE_ARCHIVE_ACTIVATION_KEY,
+      cutover: {
+        mode: 'activation-marker',
+        fromKey: null,
+        issue: 1,
+        activationKey: PRICE_ARCHIVE_ACTIVATION_KEY,
+      },
+    });
+    // The validator's three wiring conditions, so a refactor cannot drop one silently.
+    assert.equal(health.ON_DEMAND_KEYS.has('predictionPriceArchive'), true);
+    assert.equal(health.STANDALONE_KEYS.predictionPriceArchive, 'prediction:price-archive:coverage:v1');
+    assert.equal(health.ACTIVATION_MARKERS.predictionPriceArchive, PRICE_ARCHIVE_ACTIVATION_KEY);
   });
 });
 
