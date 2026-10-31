@@ -234,26 +234,51 @@ function brotliPrecompressPlugin(): Plugin {
 // the desktop sign-in tab as the dashboard.
 const PAGES_WITH_OWN_HEAD_META = new Set(['verify.html', 'desktop-sign-in.html']);
 
+/**
+ * Escape a VARIANT_META value for HTML text and attribute contexts.
+ *
+ * These values are authored as plain JS strings and six of the seven variant
+ * titles contain an ampersand ("… Market Context & Geopolitical Signal …"), so
+ * substituting them raw wrote a bare `&` into `<title>` and into `content="…"`.
+ * A `"` in any description would have been worse — it would close the attribute
+ * early. Only the HTML tags below are escaped; the JSON-LD block further down is
+ * JSON, where entities would be wrong.
+ */
+function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDesktopBuild: boolean): Plugin {
   return {
     name: 'html-variant',
     transformIndexHtml(html, ctx) {
+      const title = escapeHtml(activeMeta.title);
+      const description = escapeHtml(activeMeta.description);
+      const keywords = escapeHtml(activeMeta.keywords);
+      const url = escapeHtml(activeMeta.url);
+      const siteName = escapeHtml(activeMeta.siteName);
+      const subject = escapeHtml(activeMeta.subject);
+      const classification = escapeHtml(activeMeta.classification);
       let result = PAGES_WITH_OWN_HEAD_META.has(basename(ctx.filename)) ? html : html
-        .replace(/<title>.*?<\/title>/, `<title>${activeMeta.title}</title>`)
-        .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${activeMeta.title}" />`)
-        .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${activeMeta.description}" />`)
-        .replace(/<meta name="keywords" content=".*?" \/>/, `<meta name="keywords" content="${activeMeta.keywords}" />`)
-        .replace(/<link rel="canonical" href=".*?" \/>/, `<link rel="canonical" href="${activeMeta.url}" />`)
-        .replace(/<meta name="application-name" content=".*?" \/>/, `<meta name="application-name" content="${activeMeta.siteName}" />`)
-        .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${activeMeta.url}" />`)
-        .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${activeMeta.title}" />`)
-        .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${activeMeta.description}" />`)
-        .replace(/<meta property="og:site_name" content=".*?" \/>/, `<meta property="og:site_name" content="${activeMeta.siteName}" />`)
-        .replace(/<meta name="subject" content=".*?" \/>/, `<meta name="subject" content="${activeMeta.subject}" />`)
-        .replace(/<meta name="classification" content=".*?" \/>/, `<meta name="classification" content="${activeMeta.classification}" />`)
-        .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${activeMeta.url}" />`)
-        .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${activeMeta.title}" />`)
-        .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${activeMeta.description}" />`)
+        .replace(/<title>.*?<\/title>/, `<title>${title}</title>`)
+        .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${title}" />`)
+        .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${description}" />`)
+        .replace(/<meta name="keywords" content=".*?" \/>/, `<meta name="keywords" content="${keywords}" />`)
+        .replace(/<link rel="canonical" href=".*?" \/>/, `<link rel="canonical" href="${url}" />`)
+        .replace(/<meta name="application-name" content=".*?" \/>/, `<meta name="application-name" content="${siteName}" />`)
+        .replace(/<meta property="og:url" content=".*?" \/>/, `<meta property="og:url" content="${url}" />`)
+        .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${title}" />`)
+        .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${description}" />`)
+        .replace(/<meta property="og:site_name" content=".*?" \/>/, `<meta property="og:site_name" content="${siteName}" />`)
+        .replace(/<meta name="subject" content=".*?" \/>/, `<meta name="subject" content="${subject}" />`)
+        .replace(/<meta name="classification" content=".*?" \/>/, `<meta name="classification" content="${classification}" />`)
+        .replace(/<meta name="twitter:url" content=".*?" \/>/, `<meta name="twitter:url" content="${url}" />`)
+        .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${title}" />`)
+        .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${description}" />`)
         .replace(/"name": "World Monitor"/, `"name": "${activeMeta.siteName}"`)
         .replace(/"alternateName": "WorldMonitor"/, `"alternateName": "${activeMeta.siteName.replace(' ', '')}"`)
         .replace(/"url": "https:\/\/worldmonitor\.app\/"/, `"url": "${activeMeta.url}"`)
