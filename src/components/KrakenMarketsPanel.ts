@@ -65,7 +65,7 @@ export class KrakenMarketsPanel extends Panel {
 
     this.setSafeContent(unsafeRawHtml(`
       <div class="kraken-markets">
-        <table class="kraken-table">
+        <table class="wm-table kraken-table">
           <thead>
             <tr>
               <th>Pair</th>

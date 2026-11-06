@@ -474,7 +474,8 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
     `],
     ['@/services/data-freshness', `
       export const dataFreshness = {
-        setEnabled(source, enabled) {
+        setEnabled() {},
+        setMapLayerEnabled(source, enabled) {
           globalThis.__missionFreshness = globalThis.__missionFreshness || [];
           globalThis.__missionFreshness.push([source, enabled]);
         },
@@ -488,7 +489,7 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
     // esbuild fails the whole bundle on a missing export rather than yielding
     // undefined, and that build error cancels every sibling test in the run.
     ['@/services/runtime', 'export function isDesktopRuntime(){ return false; } export function getApiBaseUrl(){ return ""; } export function toApiUrl(p){ return p; } export function toRuntimeUrl(p){ return p; }'],
-    ['@/services/tauri-bridge', 'export async function invokeTauri(){ return null; }'],
+    ['@/services/tauri-bridge', 'export async function invokeTauri(){ return null; } export function hasTauriInvokeBridge(){ return false; }'],
     ['@/services/gps-interference', 'export function getCachedGpsInterference(){ return null; }'],
     ['@/services/ml-worker', 'export const mlWorker = {};'],
     ['@/services/auth-state', 'export function getAuthState(){ return { user: { role: "pro" } }; } export function subscribeAuthState(){ return () => {}; }'],
@@ -1250,6 +1251,7 @@ function createMissionHarness(options: {
     initialLoadComplete: true,
     resolvedLocation: 'global',
     activeChokepoint: null,
+    pendingCountryBrief: null,
     initialUrlState: null,
     PANEL_ORDER_KEY: 'panel-order',
     PANEL_SPANS_KEY: 'panel-spans',

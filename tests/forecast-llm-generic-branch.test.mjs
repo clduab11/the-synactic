@@ -1,7 +1,7 @@
 // PER-79 (upstream PR 3/3): the generic OpenAI-compatible provider branch in
 // scripts/seed-forecasts.mjs must activate ONLY when LLM_API_URL, LLM_API_KEY,
 // and LLM_MODEL are all set, AND none of the existing named providers
-// (openrouter, groq — ollama belongs to seed-insights, never to this table)
+// (the OpenRouter rungs — ollama belongs to seed-insights, never to this table)
 // have a key. When a named provider's key IS set, the existing chain wins
 // bit-for-bit and generic never fires. The URL is used verbatim as the chat/
 // completions endpoint (SELF_HOSTING.md) and the model field is populated
@@ -22,6 +22,7 @@ import {
   __setForecastLlmTransportForTests,
   __setForecastLlmRunDeadlineForTests,
 } from '../scripts/seed-forecasts.mjs';
+import { openrouterModel } from '../scripts/_openrouter-model.mjs';
 
 const ENV_KEYS = [
   'LLM_API_URL',
@@ -73,12 +74,12 @@ function names(providers) {
 
 test('without the three env vars set, the resolved chain has no generic entry', () => {
   // Sanity baseline: pre-existing consumers (none of the new envs set) MUST
-  // see exactly the four named providers — this is the change-isolation
+  // see exactly the three named providers — this is the change-isolation
   // contract that keeps the array-shape tests in the other suites passing.
   const providers = resolveForecastLlmProviders();
   assert.deepEqual(
     names(providers),
-    ['openrouter', 'openrouter-free', 'openrouter-free-backup', 'groq'],
+    ['openrouter', 'openrouter-free', 'openrouter-free-backup'],
     'pre-existing default chain must remain bit-for-bit identical',
   );
 });
@@ -87,11 +88,11 @@ test('generic enters at the tail only when ALL three envs are set AND no named-p
   process.env.LLM_API_URL = 'https://example.invalid/v1/chat/completions';
   process.env.LLM_API_KEY = 'redacted-llm-key';
   process.env.LLM_MODEL = 'gpt-3.5-turbo';
-  // No OPENROUTER_API_KEY and no GROQ_API_KEY on purpose.
+  // No OPENROUTER_API_KEY on purpose.
   const providers = resolveForecastLlmProviders();
   assert.deepEqual(
     names(providers),
-    ['openrouter', 'openrouter-free', 'openrouter-free-backup', 'groq', 'generic'],
+    ['openrouter', 'openrouter-free', 'openrouter-free-backup', 'generic'],
     'generic is appended LAST and never inserted ahead of the named providers',
   );
   const generic = providers[providers.length - 1];
@@ -123,15 +124,15 @@ test('generic never fires when OPENROUTER_API_KEY is set, even with all three ge
   );
 });
 
-test('generic never fires when GROQ_API_KEY is set and OPENROUTER_API_KEY is unset', () => {
-  // critical_signals / market_implications pin groq via the named chain; we
-  // must not double-route to generic when groq alone is available.
+test('a leftover GROQ_API_KEY no longer hides generic', () => {
+  // Groq is not a provider any more (#8885); a self-host env that still
+  // carries its key must not suppress the only runnable fallback.
   process.env.GROQ_API_KEY = 'groq-test-key';
   process.env.LLM_API_URL = 'https://example.invalid/v1/chat/completions';
   process.env.LLM_API_KEY = 'redacted-llm-key';
   process.env.LLM_MODEL = 'gpt-3.5-turbo';
   const providers = resolveForecastLlmProviders();
-  assert.equal(providers.some((p) => p.name === 'generic'), false);
+  assert.equal(providers.some((p) => p.name === 'generic'), true);
 });
 
 test('partial generic env coverage never fires generic', () => {
@@ -298,13 +299,12 @@ test('generic branch never carries openrouter-only headers (HTTP-Referer / X-Tit
 
 test('named-provider keys in the same call suppress generic from the resolved chain', async () => {
   // Regression for a subtle case: even with all three generic envs set, the
-  // generic branch must NOT fire when OPENROUTER_API_KEY (or GROQ_API_KEY)
+  // generic branch must NOT fire when OPENROUTER_API_KEY
   // is also set — the chain reads `provider.envKey` as the gate and generic's
   // envKey is LLM_API_KEY, so the named-provider keys don't count for it.
   // This keeps the generic branch truly last-resort and avoids double-routing
   // to a self-hosted endpoint when a hosted provider is already wired up.
   process.env.OPENROUTER_API_KEY = 'openrouter-test-key';
-  process.env.GROQ_API_KEY = 'groq-test-key';
   setGenericEnv();
   let capturedCount = 0;
   __setForecastLlmTransportForTests({
@@ -428,8 +428,8 @@ test('network error from generic yields the failure envelope with no leaked secr
 // This is the regression that PER-79 / upstream PR 3/3 fixed:
 //   PRE-FIX: scripts/seed-forecasts.mjs had no generic OpenAI-compatible
 //            provider at all. A self-hosted OpenAI-compatible endpoint could
-//            only be reached if an operator also set OPENROUTER_API_KEY or
-//            GROQ_API_KEY — neither of which is meaningful for a self-hosted
+//            only be reached if an operator also set a hosted provider key
+//            (OPENROUTER_API_KEY), which is not meaningful for a self-hosted
 //            target, so this case was unreachable in practice.
 //   POST-FIX: a generic branch is appended at the tail when LLM_API_URL +
 //             LLM_API_KEY + LLM_MODEL are all set AND no named-provider key
@@ -445,9 +445,9 @@ test('network error from generic yields the failure envelope with no leaked secr
 // then restore the fix and confirm green.
 
 test('PER-79 generic-branch regression: named-provider keys always hide generic from the chain', () => {
-  // Three sub-claims form the contract the new branch guarantees. Reverting
-  // the resolver tail in scripts/seed-forecasts.mjs (#14914-#14937) breaks ALL
-  // three at once — which is exactly what this test is here to catch.
+  // Two sub-claims form the contract the new branch guarantees. Reverting
+  // the resolver tail in scripts/seed-forecasts.mjs (#14914-#14937) breaks BOTH
+  // at once — which is exactly what this test is here to catch.
   const URL = 'https://example.invalid/v1/chat/completions';
   const KEY = 'redacted-llm-key';
 
@@ -463,24 +463,14 @@ test('PER-79 generic-branch regression: named-provider keys always hide generic 
     'a named-provider key must always hide generic — this is the core precedence invariant',
   );
 
-  // (ii) GROQ key alone also hides generic — the contract names openrouter
-  // AND groq by envKey, not just whichever happens to come first.
-  delete process.env.OPENROUTER_API_KEY;
-  process.env.GROQ_API_KEY = 'groq-test-key';
-  assert.equal(
-    resolveForecastLlmProviders().some((p) => p.name === 'generic'),
-    false,
-    'groq key alone must also hide generic — single-key rule covers both named providers',
-  );
-
-  // (iii) All three generic envs set, no named-provider key, generic enters
+  // (ii) All three generic envs set, no named-provider key, generic enters
   // at the TAIL — never in a named-provider's slot. Without the new branch,
   // this assertion fails on the first .some() check.
-  delete process.env.GROQ_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
   const chain = resolveForecastLlmProviders().map((p) => p.name);
   assert.deepEqual(
     chain,
-    ['openrouter', 'openrouter-free', 'openrouter-free-backup', 'groq', 'generic'],
+    ['openrouter', 'openrouter-free', 'openrouter-free-backup', 'generic'],
     'with all three generic envs set and no named key, generic must enter LAST in the default chain',
   );
 });
@@ -530,11 +520,11 @@ test('PER-79 generic-branch regression: outbound fetch shape is OpenAI-compatibl
 // must keep the hosted pin-based shape and add generic+LLM_MODEL only when
 // generic is actually in the resolved chain.
 
-test('critical_signals options append generic after the groq/openrouter pin', () => {
+test('critical_signals options append generic after the openrouter pin', () => {
   setGenericEnv();
   const names = resolveForecastLlmProviders(getForecastLlmCallOptions('critical_signals'))
     .map((provider) => provider.name);
-  assert.deepEqual(names, ['groq', 'openrouter', 'generic']);
+  assert.deepEqual(names, ['openrouter', 'generic']);
 });
 
 test('market_implications options append generic after the openrouter-only pin', () => {
@@ -555,6 +545,11 @@ test('generic-only market_implications budget is generic timeout plus stage guar
 
 test('critical_signals cache tag includes generic model only when generic is runnable', () => {
   const hostedBaseline = buildCriticalSignalRouteTag(getForecastLlmCallOptions('critical_signals'));
+  // Fork: the critical_signals OpenRouter pin is the resolved free-tier default
+  // (owner ruling 2026-08-03; the decorrelated pick is no longer listed), so the
+  // tag carries that model, sanitized the way the builder does, not upstream's
+  // paid Gemini pin.
+  assert.equal(hostedBaseline, `openrouter_${openrouterModel()}`.replace(/[^a-zA-Z0-9._/-]/g, '-'));
   assert.equal(
     hostedBaseline.includes('generic'),
     false,

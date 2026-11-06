@@ -115,7 +115,7 @@ function renderSymbol(item: StockBacktestResult): SafeHtml {
     <p class="sbx-note">${t('components.stockBacktestFocus.staleSignalNote')}</p>
 
     ${evals.length > 0
-      ? safeHtml`<table class="sbx-table">
+      ? safeHtml`<table class="wm-table sbx-table">
           <thead><tr>
             <th>${t('components.stockBacktestFocus.colDate')}</th>
             <th>${t('components.stockBacktestFocus.colSignal')}</th>

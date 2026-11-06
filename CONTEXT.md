@@ -3,6 +3,167 @@
 **This file is fork-specific. `AGENTS.md` in this directory is upstream's and is still authoritative for architecture, build, and conventions — read both.**
 Kept as a separate file so upstream merges never conflict with fork knowledge.
 
+**v12 — 2026-11-06. Upstream sync: koala73/worldmonitor `4cad4a5e4` merged (295 commits since
+the 2026-10-31 `e3268a4a8` sync; 39 conflicted paths), on the same branch as the v11 sync (PR #8),
+which first fast-forwarded over the nine fork fixes ported from PR #1 (`port/pr1-fork-fixes`):
+the prediction-market price archiver and its activation-marker probe, the trader charter at
+boundary 1 v5, the self-host `VITE_SELFHOST_PRO` image unlock, the README trader console, the
+catalog domain overrides, HTML-escaped variant meta, the call-shape long-completion budget, and the
+archiver's attribution entries. PR #1 is superseded by this branch.** Decisions that took judgment:
+
+- **Version and inventories.** `package.json`, the lockfile, `tauri.conf.json` and `Cargo.toml` are
+  at upstream's 2.11.8 (from 2.11.6). The MCP server card is 1.50.0 at **112 tools** (upstream 102 +
+  the 10 fork tools; no name collisions). `/api/health` walks **417 probes** (upstream 414 + `defconLevel`,
+  `krakenMarkets`, `predictionPriceArchive`); the four health/api-platform example bodies say so, and
+  `check-health-probe-cutovers.mts origin/main` passes for every new upstream probe (the regional
+  energy fleet) and the fork's archiver probe.
+- **Registry ledger (`scripts/mcp-registry-published-versions.json`).** `1.47.0` keeps the fork's
+  109-tool pin; upstream's `1.48.0` and `1.49.0` entries are kept verbatim although they describe
+  hosted inventories the fork never built (they keep the ledger merge-friendly and the test only
+  enforces the newest entry); `1.50.0` is re-pinned at 112 tools with the fork manifest fingerprint
+  `6789c8e5…`. `server.json` took upstream's new description wording.
+- **Generated artifacts are regenerated, not hand-merged.** Product catalog/facts, the server and
+  agent cards, `llms.txt`/`llms-full.txt`, `ai-search.md`, the agent-skills index and skill
+  extension, the attribution manifest and the full "Observed Source Inventory" block of
+  `docs/source-attribution.mdx` (the drift PR #8 had deferred), sandbox fixtures, depth/hero/copy
+  stats and the pro-test locales all come from `npm run generate` on an LF tree. The OpenAPI
+  documents were hand-patched for the one proto comment that differs (`climate_disaster.proto`:
+  "GDACS, NASA FIRMS, EONET. (ReliefWeb removed 2026-08-03.)" — EONET is upstream's addition, the
+  ReliefWeb removal is the fork's); `make generate` still needs the Go toolchain this machine lacks.
+- **Locales.** The four upstream-rewritten locale files (`fa`, `nl`, `sw`, `uk`) took upstream's
+  translations, had `shell.documentTitle` pruned again (the fork keeps its static title, v10), and
+  got the 86 fork keys back through `sync-locale-keys` (one genuinely translated fork value in `fa`
+  and `nl` restored). `scripts/locale-baselines/app.json` is the sorted flat snapshot of the merged
+  `en.json` — upstream's baseline is exactly that for its keys, so the fork keys simply join it.
+- **Spliced source conflicts.** `api/health.js` activation markers carry the archiver marker beside
+  upstream's regional-energy block; `rpc-tools.ts` imports both the fork's classifier/chokepoint
+  symbols and upstream's `argNum`/`argStrList`; `panel-layout.ts` imports `widgetsEvictedBySaving`
+  (fork) and `subscribeWidgetAccess` (upstream); `StockBacktestPanel` keeps the fork's
+  `number | undefined` tone with upstream's CSS-variable colours; the ais-relay widget client composes
+  the fork's `WIDGET_ANTHROPIC_BASE_URL` with upstream's `timeout`/`maxRetries: 0`; `seed-fx-yoy`
+  keeps the Windows-safe `pathToFileURL` main guard over upstream's `fetchYahooJson` import;
+  `variant-meta.ts`/`index.html` keep the fork title and take upstream's "169 of 196" description;
+  `docker-compose.yml` keeps the fork's `EXA_API_KEYS` block and takes upstream's
+  `ALPHA_VANTAGE_API_KEY` placement (the fork's alias-block copy was removed — Compose rejects the
+  duplicate key); `SELF_HOSTING.md` takes upstream's rewritten rows with the fork's `the-synactic`
+  container names; README and the superseded-audit banner stay the fork's.
+- **Tests adapted to recorded fork rulings.** `mcp-published-endpoint-canonical` (new upstream) no
+  longer requires README.md to carry the hosted MCP endpoint (same ruling as `cii-docs-drift`).
+  Three LLM-policy suites that were already red before this sync now encode the free-tier default:
+  the critical_signals route tag follows `openrouterModel()`, the chain-telemetry "paid" rung is the
+  resolved primary, and the forecast fallback test tells the free rung apart by model identity
+  rather than a `:free` suffix (the fork's primary is free too). `news-digest-methodology-parity`
+  pins the fork primary ahead of upstream's new `nemotron-3.5-super-vl` third model.
+- **Verified here, then on CI (the Actions budget was back for this push):** `typecheck`,
+  `typecheck:api`, `lint:boundaries`, `lint`, `docs:check`, the cutover gate and a 56-suite focused
+  data-test batch (1,129 tests; the 21 failures are the Windows path classes below). CI then ran for
+  the first time on this PR and found three things this box could not: `proto-changes`/`proto-freshness`
+  refuse to classify because GitHub's files API caps a PR at 3,000 changed files and this sync PR has
+  more (a size property of the PR, not a defect); `audit-lockfile` flagged two high brace-expansion
+  advisories in the fork-only `docker/runtime-package-lock.json` (the runtime image gained `sax` and
+  the seeder tiers after upstream's lock); and `docs-stats` found three derived files stale on Linux
+  that were "current" here. The follow-up commit fixes the latter two: the docker runtime lock now
+  carries the root's brace-expansion and uuid floors (npm audit: 0), the crawlable-corpus snapshot
+  path is `posix.join`ed (it is published verbatim in `llms-full.txt` and `teasers.json`), and
+  `docs/source-attribution.mdx` is back to one generated block. Still failing on Windows only,
+  reproduced identically on a pristine upstream checkout: `docs-stats-bootstrap-cache`,
+  `docs-stats-category-explainer`, `docs-stats-plan-layer-entitlement` (double-drive `C:\C:\` paths)
+  and `agent-corpus-canonical-host` (backslash paths); `crawlable-corpus` "builds a non-trivial static
+  corpus" also fails here and did before the sync. The entitlement crosswalk's scanner shells to POSIX
+  `grep` through `cmd.exe` on Windows and returns nothing; run through bash it reports 390 rules, 0
+  unmapped, 0 drift.
+- **CI pass two (unit shards).** The first full CI run on this branch exposed 40 Linux failures the
+  Windows tree could not see. Classified against a pre-merge checkout: 5 were merge-introduced, 34 were
+  fork debt that had never met CI, 1 was heap. Fixed in the follow-up:
+  - merge-introduced: `KrakenMarketsPanel` and `stock-backtest-focus-content` tables carry `wm-table`
+    and their stylesheets no longer redeclare the shared header/cell properties; `docker/nginx.conf`
+    sends `X-Robots-Tag noindex` on the fork-only `pro/assets|favico` and `/mcp` blocks; the widget
+    model client keeps upstream's one-line `new Anthropic({...})` shape with the fork's optional
+    `baseURL` spread (test regex widened accordingly).
+  - fork debt: `api/mcp-proxy.ts` imports `./_mcp-preset-auth.js` by file name (native ESM);
+    `seed-prediction-price-archive.mjs` prints the closed-set `=== Done` terminal marker;
+    `kalshiNum`, `toPercentScale` and `quotedSpreadPct` moved from the seeder into
+    `_prediction-scoring.mjs` so the source-slicing harnesses that spread that module's exports see
+    them (the harnesses also receive `HONEST_UA`); `public/llms.txt` carries the fork OpenAPI byte
+    size via `build-openapi-json`; the market-implications health tests derive their run deadline
+    from `getMarketImplicationsMinRunBudgetMs` (the fork's 60s long-generation rung starved a fixed
+    60s window); `seed-insights-llm-retry`, `regional-snapshot-narrative-retry` and
+    `forecast-seed-resilience` identify the first rung as the fork's free default instead of upstream's
+    paid pin; the two Ollama reasoning tests accept `think:false` beside `reasoning_effort:'none'`
+    (the fork's measured LM Studio contract, `tests/llm-no-reasoning-contract.test.mjs`).
+  - heap: `tests/crawlable-corpus.test.mjs` retains ~1.9 GB of live heap in "builds a non-trivial
+    static corpus" — measured identically on this tree and on pristine upstream with the same
+    node_modules — and Node's default old-space limit on the 7 GB runner is ~2 GB, so the file died
+    with "Reached heap limit". `scripts/run-data-tests.mjs` now launches every file with
+    `--max-old-space-size=3072`. Upstream's own runs fit under the limit; the proper fix is reducing
+    the test's retention upstream.
+  - the `panels` bundle budget was re-seeded (37.8 → 41.7 KB raw: the fork's panels) from a
+    no-`.env` `VITE_VARIANT=full vite build`; main and embed surfaces check green.
+  - Windows-only and left alone: `deploy-config` deploy-gate tests (`spawnSync /bin/bash ENOENT`),
+    and the two CI timing assertions (`imd-cyclone-marine` linear-time, `food-prices-hostile-input`
+    MIT bucketing) that pass here and looked like runner contention.
+- **CI pass three (the runner tier).** The second run left three reds that were the hardware, not
+  the code. This fork is a private repository, so its `ubuntu-latest` jobs run on GitHub's 2 vCPU /
+  7 GB tier; upstream is public and gets 4 vCPU / 16 GB. That is why Node's default heap ceiling here
+  is ~2 GB (the corpus test's 1.9 GB fits upstream's machines) and why `--concurrency=4` oversubscribes
+  the box: `food-prices-hostile-input` OCPV took 1014 ms against its 1000 ms bound (162 ms on a
+  desktop) and every linear-time budget test sat at 55-100% of its bound. Fixed in the follow-up:
+  - `scripts/run-data-tests.mjs` treats `--concurrency` as a ceiling clamped to
+    `os.availableParallelism()`, so the fork's shards run 2-wide while upstream's runners keep 4;
+    `tests/ci-test-selection.test.mjs` pins the `--concurrency=4` workflow text, which stays.
+  - the pulse refresh's "Verify published artifacts" step runs `node --import tsx --test` outside the
+    runner, so it carries `NODE_OPTIONS: --max-old-space-size=3072` as step env, which
+    `scripts/rehearse-crawlable-pulse-refresh.mjs` forwards to its replay; the resilience refresh
+    already goes through the runner.
+  - `tests/fixtures/mcp-registry-names.json` is regenerated to the 112-name sorted registry.
+    Upstream's 102-name copy failed `mcp-alias` "matches the sorted registry and the base revision", a
+    built-output suite that never ran here; the base-revision half reads the fixture at `origin/main`
+    (absent on the fork's old main, so the gap is empty).
+  - the `gate` commit status is unit + proto-changes + proto-freshness, so it stays red on the
+    3,000-file cap alone until this PR merges and later PRs are small again.
+- **Windows lesson for the next sync.** This repo has no `* text=auto`, so with `core.autocrlf=true`
+  every non-source file materializes CRLF. Splice-style generators then misbehave in two ways: they
+  write mixed-EOL files (`build-ai-search`, `build-llms-full`), and when their heading or marker regex
+  no longer matches the CRLF text they APPEND a second generated block instead of replacing the first
+  (`llms-full.txt` doubled to 523 KB; `docs/source-attribution.mdx` carried upstream's rows in block
+  one and the fork's in block two, so every checker read the stale first block). Any `join()` of a
+  repo-relative path that is published verbatim leaks backslashes. Regenerate only from a worktree
+  created with `git -c core.autocrlf=false -c core.eol=lf worktree add` (or rewrite `w/crlf` AND
+  `w/mixed` tracked files to LF first; `checkout-index -f` does not renormalize), then compare
+  generated-marker counts against upstream before committing. Node 24.22.2 and 26.7 ship the same
+  ICU 78.3 / CLDR 48, so collation was not a factor.
+
+**v11 — 2026-10-31. Upstream sync: koala73/worldmonitor `e3268a4a8` merged (870 commits since
+the 2026-10-05 `9e8b2f650` sync; 101 conflicted paths).** Key decisions and adaptations:
+
+- **Single-source health verdict (`#9883`) adopted.** Upstream retired `seed-freshness-baseline.json`
+  and the `expiring-ack` mode for new cutovers (23 pre-existing `expiring-ack` entries remain in
+  `SEED_META`); all 37 new upstream probes since `9e8b2f650` carry `activation-marker`
+  cutovers and pass `check-health-probe-cutovers.mts` against `origin/main`. Fork standalone probes
+  (`defconLevel`, `krakenMarkets`) remain in `STANDALONE_KEYS` / `SEED_META` (total 351 probes).
+- **Boundary 2 & Free-tier LLM policy preserved.** `seed-jodi-oil.mjs` composes upstream's streaming
+  `stallMs`/`budgetMs` reader with the fork's `JODI_UA`, 4xx `nonRetryable` refusal handling, and
+  `assertParseableCsv`. `seed-prediction-markets.mjs` keeps `HONEST_UA` across the new Kalshi
+  order-book liquidity pass. Primary OpenRouter slots in `seed-forecasts.mjs`,
+  `seed-forecast-resolutions.mjs` (`liveJudgeModelIds().a`), `brief-llm.mjs`, and `classify_event`
+  remain on `openrouterModel()` (`nvidia/nemotron-3-ultra-550b-a55b:free`), while adopting upstream's
+  removal of the retired Groq fallback.
+- **MCP domain and annotation contracts (`1.47.0`, 109 tools).** The 10 fork MCP tools are registered
+  in `api/mcp/domains.ts`, carry human-readable `title` annotations, and obey the tool-description
+  policy (no cross-tool references, ≤1024 B per tool, 76 KiB total budget across 109 tools).
+  Cloudflare Radar preset uses `https://radar.mcp.cloudflare.com/mcp`.
+- **CII v14 & TypeScript 7 (`#9489`, `#9506`).** `get-risk-scores.ts` passes `acled.rows` to
+  `assessCiiInputAvailability` while preserving `degraded: acled.unavailable`; `intel-history-client.ts`
+  preserves the local Chroma `useLocalBackend()` branch under the paginated `nextCursor` signature;
+  `McpConnectModal.ts` wraps `premiumFetch` in `Promise.resolve().then(...)` so mock/test callers
+  never throw before `.catch()`.
+- **Same-day review correction.** The merge had dropped the fork's `companyMonitoringWorker`
+  activation-marker cutover from `SEED_META` and edited its test to match; restored, and
+  `check-health-probe-cutovers.mts origin/main` still passes. The `shell-quote` override floor had
+  come back as upstream's `^1.8.4`; raised to `^1.12.0` (the lockfile already resolved 1.12.0) so
+  the advisory-affected range stays excluded. CI did not run on this PR (Actions budget exhausted);
+  `typecheck:all` and `lint` pass locally, `generate:check` and `docs:check` do not — see the PR.
+
 **v10 — 2026-10-05. Upstream sync: koala73/worldmonitor `9e8b2f65` merged (2,850 commits since
 the 2026-08-05 sync; 175 conflicted paths).** Every fork boundary below survived the merge; the
 decisions that took judgment are recorded here so the next sync does not re-litigate them:

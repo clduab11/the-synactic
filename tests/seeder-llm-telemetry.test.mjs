@@ -19,7 +19,7 @@ import { callLLM } from '../scripts/lib/llm-chain.cjs';
 const OPENROUTER_CHAIN_MODEL = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free';
 import { callLlmDefault as callNarrativeLlm, __setNarrativeTransportForTests } from '../scripts/regional-snapshot/narrative.mjs';
 
-const ENV_KEYS = ['USAGE_TELEMETRY', 'AXIOM_API_TOKEN', 'GROQ_API_KEY', 'OPENROUTER_API_KEY', 'OLLAMA_API_URL'];
+const ENV_KEYS = ['USAGE_TELEMETRY', 'AXIOM_API_TOKEN', 'OPENROUTER_API_KEY', 'OLLAMA_API_URL'];
 const originalEnv = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 const realFetch = global.fetch;
 
@@ -35,7 +35,6 @@ afterEach(() => {
 function baseEnv() {
   process.env.USAGE_TELEMETRY = '1';
   process.env.AXIOM_API_TOKEN = 'axiom-test-token';
-  process.env.GROQ_API_KEY = 'groq-test';
   process.env.OPENROUTER_API_KEY = 'or-test';
   delete process.env.OLLAMA_API_URL;
 }
@@ -46,6 +45,15 @@ function llmJson(
   finishReason = 'stop',
 ) {
   return { choices: [{ message: { content }, finish_reason: finishReason }], usage };
+}
+
+// Fork: the chain's first rung is the free-tier default above (owner policy
+// 2026-08-03), so the "paid" rung these scenarios fail over from is whatever
+// OPENROUTER_MODEL resolves to, not upstream's paid Gemini pin.
+const CHAIN_PAID_MODEL = OPENROUTER_CHAIN_MODEL;
+
+function isPaidOpenRouter(init) {
+  return JSON.parse(String(init.body || '{}')).model === CHAIN_PAID_MODEL;
 }
 
 test('llm-telemetry: buildLlmCallEvent mirrors the LlmCallEvent field shape', () => {
@@ -73,7 +81,7 @@ test('llm-chain: fallback emits one event per attempt with the caller stage', as
       captured.push(...JSON.parse(String(init.body || '[]')));
       return { ok: true, json: async () => ({}) };
     }
-    if (raw.includes('api.groq.com')) {
+    if (raw.includes('openrouter.ai') && isPaidOpenRouter(init)) {
       return { ok: false, status: 500, json: async () => ({}) };
     }
     if (raw.includes('openrouter.ai')) {
@@ -84,14 +92,14 @@ test('llm-chain: fallback emits one event per attempt with the caller stage', as
 
   const text = await callLLM('system', 'user prompt', { stage: 'brief-digest-cron' });
   assert.equal(text, 'brief prose output');
-  assert.equal(captured.length, 2, 'failed groq attempt + openrouter fallback success');
+  assert.equal(captured.length, 2, 'failed paid attempt + free fallback success');
   const [fail, ok] = captured;
-  assert.equal(fail.provider, 'groq');
+  assert.equal(fail.provider, 'openrouter');
   assert.equal(fail.ok, false);
   assert.equal(fail.reason, 'http_500');
   assert.equal(fail.fallback_index, 0);
   assert.equal(fail.stage, 'brief-digest-cron');
-  assert.equal(ok.provider, 'openrouter');
+  assert.equal(ok.provider, 'openrouter-free');
   assert.equal(ok.ok, true);
   assert.equal(ok.fallback_index, 1);
   assert.equal(ok.tokens_total, 30);
@@ -104,11 +112,10 @@ test('llm-chain: reaches both fixed OpenRouter free models with routing intact',
   global.fetch = async (url, init = {}) => {
     const raw = String(url);
     if (raw.includes('api.axiom.co')) return { ok: true, json: async () => ({}) };
-    if (raw.includes('api.groq.com')) return { ok: false, status: 503, json: async () => ({}) };
     if (raw.includes('openrouter.ai')) {
       const body = JSON.parse(String(init.body || '{}'));
       attempted.push(body);
-      const content = body.model === 'nvidia/nemotron-3-super-120b-a12b:free' ? 'backup free answer' : '';
+      const content = body.model === 'nvidia/nemotron-3.5-super-vl:free' ? 'backup free answer' : '';
       return { ok: true, json: async () => llmJson(content) };
     }
     throw new Error(`unexpected fetch: ${raw}`);
@@ -120,7 +127,7 @@ test('llm-chain: reaches both fixed OpenRouter free models with routing intact',
   assert.deepEqual(attempted.map(body => body.model), [
     OPENROUTER_CHAIN_MODEL,
     'google/gemma-4-26b-a4b-it:free',
-    'nvidia/nemotron-3-super-120b-a12b:free',
+    'nvidia/nemotron-3.5-super-vl:free',
   ]);
   for (const body of attempted.slice(1)) {
     assert.deepEqual(body.reasoning, { enabled: false });
@@ -196,7 +203,7 @@ test('llm-chain: rejects length-limited prose and falls through to the next prov
       captured.push(...JSON.parse(String(init.body || '[]')));
       return { ok: true, json: async () => ({}) };
     }
-    if (raw.includes('api.groq.com')) {
+    if (raw.includes('openrouter.ai') && isPaidOpenRouter(init)) {
       return {
         ok: true,
         json: async () => llmJson(
@@ -216,10 +223,10 @@ test('llm-chain: rejects length-limited prose and falls through to the next prov
 
   assert.equal(text, 'Complete fallback prose.');
   assert.equal(captured.length, 2);
-  assert.equal(captured[0].provider, 'groq');
+  assert.equal(captured[0].provider, 'openrouter');
   assert.equal(captured[0].ok, false);
   assert.equal(captured[0].reason, 'length');
-  assert.equal(captured[1].provider, 'openrouter');
+  assert.equal(captured[1].provider, 'openrouter-free');
   assert.equal(captured[1].ok, true);
 });
 
@@ -232,7 +239,7 @@ test('llm-chain: records empty length-limited responses as length before falling
       captured.push(...JSON.parse(String(init.body || '[]')));
       return { ok: true, json: async () => ({}) };
     }
-    if (raw.includes('api.groq.com')) {
+    if (raw.includes('openrouter.ai') && isPaidOpenRouter(init)) {
       return { ok: true, json: async () => llmJson('', undefined, 'length') };
     }
     if (raw.includes('openrouter.ai')) {
@@ -245,10 +252,10 @@ test('llm-chain: records empty length-limited responses as length before falling
 
   assert.equal(text, 'Complete fallback prose.');
   assert.equal(captured.length, 2);
-  assert.equal(captured[0].provider, 'groq');
+  assert.equal(captured[0].provider, 'openrouter');
   assert.equal(captured[0].ok, false);
   assert.equal(captured[0].reason, 'length');
-  assert.equal(captured[1].provider, 'openrouter');
+  assert.equal(captured[1].provider, 'openrouter-free');
   assert.equal(captured[1].ok, true);
 });
 
@@ -319,12 +326,11 @@ test('narrative: validate_reject and success attempts both reach the ingest', as
     }
     throw new Error(`unexpected global fetch: ${raw}`);
   };
-  // Provider transport is injected: the paid and fixed free OpenRouter models
-  // fail validation, then Groq answers with the accepted payload.
+  // Provider transport is injected: the paid and primary free OpenRouter models
+  // fail validation, then the backup free model answers with the accepted payload.
   __setNarrativeTransportForTests({
-    fetch: async (url) => {
-      const raw = String(url);
-      if (raw.includes('openrouter.ai')) {
+    fetch: async (_url, init) => {
+      if (JSON.parse(String(init.body)).model !== 'nvidia/nemotron-3.5-super-vl:free') {
         return { ok: true, json: async () => llmJson('not-json narrative') };
       }
       return { ok: true, json: async () => llmJson('{"ok":true}') };
@@ -336,8 +342,8 @@ test('narrative: validate_reject and success attempts both reach the ingest', as
     { validate: (text) => text.startsWith('{') },
   );
   assert.ok(res);
-  assert.equal(res.provider, 'groq');
-  assert.equal(captured.length, 4);
+  assert.equal(res.provider, 'openrouter-free-backup');
+  assert.equal(captured.length, 3);
   assert.equal(captured[0].stage, 'regional-narrative');
   assert.equal(captured[0].provider, 'openrouter');
   assert.equal(captured[0].ok, false);
@@ -348,10 +354,6 @@ test('narrative: validate_reject and success attempts both reach the ingest', as
   assert.equal(captured[1].reason, 'validate_reject');
   assert.equal(captured[1].fallback_index, 1);
   assert.equal(captured[2].provider, 'openrouter-free-backup');
-  assert.equal(captured[2].ok, false);
-  assert.equal(captured[2].reason, 'validate_reject');
+  assert.equal(captured[2].ok, true);
   assert.equal(captured[2].fallback_index, 2);
-  assert.equal(captured[3].provider, 'groq');
-  assert.equal(captured[3].ok, true);
-  assert.equal(captured[3].fallback_index, 3);
 });

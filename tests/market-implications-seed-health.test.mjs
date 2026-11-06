@@ -31,6 +31,8 @@ import {
   __setForecastLlmTransportForTests,
   __setForecastLlmRunDeadlineForTests,
   __setForecastLlmCallOverrideForTests,
+  getForecastLlmCallOptions,
+  getMarketImplicationsMinRunBudgetMs,
 } from '../scripts/seed-forecasts.mjs';
 import { __testing__ as healthTesting } from '../api/health.js';
 
@@ -41,7 +43,7 @@ const META_KEY = 'seed-meta:intelligence:market-implications';
 const CARDS_KEY = 'intelligence:market-implications:v1';
 
 const ENV_KEYS = [
-  'OPENROUTER_API_KEY', 'GROQ_API_KEY',
+  'OPENROUTER_API_KEY',
   'FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER', 'FORECAST_LLM_PROVIDER_ORDER',
   'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN',
 ];
@@ -99,7 +101,13 @@ function captureRedisCommands() {
 function armTimingOutProvider() {
   process.env.OPENROUTER_API_KEY = 'test-key';
   process.env.FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER = 'openrouter';
-  __setForecastLlmRunDeadlineForTests(Date.now() + 60_000);
+  // The stage is admitted only when the remaining run budget covers the resolved
+  // chain (getMarketImplicationsMinRunBudgetMs). Derive the deadline from that
+  // instead of a fixed window: the fork's long-generation OpenRouter rung
+  // (60s) made a 60s window starve the stage before any provider was tried.
+  __setForecastLlmRunDeadlineForTests(
+    Date.now() + getMarketImplicationsMinRunBudgetMs(getForecastLlmCallOptions('market_implications')) + 5_000,
+  );
   const calls = { count: 0 };
   __setForecastLlmTransportForTests({
     fetch: async () => {
@@ -518,10 +526,11 @@ test('a failure, a recovery, and a fresh failure keep the streak honest across r
 });
 
 test('market_implications runs before the best-effort R2 trace export (#4978 tail-stage budget)', () => {
-  const startIndex = seederSource.indexOf('afterPublish: async (data, meta)');
-  assert.notEqual(startIndex, -1, 'missing source marker: afterPublish');
-  const endIndex = seederSource.indexOf('extraKeys: FORECAST_EXTRA_KEYS', startIndex);
-  assert.notEqual(endIndex, -1, 'missing source marker: extraKeys');
+  const startIndex = seederSource.indexOf('async function runForecastAfterPublish(');
+  assert.notEqual(startIndex, -1, 'missing source marker: runForecastAfterPublish');
+  assert.ok(seederSource.includes('afterPublish: (data, meta) => runForecastAfterPublish(data, meta, triggerContext)'), 'runSeed must publish through runForecastAfterPublish');
+  const endIndex = seederSource.indexOf('\nif (_isDirectRun)', startIndex);
+  assert.notEqual(endIndex, -1, 'missing source marker: direct-run block');
   const afterPublish = seederSource.slice(startIndex, endIndex);
   const miIndex = afterPublish.indexOf('await buildAndSeedMarketImplications(');
   const traceIndex = afterPublish.indexOf('[Trace] Starting R2 export');

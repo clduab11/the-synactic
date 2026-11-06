@@ -34,6 +34,8 @@ function createRuntimeState() {
     availableIds: new Set(),
     configuredCount: 0,
     listeners: new Set(),
+    entitled: false,
+    entitlementListeners: new Set(),
   };
 }
 
@@ -100,7 +102,15 @@ async function loadRuntimeConfigPanel() {
       export function toApiUrl(path) { return path; }
       export function toRuntimeUrl(path) { return path; }
     `],
-    ['tauri-bridge-stub', `export async function invokeTauri() {}`],
+    ['entitlements-stub', `
+      const state = globalThis.__wmRuntimeConfigPanelTestState;
+      export function isEntitled() { return state.entitled; }
+      export function onEntitlementChange(listener) {
+        state.entitlementListeners.add(listener);
+        return () => state.entitlementListeners.delete(listener);
+      }
+    `],
+    ['tauri-bridge-stub', `export async function invokeTauri() {}\nexport function hasTauriInvokeBridge() { return false; }`],
     // src/utils/index.ts pulls getCurrentLanguage from the same module as t().
     ['i18n-stub', `
       export function t(key) { return key; }
@@ -199,6 +209,7 @@ async function loadRuntimeConfigPanel() {
     ['@/services/runtime-config', 'runtime-config-stub'],
     ['../services/runtime', 'runtime-stub'],
     ['@/services/runtime', 'runtime-stub'],
+    ['@/services/entitlements', 'entitlements-stub'],
     ['../services/tauri-bridge', 'tauri-bridge-stub'],
     ['@/services/tauri-bridge', 'tauri-bridge-stub'],
     ['../services/i18n', 'i18n-stub'],
@@ -313,6 +324,13 @@ export async function createRuntimeConfigPanelHarness() {
     }
   }
 
+  function setEntitled(entitled) {
+    runtimeState.entitled = entitled;
+    for (const listener of [...runtimeState.entitlementListeners]) {
+      listener(null);
+    }
+  }
+
   function isHidden(panel) {
     return panel.getElement().classList.contains('hidden');
   }
@@ -330,6 +348,8 @@ export async function createRuntimeConfigPanelHarness() {
     runtimeState.availableIds = new Set();
     runtimeState.configuredCount = 0;
     runtimeState.listeners.clear();
+    runtimeState.entitled = false;
+    runtimeState.entitlementListeners.clear();
     browserEnvironment.localStorage.clear();
   }
 
@@ -351,6 +371,7 @@ export async function createRuntimeConfigPanelHarness() {
     isHidden,
     reset,
     cleanup,
+    setEntitled,
     setRuntimeState,
   };
 }

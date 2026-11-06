@@ -22,7 +22,7 @@
 //   one call                         : >120s, never returned
 //
 // The FASTEST of those 12 was 17.1s — above the 15s clamp. So the primary
-// provider could not succeed even once: 0/12 at 15s. The groq fallback was
+// provider could not succeed even once: 0/12 at 15s. The fallback provider was
 // simultaneously 429-ing (free-tier 100k tokens/day, exhausted), hence
 // llm_no_response every run.
 //
@@ -36,7 +36,7 @@ import test, { afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS,
+  LONG_COMPLETION_TIMEOUT_MS,
   OPENROUTER_BLOCKED_PROVIDERS,
 } from '../scripts/_llm-model-timeouts.mjs';
 import {
@@ -68,7 +68,6 @@ function coverage(timeoutMs) {
 const ENV_KEYS = [
   'OPENROUTER_MODEL',
   'OPENROUTER_API_KEY',
-  'GROQ_API_KEY',
   'FORECAST_LLM_PROVIDER_ORDER',
   'FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER',
 ];
@@ -77,9 +76,9 @@ let savedEnv = {};
 beforeEach(() => {
   savedEnv = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
   process.env.OPENROUTER_API_KEY = 'test-openrouter-key';
-  process.env.GROQ_API_KEY = 'test-groq-key';
-  // Production sets this to `openrouter,groq`. market_implications must NOT
-  // inherit it — that is the precedence this fix deliberately breaks.
+  // Production sets this to `openrouter,groq`, which resolves to the full
+  // OpenRouter chain. market_implications must NOT inherit it — that is the
+  // precedence this fix deliberately breaks.
   process.env.FORECAST_LLM_PROVIDER_ORDER = 'openrouter,groq';
   delete process.env.FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER;
 });
@@ -95,14 +94,14 @@ test('the Flash completion timeout clears the measured p90 (the 15s clamp made t
   // The old 15s clamp sat BELOW the fastest observed completion for this call
   // shape, so no amount of retrying could ever succeed.
   assert.ok(
-    DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS > Math.min(...MEASURED_THROUGHPUT_ROUTED_MS),
+    LONG_COMPLETION_TIMEOUT_MS > Math.min(...MEASURED_THROUGHPUT_ROUTED_MS),
     'timeout must exceed the FASTEST observed completion, or the primary can never succeed',
   );
   // The user's bar: succeed 90%+ of the time.
   assert.ok(
-    coverage(DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS) >= 0.9,
-    `timeout ${DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS}ms only covers `
-      + `${(coverage(DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS) * 100).toFixed(0)}% of measured runs; need >=90%`,
+    coverage(LONG_COMPLETION_TIMEOUT_MS) >= 0.9,
+    `timeout ${LONG_COMPLETION_TIMEOUT_MS}ms only covers `
+      + `${(coverage(LONG_COMPLETION_TIMEOUT_MS) * 100).toFixed(0)}% of measured runs; need >=90%`,
   );
 });
 
@@ -117,7 +116,7 @@ test('the provider-level timeout does not re-clamp Flash below its completion bu
   assert.equal(openrouter.name, 'openrouter');
   assert.equal(
     openrouter.timeout,
-    DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS,
+    LONG_COMPLETION_TIMEOUT_MS,
     'the effective attempt timeout must equal the Flash cap, not a lower provider timeout',
   );
   assert.ok(coverage(openrouter.timeout) >= 0.9);
@@ -147,11 +146,9 @@ test('Flash is pinned to fast backends — the timeout policy assumes routing th
   assert.equal(openrouter.extraBody?.reasoning?.enabled, false);
 });
 
-test('market_implications does not depend on groq', () => {
-  // Groq free tier caps at 100k tokens/day; this stage alone needs ~114k/day
-  // (4,749 tokens x 24 hourly runs), so the fallback 429s for most of the day.
-  // It is not a dependable fallback and reserving budget for it only raises the
-  // admission bar (=> more starvation) for a provider that returns 429 in 86ms.
+test('market_implications does not inherit the global fallback chain', () => {
+  // Admission reserves every runnable rung's timeout, so each fallback inherited
+  // from the global order raises the admission bar (=> more starvation).
   const providers = resolveForecastLlmProviders(getForecastLlmCallOptions('market_implications'));
   assert.deepEqual(providers.map((p) => p.name), ['openrouter']);
 });
@@ -164,12 +161,12 @@ test('the market_implications admission reservation covers exactly its own chain
   // upstream stage, and afterPublish is INSIDE the seed lock — so the tail cannot
   // simply be handed its own budget without risking a lock overrun.
   //
-  // Dropping groq is what keeps this affordable: the reservation is the sum of the
-  // resolved chain's timeouts + guard. Keeping groq would reserve 40+20+5 = 65s of
-  // run budget for a provider that 429s in 86ms, raising the admission bar (=> MORE
-  // starvation) to buy nothing.
+  // A paid-only chain is what keeps this affordable: the reservation is the sum of
+  // the resolved chain's timeouts + guard. Inheriting the global order's two free
+  // rungs would reserve 40+25+25+5 = 95s, raising the admission bar (=> MORE
+  // starvation).
   const reservation = getMarketImplicationsMinRunBudgetMs(getForecastLlmCallOptions('market_implications'));
-  assert.equal(reservation, DEEPSEEK_V4_FLASH_LONG_COMPLETION_TIMEOUT_MS + 5_000, 'openrouter attempt + guard only');
+  assert.equal(reservation, LONG_COMPLETION_TIMEOUT_MS + 5_000, 'openrouter attempt + guard only');
 });
 
 test('the run budget leaves the tail its reservation, and still fits inside the seed lock', () => {
@@ -179,11 +176,16 @@ test('the run budget leaves the tail its reservation, and still fits inside the 
   // finish inside the lock or a slow run gets its lock stolen mid-write.
   const reservation = getMarketImplicationsMinRunBudgetMs(getForecastLlmCallOptions('market_implications'));
 
-  // Upstream would have to burn (200s - 45s) = 155s to starve the tail. Throughput-
-  // routed stages are p90 26s / capped at 40s, so this cannot happen in practice.
+  // Upstream must burn (run budget - reservation) to starve the tail. Widening the
+  // completion cap to 60s deliberately BUYS tail robustness with upstream headroom:
+  // the reservation grew from 45s to 65s, so this margin fell from 155s to 135s.
+  // Still far beyond reach — throughput-routed stages measured p90 26s — but the
+  // trade is real, and the floor is stated in terms of the reservation so a further
+  // cap rise shows up here as a decision rather than as a surprise.
   assert.ok(
-    FORECAST_LLM_RUN_BUDGET_MS - reservation >= 150_000,
-    'run budget must leave upstream ample room while still preserving the tail reservation',
+    FORECAST_LLM_RUN_BUDGET_MS - reservation >= 130_000,
+    `run budget must leave upstream ample room while still preserving the tail reservation `
+      + `(margin ${FORECAST_LLM_RUN_BUDGET_MS - reservation}ms)`,
   );
   // The run budget must stay strictly under the lock, with cleanup headroom.
   assert.ok(

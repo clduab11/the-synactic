@@ -107,7 +107,8 @@ const SHARED_STYLE_TOKENS = `
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
     font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
   .wrap { padding: 16px; max-width: 560px; }
-  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+  #panel-usage { margin: 0 0 10px; font-size: 11px; color: var(--muted); }
   .title { font-size: 20px; font-weight: 650; letter-spacing: 0.2px; }
   .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
   .empty { color: var(--muted); padding: 8px 0; }
@@ -120,12 +121,14 @@ const SHARED_STYLE_TOKENS = `
 // The shared bridge + helper library. Injected once per shell. It exposes a
 // small helper set (q/num/listState/clampPct/pctText/setText/el/cssVar) in closure scope
 // that a widget's `renderBody` uses, then calls the widget-defined
-// `renderData(data)` on every tool-result. NOTE: no `${` / backtick here.
+// `renderData(data, renderContext)` on every tool-result. NOTE: no `${` / backtick here.
 const SHARED_BRIDGE_HEAD = `
 (function () {
   "use strict";
   var parentWin = window.parent;
   var hostCapabilities = {};
+  var sourceLinkRequest = null;
+  var sourceLinkSerial = 0;
 
   function post(msg) {
     try { parentWin.postMessage(msg, "*"); } catch (e) { /* host gone */ }
@@ -133,6 +136,51 @@ const SHARED_BRIDGE_HEAD = `
   function notify(method, params) {
     post({ jsonrpc: "2.0", method: method, params: params || {} });
   }
+
+  function showSourceLinkStatus(text) {
+    var notice = q("source-link-status");
+    if (!notice) {
+      notice = el("p");
+      notice.id = "source-link-status";
+      notice.setAttribute("role", "status");
+      q("root").appendChild(notice);
+    }
+    notice.textContent = text;
+    notice.hidden = !text;
+    reportSize();
+  }
+  function finishSourceLink(id, text) {
+    if (!sourceLinkRequest || sourceLinkRequest.id !== id) return;
+    clearTimeout(sourceLinkRequest.timer);
+    sourceLinkRequest = null;
+    showSourceLinkStatus(text);
+  }
+  window.addEventListener("click", function (event) {
+    var link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!link) return;
+    var url = httpUrl(link.getAttribute("href"));
+    if (!url) return;
+    event.preventDefault();
+    if (sourceLinkRequest) return;
+    if (!hostCapabilities.openLinks || typeof hostCapabilities.openLinks !== "object" || Array.isArray(hostCapabilities.openLinks)) {
+      showSourceLinkStatus("Opening source links is unavailable in this host.");
+      return;
+    }
+    var id = "source-link-" + ++sourceLinkSerial;
+    sourceLinkRequest = { id: id, timer: null };
+    sourceLinkRequest.timer = setTimeout(function () {
+      finishSourceLink(id, "The host did not respond to this source link.");
+    }, 30000);
+    showSourceLinkStatus("Requesting this source link from the host.");
+    try {
+      parentWin.postMessage({ jsonrpc: "2.0", id: id, method: "ui/open-link", params: { url: url } }, "*");
+    } catch (error) {
+      finishSourceLink(id, "The host could not open this source link.");
+    }
+  });
+  window.addEventListener("pagehide", function () {
+    if (sourceLinkRequest) finishSourceLink(sourceLinkRequest.id, "");
+  });
 
   // ---- shared render helpers (widget renderBody uses these) ----
   function q(id) { return document.getElementById(id); }
@@ -201,6 +249,16 @@ const SHARED_BRIDGE_HEAD = `
       return (parsed.protocol === "http:" || parsed.protocol === "https:") ? parsed.href : "";
     } catch (e) { return ""; }
   }
+  // Reader-facing time: "31 Oct 2026, 11:31 UTC". Returns "" for a missing or
+  // unparseable value so callers choose their own "unknown" wording.
+  var UTC_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function utcTime(value) {
+    var date = typeof value === "number" || typeof value === "string" && value.trim() ? new Date(value) : null;
+    if (!date || !Number.isFinite(date.getTime())) return "";
+    var hours = date.getUTCHours(), minutes = date.getUTCMinutes();
+    return date.getUTCDate() + " " + UTC_MONTHS[date.getUTCMonth()] + " " + date.getUTCFullYear()
+      + ", " + (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes + " UTC";
+  }
   function countryName(code) {
     var c = String(code == null ? "" : code).toUpperCase().slice(0, 2);
     if (!c) return "";
@@ -217,20 +275,30 @@ const SHARED_BRIDGE_HEAD = `
     notify("ui/notifications/size-changed", { height: h });
   }
 
-  function extractToolData(result) {
-    if (!result || typeof result !== "object") return null;
+  function extractToolResult(result) {
+    if (!result || typeof result !== "object") return { data: null, renderContext: { kind: "unknown" } };
     if (result.structuredContent && typeof result.structuredContent === "object") {
-      return result.structuredContent;
+      var structured = result.structuredContent;
+      var kind = "unknown";
+      if (!Array.isArray(structured)) {
+        if (Object.prototype.hasOwnProperty.call(structured, "projection")) kind = "projection-wrapped";
+        else if (!Object.prototype.hasOwnProperty.call(structured, "_attribution") && !softError(structured)) kind = "ordinary-structured";
+      }
+      return { data: structured, renderContext: { kind: kind } };
     }
     if (Array.isArray(result.content)) {
       for (var i = 0; i < result.content.length; i++) {
         var c = result.content[i];
         if (c && c.type === "text" && typeof c.text === "string") {
-          try { return JSON.parse(c.text); } catch (e) { /* not JSON */ }
+          try { return { data: JSON.parse(c.text), renderContext: { kind: "text-fallback" } }; } catch (e) { /* not JSON */ }
         }
       }
     }
-    return null;
+    return { data: null, renderContext: { kind: "unknown" } };
+  }
+
+  function extractToolData(result) {
+    return extractToolResult(result).data;
   }
 
   function applyTheme(hostContext) {
@@ -272,10 +340,10 @@ const SHARED_BRIDGE_HEAD = `
     if (empty) { empty.textContent = msg; empty.style.display = "block"; }
   }
 
-  function safeRender(data) {
+  function safeRender(data, renderContext) {
     var errMsg = softError(data);
     if (errMsg) { showError(errMsg); reportSize(); return; }
-    try { renderData(data); } catch (e) { /* never break the host on a bad payload */ }
+    try { renderData(data, renderContext); } catch (e) { /* never break the host on a bad payload */ }
     reportSize();
   }
 `;
@@ -301,8 +369,12 @@ export const PANEL_USAGE_BRIDGE = `
       document.getElementById("root").prepend(notice);
     }
     notice.hidden = false;
-    notice.textContent = (usage.remaining === null ? "Unlimited allowance" : usage.remaining + " of " + usage.limit + " requests remaining") +
-      ", at the last panel request. Resets " + new Date(usage.resetsAt).toLocaleString() + ". Opening this panel uses 1 request; its rendered details are included.";
+    var resets = new Date(usage.resetsAt);
+    var resetText = Number.isFinite(resets.getTime())
+      ? " · resets " + resets.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+      : "";
+    notice.textContent = (usage.remaining === null ? "Unlimited requests" : usage.remaining + " of " + usage.limit + " requests remaining") +
+      resetText + ". Opening this panel uses 1 request.";
   }
 `;
 
@@ -313,6 +385,14 @@ function renderBridgeTail(appName: string): string {
     if (event.source !== parentWin) return;
     var msg = event.data;
     if (!msg || typeof msg !== "object" || msg.jsonrpc !== "2.0") return;
+
+    if (sourceLinkRequest && msg.id === sourceLinkRequest.id) {
+      if (msg.method && !("result" in msg) && !("error" in msg)) return;
+      var result = msg.result;
+      var failed = msg.error || !result || typeof result !== "object" || Array.isArray(result) || result.isError === true;
+      finishSourceLink(msg.id, failed ? "The host could not open this source link." : "");
+      return;
+    }
 
     if (msg.id === 1 && msg.result) {
       hostCapabilities = msg.result.hostCapabilities && typeof msg.result.hostCapabilities === "object" ? msg.result.hostCapabilities : {};
@@ -326,8 +406,21 @@ function renderBridgeTail(appName: string): string {
       case "ui/notifications/tool-result": {
         var result = msg.params && msg.params.result ? msg.params.result : msg.params;
         showPanelUsage(result);
-        var data = extractToolData(result);
-        safeRender(data);
+        var extracted = extractToolResult(result);
+        if (result && result.isError === true) {
+          var message = softError(extracted.data);
+          message = typeof message === "string" ? message.replace(/[\\x00-\\x1f\\x7f]/g, "").trim().slice(0, 1000) : "";
+          if (!message && Array.isArray(result.content)) {
+            for (var i = 0; i < result.content.length; i++) {
+              var block = result.content[i];
+              if (!block || block.type !== "text" || typeof block.text !== "string") continue;
+              message = block.text.replace(/[\\x00-\\x1f\\x7f]/g, "").trim().slice(0, 1000);
+              if (message) break;
+            }
+          }
+          extracted = { data: { error: message || "Tool request failed." }, renderContext: { kind: "unknown" } };
+        }
+        safeRender(extracted.data, extracted.renderContext);
         break;
       }
       case "ui/notifications/tool-input":
@@ -365,7 +458,7 @@ export interface AppShellSpec {
   // Body markup placed inside <div class="wrap" id="root">. Owns its own
   // empty-state + card elements.
   body: string;
-  // JS body of `function renderData(data) { ... }`. Runs inside the shared
+  // JS body of `function renderData(data, renderContext) { ... }`. Runs inside the shared
   // bridge closure with access to q/num/listState/setText/el/cssVar/pctText/clampPct/
   // levelFor/collapseWs/paragraphs/httpUrl/countryName/probabilityBar. MUST
   // avoid backticks and `${`.
@@ -378,7 +471,7 @@ export interface AppShellSpec {
 export function buildAppHtml(spec: AppShellSpec): string {
   const bridge =
     SHARED_BRIDGE_HEAD +
-    '\n  function renderData(data) {\n' + spec.renderBody + '\n  }\n' +
+    '\n  function renderData(data, renderContext) {\n' + spec.renderBody + '\n  }\n' +
     renderBridgeTail(spec.appName);
 
   return `<!DOCTYPE html>

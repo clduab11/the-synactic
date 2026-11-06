@@ -13,8 +13,9 @@ import {
   callForecastLLM,
   __setForecastLlmTransportForTests,
 } from '../scripts/seed-forecasts.mjs';
+import { openrouterModel } from '../scripts/_openrouter-model.mjs';
 
-const ENV_KEYS = ['USAGE_TELEMETRY', 'AXIOM_API_TOKEN', 'GROQ_API_KEY', 'OPENROUTER_API_KEY'];
+const ENV_KEYS = ['USAGE_TELEMETRY', 'AXIOM_API_TOKEN', 'OPENROUTER_API_KEY'];
 const originalEnv = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 const realFetch = global.fetch;
 
@@ -30,7 +31,6 @@ afterEach(() => {
 function baseEnv() {
   process.env.USAGE_TELEMETRY = '1';
   process.env.AXIOM_API_TOKEN = 'axiom-test-token';
-  process.env.GROQ_API_KEY = 'groq-test';
   process.env.OPENROUTER_API_KEY = 'or-test';
 }
 
@@ -116,8 +116,10 @@ test('provider fallback chains keep incrementing the index', async () => {
   baseEnv();
   const captured = captureAxiom();
   __setForecastLlmTransportForTests({
-    fetch: async (url) => {
-      if (String(url).includes('api.groq.com')) return llmResponse({ error: 'down' }, 503);
+    fetch: async (_url, init) => {
+      // Fork: the `openrouter` rung resolves to a free-tier model too, so the
+      // free rung is told apart by model identity rather than a `:free` suffix.
+      if (JSON.parse(init.body).model !== openrouterModel()) return llmResponse({ error: 'down' }, 503);
       return llmResponse({
         choices: [{ message: { content: 'a forecast narrative that is long enough' } }],
         model: 'google/gemini-2.5-flash',
@@ -126,18 +128,18 @@ test('provider fallback chains keep incrementing the index', async () => {
   });
 
   const result = await callForecastLLM('system', 'user prompt', {
-    stage: 'scenario', providerOrder: ['groq', 'openrouter'], retryDelayMs: 0,
+    stage: 'scenario', providerOrder: ['openrouter-free', 'openrouter'], retryDelayMs: 0,
   });
 
   assert.ok(result?.text);
-  assert.ok(captured.length >= 2, 'groq attempts + openrouter success must all be recorded');
+  assert.ok(captured.length >= 2, 'free-rung attempts + openrouter success must all be recorded');
   const last = captured[captured.length - 1];
   assert.equal(last.provider, 'openrouter');
   assert.equal(last.ok, true);
   for (const [i, ev] of captured.entries()) {
     assert.equal(ev.fallback_index, i, 'indexes must be strictly sequential across retries and providers');
     if (i < captured.length - 1) {
-      assert.equal(ev.provider, 'groq');
+      assert.equal(ev.provider, 'openrouter-free');
       assert.equal(ev.ok, false);
     }
   }

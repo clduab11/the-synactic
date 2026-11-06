@@ -12,8 +12,8 @@ import { WatchlistTableView } from './WatchlistTableView';
 // undefined as a number.
 function tone(value: number | undefined): string {
   if (value === undefined) return 'var(--text-dim)';
-  if (value > 0) return '#8df0b2';
-  if (value < 0) return '#ff8c8c';
+  if (value > 0) return 'var(--green-text, #8df0b2)';
+  if (value < 0) return 'var(--red-text, #ff8c8c)';
   return 'var(--text-dim)';
 }
 
@@ -81,6 +81,7 @@ export class StockBacktestPanel extends Panel {
 
     if (!this.tableView) {
       this.tableView = new WatchlistTableView<StockBacktestResult>({
+        labelledBy: `${this.panelId}Title`,
         intro: 'Historical replay of the technical signal model over recent daily bars. Point-in-time fundamentals are not included.',
         columns: [
           {

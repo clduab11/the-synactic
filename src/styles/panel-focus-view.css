@@ -317,18 +317,10 @@ a.pfx-title:hover { text-decoration: underline; }
   font-size: 0.72rem; font-variant-numeric: tabular-nums;
   display: block; overflow-x: auto;
 }
-.sbx-table th {
-  text-align: right; padding: 0.3rem 0.5rem; white-space: nowrap;
-  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--text-secondary, #8b949e);
-  border-bottom: 1px solid var(--panel-border, #30363d);
-}
+/* Header and cell typography, padding, colour and rules come from .wm-table. */
+.sbx-table th { text-align: right; white-space: nowrap; }
 .sbx-table th:first-child, .sbx-table th:nth-child(2) { text-align: left; }
-.sbx-table td {
-  padding: 0.3rem 0.5rem; white-space: nowrap;
-  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
-  color: var(--text-primary, #e6edf3);
-}
+.sbx-table td { white-space: nowrap; }
 .sbx-num { text-align: right; }
 .sbx-dim { opacity: 0.6; }
 .sbx-up { color: #8df0b2; }

@@ -53,7 +53,7 @@ const EXPECTED_VARIANT_DEFAULT_SNAPSHOTS: Record<DashboardVariant, {
   enabled: number;
   sha256: string;
 }> = {
-  full: { total: 111, enabled: 88, sha256: '2420de432e89d7821bc20f84cf227cf41196d2873786faf53fb66ced9685c571' },
+  full: { total: 113, enabled: 88, sha256: 'f68eec12417748f2b5f47eb7a363e07d21e85c69768734de9db44ad3640cf7bf' },
   tech: { total: 41, enabled: 38, sha256: '43d7c788ff599baae171f7f46532653370e03ca4d322a8e6614f9f0a1cee5045' },
   finance: { total: 70, enabled: 61, sha256: '839c6d683cae13becb055771044ee77a38c1d48e803403d7086ee74558dd763c' },
   commodity: { total: 36, enabled: 33, sha256: 'cc9e0b178dec33dff354a1eea95b5b215302fc7ce685b3d92b82a356df6d6bee' },
@@ -223,7 +223,7 @@ describe('WebMCP live dashboard bindings', () => {
     const entitled = listWebMcpDashboardPanels(ctx, 'full', { variant: 'full', limit: 8 }, {
       isPanelAllowed: () => true,
     });
-    assert.equal(entitled.total, 111);
+    assert.equal(entitled.total, 113);
     assert.equal(entitled.variant, 'full');
     assert.equal(entitled.hasMore, true);
 
@@ -253,7 +253,7 @@ describe('WebMCP live dashboard bindings', () => {
       cursor = page.nextCursor;
     }
     const ids = pages.flatMap((page) => page.panels.map((panel) => panel.id));
-    assert.equal(new Set(ids).size, 111);
+    assert.equal(new Set(ids).size, 113);
     assert.ok(ids.includes('windy-webcams'));
 
     const gatedPages = [];

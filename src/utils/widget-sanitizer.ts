@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+import { sanitizeWidgetStyle } from './widget-style';
 
 const PURIFY_CONFIG = {
   ALLOWED_TAGS: [
@@ -17,8 +18,6 @@ const PURIFY_CONFIG = {
   ALLOW_DATA_ATTR: false,
   FORCE_BODY: true,
 };
-
-const UNSAFE_STYLE_PATTERN = /url\s*\(|expression\s*\(|javascript\s*:|@import|behavior\s*:/i;
 
 /**
  * Layout CSS that lets a widget leave its panel.
@@ -41,15 +40,25 @@ const UNSAFE_STYLE_PATTERN = /url\s*\(|expression\s*\(|javascript\s*:|@import|be
  */
 const ESCAPES_PANEL_PATTERN = /position\s*:\s*(fixed|sticky)|\b\d+\s*v(w|h|min|max)\b/i;
 
-DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
-  if (data.attrName !== 'style') return;
-  if (UNSAFE_STYLE_PATTERN.test(data.attrValue) || ESCAPES_PANEL_PATTERN.test(data.attrValue)) {
+// The default DOMPurify instance is shared with the analyst and deduction
+// panels. Keep this hook on a widget-only instance.
+const widgetPurify = DOMPurify(window);
+widgetPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+  if (data.attrName !== 'style' || !data.keepAttr) return;
+  if (ESCAPES_PANEL_PATTERN.test(data.attrValue)) {
     data.keepAttr = false;
+    return;
   }
+  const sanitized = sanitizeWidgetStyle(data.attrValue);
+  if (!sanitized) {
+    data.keepAttr = false;
+    return;
+  }
+  data.attrValue = sanitized;
 });
 
 export function sanitizeWidgetHtml(html: string): string {
-  return DOMPurify.sanitize(html, PURIFY_CONFIG) as unknown as string;
+  return widgetPurify.sanitize(html, PURIFY_CONFIG) as unknown as string;
 }
 
 // Strip a leading .panel-header that the agent may generate — the outer

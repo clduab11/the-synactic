@@ -75,11 +75,20 @@ services:
       # AUTH REQUIRED and the CII cold-start deadlock persists (the endpoint
       # is auth-gated even on self-host). Generate: openssl rand -hex 32 → .env
       WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
+      # Desktop-key relay. A browser user who enters their own paid desktop key
+      # in Settings gets Pro panels: this server forwards their Pro requests to
+      # the World Monitor cloud with that key, metered on their account's
+      # desktop allocation. Nothing leaves the install until a user enters a
+      # key. Set to "off" to disable the relay and the Settings entry.
+      WORLDMONITOR_SELFHOST_RELAY: "${WORLDMONITOR_SELFHOST_RELAY:-}"
+      # Set to 1 when users reach this install over HTTPS through an outer
+      # TLS proxy (nginx inside the container then sees plain http), so the
+      # desktop-key cookie is marked Secure.
+      WORLDMONITOR_PUBLIC_HTTPS: "${WORLDMONITOR_PUBLIC_HTTPS:-}"
       # LLM provider (any OpenAI-compatible endpoint)
       LLM_API_URL: "${LLM_API_URL:-}"
       LLM_API_KEY: "${LLM_API_KEY:-}"
       LLM_MODEL: "${LLM_MODEL:-}"
-      GROQ_API_KEY: "${GROQ_API_KEY:-}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
       # Local GPU inference, FIRST in the ollama -> openrouter -> groq chain.
       # Points at an OpenAI-compatible server on the host (LM Studio), so the
@@ -113,6 +122,7 @@ services:
       # EXA_API_KEYS; the singular EXA_API_KEY is honoured only by standalone
       # .mjs seeders, so the singular alone never reaches the app. Session 11.
       EXA_API_KEYS: "${EXA_API_KEYS:-}"
+      ALPHA_VANTAGE_API_KEY: "${ALPHA_VANTAGE_API_KEY:-}"
       EIA_API_KEY: "${EIA_API_KEY:-}"
       FRED_API_KEY: "${FRED_API_KEY:-}"
       ACLED_EMAIL: "${ACLED_EMAIL:-}"
@@ -150,7 +160,6 @@ services:
       # honours also reaches the container. Unset ones resolve to "" and the
       # registry treats empty as absent, so these are inert until used.
       EXA_API_KEY: "${EXA_API_KEY:-}"
-      ALPHA_VANTAGE_API_KEY: "${ALPHA_VANTAGE_API_KEY:-}"
       DATACOMMONS_API_KEY: "${DATACOMMONS_API_KEY:-}"
       GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
       CF_API_TOKEN: "${CF_API_TOKEN:-}"
@@ -183,7 +192,7 @@ services:
     # Create secrets/ dir with one file per key, then uncomment below.
     # See SELF_HOSTING.md or docker-compose.override.yml for details.
     # secrets:
-    #   - GROQ_API_KEY
+    #   - OPENROUTER_API_KEY
     #   - AISSTREAM_API_KEY
     #   - FINNHUB_API_KEY
     #   - FRED_API_KEY
@@ -311,7 +320,7 @@ services:
       dockerfile: Dockerfile
     image: the-synactic:latest
     container_name: the-synactic-seed-loop
-    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-radiation-watch seed-internet-outages seed-defcon-level seed-fire-detections seed-thermal-escalation seed-natural-events seed-climate-disasters seed-kraken-markets seed-global-tenders seed-research seed-portwatch-disruptions seed-china-coverage-health; do echo \"[seed-loop] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
+    command: ["sh", "-c", "while true; do for s in seed-security-advisories seed-aviation seed-cyber-threats seed-prediction-markets seed-prediction-price-archive seed-radiation-watch seed-internet-outages seed-defcon-level seed-fire-detections seed-thermal-escalation seed-natural-events seed-climate-disasters seed-kraken-markets seed-global-tenders seed-research seed-portwatch-disruptions seed-china-coverage-health; do echo \"[seed-loop] running $$s\"; timeout 1800 node /repo/scripts/$$s.mjs || echo \"[seed-loop] $$s FAILED (exit $$?)\"; done; echo '[seed-loop] cycle done; sleeping 45min'; sleep 2700; done"]
     volumes:
       - ./scripts:/repo/scripts:ro
       - ./shared:/repo/shared:ro
@@ -319,7 +328,12 @@ services:
       # merge the RPC airport registry; without it the bootstrap silently
       # narrows from 133 to 106 airports ("falling back to seeder AIRPORTS").
       - ./src/config:/repo/src/config:ro
+      # Price archiver's durable filesystem sink (R2 is unconfigured on the
+      # self-host stack). WRITABLE on purpose — the one place this container
+      # persists to disk; gitignored on the host.
+      - ./data/prediction-price-archive:/repo/data/prediction-price-archive
     environment:
+      WM_PRICE_ARCHIVE_DIR: /repo/data/prediction-price-archive
       UPSTASH_REDIS_REST_URL: "http://redis-rest:80"
       UPSTASH_REDIS_REST_TOKEN: "${REDIS_TOKEN:?REDIS_TOKEN required — generate with: openssl rand -hex 32}"
       # seed-internet-outages skips politely without this (CF Radar auth).
@@ -829,6 +843,7 @@ services:
       OLLAMA_TIMEOUT_MS: "${OLLAMA_TIMEOUT_MS:-}"
       # Optional: Jev shadows the classify seed and records disagreements; it decides nothing.
       TYPESAFE_API_KEY: "${TYPESAFE_API_KEY:-}"
+      TYPESAFE_BASE_URL: "${TYPESAFE_BASE_URL:-}"
       # Classify reads list-feed-digest from this install, not production (#7437).
       # Do not depends_on the-synactic here — the app already depends_on ais-relay.
       # Transient connection retries cover the compose boot race instead.
@@ -886,10 +901,10 @@ services:
     restart: unless-stopped
 
 # Docker secrets — uncomment and point to your secret files.
-# Example: echo "gsk_abc123" > secrets/groq_api_key.txt
+# Example: echo "sk-or-abc123" > secrets/openrouter_api_key.txt
 # secrets:
-#   GROQ_API_KEY:
-#     file: ./secrets/groq_api_key.txt
+#   OPENROUTER_API_KEY:
+#     file: ./secrets/openrouter_api_key.txt
 #   AISSTREAM_API_KEY:
 #     file: ./secrets/aisstream_api_key.txt
 #   FINNHUB_API_KEY:

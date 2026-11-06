@@ -8,7 +8,7 @@
 # =============================================================================
 
 # ── Stage 1: Builder ─────────────────────────────────────────────────────────
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS builder
+FROM node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS builder
 
 WORKDIR /app
 ENV npm_config_install_links=true
@@ -16,6 +16,9 @@ ENV npm_config_install_links=true
 # Install root dependencies (layer-cached until package.json changes)
 COPY package.json package-lock.json ./
 COPY vendor/braces/ ./vendor/braces/
+COPY scripts/vendor/deepmerge/ ./scripts/vendor/deepmerge/
+COPY vendor/stream-json/ ./vendor/stream-json/
+COPY vendor/vercel-og/ ./vendor/vercel-og/
 RUN npm ci --ignore-scripts
 
 # Copy full source
@@ -45,8 +48,19 @@ RUN node docker/build-handlers.mjs
 # build:pro installs pro-test's own lockfile.
 RUN npm run build:pro
 
-# Build the Vite frontend (outputs to dist/)
-# Skip blog build — blog-site has its own deps not installed here
+# Self-host premium unlock (fork ADV-34). VITE_SELFHOST_PRO is a BUILD-TIME
+# boolean vite inlines into the bundle; .env is (correctly) dockerignored, so
+# without this ARG the image's bundle pads locks every premium surface on a
+# deployment that owns its own data. Default ON: this Dockerfile exists only
+# to build the self-host image (hosted builds run on Vercel and never read
+# it). It is a boolean, never a credential — the server-side credential is
+# nginx-injected at runtime (SELFHOST_PREMIUM_KEY, docker/entrypoint.sh).
+ARG VITE_SELFHOST_PRO=1
+ENV VITE_SELFHOST_PRO=${VITE_SELFHOST_PRO}
+
+# Build the Vite frontend (outputs to dist/; corpus + sitemap already built
+# above on the pristine tree). Skip blog build — blog-site has its own deps
+# not installed here.
 RUN npx tsc && npx vite build
 # Assert the /pro pages survived the public/ -> dist/ copy (#6898). build:pro
 # succeeding proves public/pro/ exists; it does NOT prove Vite copied it, and
@@ -55,7 +69,7 @@ RUN npx tsc && npx vite build
 RUN test -s dist/pro/index.html && test -s dist/pro/welcome.html
 
 # ── Stage 2: Runtime dependencies ───────────────────────────────────────────
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS runtime-deps
+FROM node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS runtime-deps
 
 WORKDIR /app
 
@@ -69,7 +83,7 @@ COPY docker/runtime-package-lock.json ./package-lock.json
 RUN npm ci --omit=dev --omit=optional --ignore-scripts
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────────────────
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS final
+FROM node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS final
 
 # nginx + supervisord
 RUN apk add --no-cache nginx supervisor gettext && \
@@ -83,6 +97,8 @@ WORKDIR /app
 COPY --from=builder /app/src-tauri/sidecar/local-api-server.mjs ./local-api-server.mjs
 COPY --from=builder /app/src-tauri/sidecar/package.json ./package.json
 COPY --from=builder /app/shared/llm-health-providers.js ./shared/llm-health-providers.js
+COPY --from=builder /app/shared/desktop-key-access.js ./shared/desktop-key-access.js
+COPY --from=builder /app/shared/selfhost-relay-paths.js ./shared/selfhost-relay-paths.js
 ENV LOCAL_API_RESOURCE_DIR=/app
 
 # Minimal runtime node_modules — required by raw .js handlers that aren't

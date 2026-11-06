@@ -1,5 +1,7 @@
 import { afterEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { transformSync } from 'esbuild';
 import { Window } from 'happy-dom';
 import { COUNTRY_RISK_APP_HTML } from '../api/mcp/ui/country-risk-app.ts';
 import { buildStructuredContent } from '../api/mcp/structured-content.ts';
@@ -41,13 +43,13 @@ const text = (doc, id) => doc.getElementById(id).textContent;
 function assertRisk(doc) {
   assert.equal(text(doc, 'country'), 'Russia');
   assert.equal(text(doc, 'cii'), '78');
-  assert.equal(text(doc, 'level'), 'Severe');
+  assert.equal(text(doc, 'level'), 'High');
   assert.equal(doc.querySelectorAll('#components .comp').length, 4);
   assert.match(text(doc, 'components'), /Domestic unrest44.*Armed conflict88.*Security & mobility65.*Information environment71/);
-  assert.equal(text(doc, 'advisory'), 'do not travel');
-  assert.equal(text(doc, 'sanctions'), '3417 OFAC-listed');
+  assert.equal(text(doc, 'advisory'), 'Do not travel');
+  assert.equal(text(doc, 'sanctions'), '3,417 sanctions listings');
   assert.equal(text(doc, 'trend'), 'Rising');
-  assert.equal(text(doc, 'foot'), 'Snapshot: 2025-08-27T10:00:00.000Z');
+  assert.equal(text(doc, 'foot'), 'Updated 27 Aug 2025, 10:00 UTC');
 }
 function assertUnknownScore(doc) {
   assert.equal(text(doc, 'cii'), '—');
@@ -59,6 +61,36 @@ function assertUnknownScore(doc) {
 }
 
 describe('Country Risk exported HTML projections', () => {
+  it('uses a source-neutral qualifier for a SEMA-only positive country count', async () => {
+    for (const [count, expected] of [[1, '1 sanctions listing'], [2, '2 sanctions listings']]) {
+      const semaOnlyRisk = { ...risk, sanctionsCount: count, sanctionsActive: true };
+      for (const result of [wire(semaOnlyRisk), wire(semaOnlyRisk, true), textWire(semaOnlyRisk)]) {
+        const view = await mount(result);
+        assert.equal(text(view.doc, 'country'), 'Russia');
+        assert.equal(text(view.doc, 'sanctions'), expected);
+        assert.doesNotMatch(text(view.doc, 'sanctions'), /OFAC/);
+        assert.equal(text(view.doc, 'foot'), 'Updated 27 Aug 2025, 10:00 UTC');
+        assert.equal(view.requests(), 0);
+        assert.ok(view.messages.every(message => ['ui/initialize', 'ui/notifications/size-changed'].includes(message.method)));
+      }
+    }
+  });
+  it('uses canonical CII headline levels at every boundary and for the captured Ukraine score', async () => {
+    const source = readFileSync(new URL('../src/services/cached-risk-scores.ts', import.meta.url), 'utf8');
+    const mapper = source.match(/function getScoreLevel\(score: number\):[^{]+\{[\s\S]*?\n\}/);
+    assert.ok(mapper);
+    const compiled = transformSync(`${mapper[0]}\nexport { getScoreLevel };`, { loader: 'ts', format: 'esm', target: 'es2022' });
+    const { getScoreLevel } = await import(`data:text/javascript;base64,${Buffer.from(compiled.code).toString('base64')}`);
+    for (const [score, label] of [[0, 'Low'], [30, 'Low'], [31, 'Normal'], [50, 'Normal'], [51, 'Elevated'], [65, 'Elevated'], [66, 'High'], [80, 'High'], [81, 'Critical'], [93, 'Critical'], [100, 'Critical'], ['93', 'Critical']]) {
+      assert.equal(getScoreLevel(Number(score)), label.toLowerCase(), `canonical mapper for ${score}`);
+      const view = await mount(wire({ ...risk, countryCode: 'UA', countryName: 'Ukraine', cii: { ...risk.cii, combinedScore: score } }));
+      assert.equal(text(view.doc, 'level'), label, `headline for ${score}`);
+      assert.equal(text(view.doc, 'cii'), String(score));
+      assert.equal(view.requests(), 0);
+      view.send(wire(outage, true));
+      assertUnknownScore(view.doc);
+    }
+  });
   for (const query of ['@', subset]) {
     it(`preserves country, risk, evidence and date for projection ${query}`, async () => {
       const projected = applyJmespath(risk, query);
@@ -74,7 +106,7 @@ describe('Country Risk exported HTML projections', () => {
   });
   for (const replacement of [null, 7, false, '', 'unloaded', [], {}, { unexpected: 'shape' }]) {
     for (const format of ['text', 'projection']) {
-      it(`clears previous Severe output for ${format} ${JSON.stringify(replacement)}`, async () => {
+      it(`clears previous High output for ${format} ${JSON.stringify(replacement)}`, async () => {
         const view = await mount(wire(risk));
         assertRisk(view.doc);
         view.send(format === 'text' ? textWire(replacement) : wire(replacement, true));
@@ -91,7 +123,7 @@ describe('Country Risk exported HTML projections', () => {
       const view = await mount(wire({ ...risk, advisoryLevel: advisory }));
       assert.equal(text(view.doc, 'advisory'), '—');
       assert.equal(text(view.doc, 'cii'), '78');
-      assert.equal(text(view.doc, 'sanctions'), '3417 OFAC-listed');
+      assert.equal(text(view.doc, 'sanctions'), '3,417 sanctions listings');
     });
   }
   it('retains outage, healthy untracked, zero and unknown numeric semantics under projections', async () => {
@@ -100,10 +132,11 @@ describe('Country Risk exported HTML projections', () => {
     assertUnknownScore(view.doc);
     assert.equal(text(view.doc, 'country'), 'Germany');
     assert.equal(view.doc.getElementById('degraded').style.display, 'block');
+    assert.equal(view.doc.getElementById('degraded').textContent.trim(), 'Risk data could not be loaded, so the scores below are unknown, not low.');
     assert.equal(text(view.doc, 'advisory'), '—');
     assert.equal(text(view.doc, 'sanctions'), '—');
-    assert.equal(text(view.doc, 'foot'), 'Upstream unavailable — no snapshot time.');
-    assert.match(text(view.doc, 'components'), /upstream data could not be read/);
+    assert.equal(text(view.doc, 'foot'), '', 'the outage banner explains the missing time');
+    assert.match(text(view.doc, 'components'), /^Breakdown unknown\.$/);
     view.send(wire(untracked, true));
     assertUnknownScore(view.doc);
     assert.equal(text(view.doc, 'country'), 'Luxembourg');
@@ -118,10 +151,57 @@ describe('Country Risk exported HTML projections', () => {
     view.send(wire({ ...risk, cii: { combinedScore: null, components: { newsActivity: null, ciiContribution: '', geoConvergence: [], militaryActivity: false } }, fetchedAt: 0 }, true));
     assertUnknownScore(view.doc);
     assert.equal(text(view.doc, 'country'), 'Russia');
-    assert.equal(text(view.doc, 'sanctions'), '3417 OFAC-listed');
-    assert.equal(text(view.doc, 'advisory'), 'do not travel');
+    assert.equal(text(view.doc, 'sanctions'), '3,417 sanctions listings');
+    assert.equal(text(view.doc, 'advisory'), 'Do not travel');
     view.send(wire(risk, true));
     assertRisk(view.doc);
+  });
+  it('preserves baseline and approximate signed movement across projections and country replacement', async () => {
+    for (const reshaped of [false, true]) {
+      const view = await mount(wire({ ...risk, cii: { ...risk.cii, staticBaseline: 14, dynamicScore: -3 } }, reshaped));
+      assert.equal(text(view.doc, 'baseline'), '14');
+      assert.equal(text(view.doc, 'movement'), '-3 points');
+      assert.equal(text(view.doc, 'trend'), 'Rising');
+      assert.match(view.doc.body.textContent, /24-hour change \(approx\.\)/);
+      view.send(wire({ ...risk, countryCode: 'CA', countryName: 'Canada', cii: { combinedScore: 0, staticBaseline: 0, dynamicScore: 0, trend: 'TREND_DIRECTION_UNSPECIFIED' } }, reshaped));
+      assert.equal(text(view.doc, 'country'), 'Canada');
+      assert.equal(text(view.doc, 'baseline'), '0');
+      assert.equal(text(view.doc, 'movement'), '0 points');
+      assert.equal(text(view.doc, 'trend'), '—');
+      assert.equal(text(view.doc, 'movement-note'), 'A change of 0 can mean no movement, or that there was no earlier reading to compare.');
+      assert.equal(view.doc.getElementById('movement-note').style.display, 'block');
+      for (const replacement of [outage, { ...risk, cii: {} }, { ...risk, cii: { staticBaseline: null, dynamicScore: false } }, null]) {
+        view.send(wire(replacement, reshaped));
+        assert.equal(text(view.doc, 'baseline'), '—');
+        assert.equal(text(view.doc, 'movement'), '—');
+        assert.equal(view.doc.getElementById('movement-note').style.display, 'none');
+      }
+      view.send(wire({ ...risk, cii: { ...risk.cii, staticBaseline: 14, dynamicScore: 2.5 } }, reshaped));
+      assert.equal(text(view.doc, 'movement'), '+2.5 points');
+      for (const [dynamicScore, expected] of [[-0.04, '0 points'], [0.96, '+1 point'], [-1, '-1 point'], [-12.345, '-12.3 points']]) {
+        view.send(wire({ ...risk, cii: { ...risk.cii, dynamicScore } }));
+        assert.equal(text(view.doc, 'movement'), expected, String(dynamicScore));
+      }
+      assert.equal(view.doc.getElementById('movement-note').style.display, 'none');
+      assertRisk(view.doc);
+      assert.equal(view.requests(), 0);
+    }
+  });
+  it('discloses country and advisory text caps and clears the notice after replacement', async () => {
+    const view = await mount(wire({ ...risk, countryName: 'c'.repeat(80), advisoryLevel: 'a'.repeat(80) }, true));
+    assert.equal(text(view.doc, 'country').length, 64);
+    assert.equal(text(view.doc, 'advisory').length, 64);
+    assert.equal(text(view.doc, 'display-note'), 'Country name and travel advisory shortened to 64 characters each.');
+    assert.equal(view.doc.getElementById('display-note').style.display, 'block');
+    view.send(wire({ ...risk, advisoryLevel: 'a'.repeat(80) }));
+    assert.equal(text(view.doc, 'display-note'), 'Travel advisory shortened to 64 characters.');
+    view.send(wire({ ...risk, countryName: 'c'.repeat(80) }));
+    assert.equal(text(view.doc, 'display-note'), 'Country name shortened to 64 characters.');
+    for (const replacement of [risk, outage, null]) {
+      view.send(wire(replacement));
+      assert.equal(text(view.doc, 'display-note'), '');
+      assert.equal(view.doc.getElementById('display-note').style.display, 'none');
+    }
   });
   it('preserves parent-source and JSON-RPC trust gates without data reads', async () => {
     const view = await mount(wire(risk));

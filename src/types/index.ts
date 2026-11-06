@@ -81,7 +81,9 @@ export interface Feed {
   propagandaRisk?: PropagandaRisk;
   stateAffiliated?: string;  // e.g., "Russia", "China", "Iran"
   lang?: string;             // ISO 2-letter code for filtering (locale boost)
+  fetchInAllLanguages?: boolean; // keep language metadata/locale defaults, allow selection in any UI language
   strategicDefault?: boolean; // always default-on regardless of UI language
+  digestLang?: string;        // only this digest language carries it (server is stricter than the browser)
 }
 
 export type ThreatLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
@@ -116,7 +118,19 @@ export interface NewsLocationMarker {
   timestamp?: Date;
   /** Original loaded article identity; marker titles may include inferred locations. */
   article?: Pick<NewsItem, 'link' | 'title' | 'source'>;
+  /**
+   * #9213: the cluster's verdict from assessCorroboration, as the News panel
+   * shows it. Describes coverage, not accuracy.
+   */
+  corroboration?: NewsCorroboration;
 }
+
+/** Structural copy of Corroboration in server/_shared/corroboration.ts; corroboration-flag.ts checks they match. */
+export type NewsCorroboration =
+  | { readonly state: 'corroborated'; readonly publishers: number }
+  | { readonly state: 'single-publisher'; readonly publishers: 1 }
+  | { readonly state: 'tier4-only'; readonly publishers: number }
+  | { readonly state: 'unknown' };
 
 export interface NewsItem {
   source: string;
@@ -682,6 +696,8 @@ export interface MapLayers {
   irradiators: boolean;
   radiationWatch?: boolean;
   sanctions: boolean;
+  /** Sentinel-5P NO2 activity direction per country and industrial cluster. */
+  no2Activity?: boolean;
   weather: boolean;
   /** Official Canada road events and conditions from Ontario, Alberta, Toronto, and British Columbia. */
   canadaRoads: boolean;
@@ -695,6 +711,7 @@ export interface MapLayers {
   protests: boolean;
   flights: boolean;
   military: boolean;
+  aircraftEmergencies?: boolean;
   natural: boolean;
   spaceports: boolean;
   minerals: boolean;
@@ -767,6 +784,14 @@ export interface AIDataCenter {
   h100Equivalent?: number;
   sector?: string;
   note?: string;
+  /** Optional enrichment; omit fields without verified public evidence. */
+  description?: string;
+  sourceUrl?: string;
+  sourceDate?: string;
+  metadataReviewedAt?: string;
+  firstOperationalDate?: string;
+  locationPrecision?: 'site' | 'city' | 'region' | 'country';
+  powerBasis?: 'reported' | 'estimated';
 }
 
 export interface InternetOutage {
@@ -1121,6 +1146,16 @@ export interface GdeltTensionPair {
   trend: 'rising' | 'stable' | 'falling';
   changePercent: number;
   region: string;
+  // Non-news signals above their usual level (scripts/_tension-evidence.mjs).
+  evidence?: TensionEvidence[];
+}
+
+export interface TensionEvidence {
+  channel: string;
+  value: number;
+  baseline: number | null;
+  countries: string[];
+  airports: { name: string; status: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -1375,7 +1410,16 @@ export interface CascadeResult {
     id: string;
     name: string;
     capacityShare: number;
+    /** False when the alternative crosses a chokepoint that a cut cable also crosses. */
+    avoidsCutZone?: boolean;
   }[];
+  /** Every disrupted node when several were cut together (multi-cable / chokepoint cut). */
+  sources?: InfrastructureNode[];
+  /** Present when the result rests on estimated rather than measured inputs. */
+  dataQuality?: {
+    estimated: boolean;
+    note: string;
+  };
 }
 
 export type PortType = 'container' | 'oil' | 'lng' | 'naval' | 'mixed' | 'bulk';
@@ -1393,7 +1437,7 @@ export interface Port {
 
 // AI Regulation Types
 export type RegulationType = 'comprehensive' | 'sectoral' | 'voluntary' | 'proposed';
-export type ComplianceStatus = 'active' | 'proposed' | 'draft' | 'superseded';
+export type ComplianceStatus = 'active' | 'proposed' | 'draft' | 'superseded' | 'revoked' | 'lapsed';
 export type RegulationStance = 'strict' | 'moderate' | 'permissive' | 'undefined';
 
 export interface AIRegulation {
@@ -1406,12 +1450,23 @@ export interface AIRegulation {
   status: ComplianceStatus;
   announcedDate: string;
   effectiveDate?: string;
-  complianceDeadline?: string;
+  deadlines?: ComplianceDeadline[];
   scope: string[];
   keyProvisions: string[];
   penalties?: string;
   link?: string;
   description?: string;
+}
+
+export interface ComplianceDeadline {
+  date: string;
+  label: string;
+  source: string;
+}
+
+export interface RegulationDeadline {
+  regulation: AIRegulation;
+  deadline: ComplianceDeadline;
 }
 
 export interface RegulatoryAction {
@@ -1424,6 +1479,7 @@ export interface RegulatoryAction {
   description: string;
   impact: 'high' | 'medium' | 'low';
   source?: string;
+  sourceUrl: string;
 }
 
 export interface CountryRegulationProfile {

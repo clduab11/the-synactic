@@ -74,8 +74,9 @@ function presetHost(serverUrl: string): string {
 let configuredHostsCache: Promise<Set<string>> | null = null;
 function fetchConfiguredHosts(): Promise<Set<string>> {
   if (!configuredHostsCache) {
-    configuredHostsCache = premiumFetch(`${proxyUrl('/api/mcp-proxy')}?capabilities=1`)
-      .then(r => (r.ok ? r.json() : { configuredHosts: [] }))
+    configuredHostsCache = Promise.resolve()
+      .then(() => premiumFetch(`${proxyUrl('/api/mcp-proxy')}?capabilities=1`))
+      .then(r => (r?.ok ? r.json() : { configuredHosts: [] }))
       .then((j: { configuredHosts?: unknown }) => new Set(
         Array.isArray(j?.configuredHosts)
           ? j.configuredHosts.filter((h): h is string => typeof h === 'string').map(h => h.toLowerCase())

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { closeSync, existsSync, globSync, openSync, readFileSync, statSync, writeSync } from 'node:fs';
+import { availableParallelism } from 'node:os';
 import { relative, resolve, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { run } from 'node:test';
@@ -57,12 +58,33 @@ export async function main(args) {
       list: { type: 'boolean', default: false },
       'built-output': { type: 'string', default: 'all' },
       timings: { type: 'string' },
+      // Estimates to place files by. CI passes the newest ones its previous
+      // runs measured (see unit-shards in test.yml); every shard of a run must
+      // read the same file or the shards would not partition the inventory.
+      durations: { type: 'string' },
       'test-name-pattern': { type: 'string' },
+      // Milliseconds one file may run. The slowest measured file takes ~36s, and
+      // a single test already fails at 120s, so 300s only catches files that
+      // never exit.
+      'file-timeout': { type: 'string', default: '300000' },
     },
   });
   if (!/^[1-9]\d*$/.test(values.concurrency) || !Number.isSafeInteger(Number(values.concurrency))) {
     throw new Error('Concurrency must be a positive integer');
   }
+  // Fork: --concurrency is a ceiling, not a demand. CI passes 4, sized for
+  // upstream's public-repo runners (4 vCPU). This private fork's ubuntu-latest
+  // jobs get GitHub's 2 vCPU tier, where four CPU-bound test processes halve
+  // each other's speed: the linear-time budget tests (food-prices-hostile-input,
+  // imd-cyclone-marine) ran at 55-100% of their bounds and one tipped over
+  // (OCPV, 1014 ms against 1000; 162 ms on a desktop). Never run more files at
+  // once than there are cores; upstream's runners still get their 4.
+  const requestedConcurrency = Number(values.concurrency);
+  const concurrency = Math.min(requestedConcurrency, availableParallelism());
+  if (!/^[1-9]\d*$/.test(values['file-timeout']) || !Number.isSafeInteger(Number(values['file-timeout']))) {
+    throw new Error('--file-timeout must be a positive integer of milliseconds');
+  }
+  const fileTimeout = Number(values['file-timeout']);
   let index = 1;
   let total = 1;
   if (values.shard) {
@@ -81,7 +103,10 @@ export async function main(args) {
     return matches;
   }))], values['built-output']);
   if (!files.length) throw new Error(`No test files remain for --built-output=${values['built-output']}`);
-  const durations = JSON.parse(readFileSync(timingPath, 'utf8'));
+  const durations = JSON.parse(readFileSync(values.durations ?? timingPath, 'utf8'));
+  if (!durations || typeof durations !== 'object' || Array.isArray(durations)) {
+    throw new Error('Test durations must be an object of file paths to milliseconds');
+  }
   if (total > files.length) throw new Error('Shard count exceeds the test file count');
   const selected = partitionTests(files, durations, total)[index - 1];
   if (!selected.length) throw new Error('The selected shard contains no test files');
@@ -89,20 +114,47 @@ export async function main(args) {
     console.log(JSON.stringify(selected));
     return 0;
   }
-  console.log(`Data tests: ${selected.length}/${files.length} files, shard ${index}/${total}, concurrency ${values.concurrency}`);
+  const concurrencyNote = concurrency < requestedConcurrency
+    ? ` (requested ${requestedConcurrency}, ${availableParallelism()} cores)`
+    : '';
+  console.log(`Data tests: ${selected.length}/${files.length} files, shard ${index}/${total}, concurrency ${concurrency}${concurrencyNote}`);
   const env = { ...process.env };
   // This is a new test run, even when a contract test invokes the CLI.
   delete env.NODE_TEST_CONTEXT;
   const timingFd = values.timings ? openSync(values.timings, 'w') : undefined;
   let success = false;
+  // node:test's `timeout` is per test. A file whose tests all pass but which
+  // leaves a handle open (a timer, a socket) never exits, and the run waits on
+  // it silently until the CI job is killed. Abort the run and name the file.
+  const abort = new AbortController();
+  const running = new Map();
+  let overdue = [];
+  const watchdog = setInterval(() => {
+    const now = Date.now();
+    overdue = [...running].filter(([, started]) => now - started > fileTimeout).map(([file]) => file);
+    if (overdue.length) abort.abort();
+  }, Math.min(5000, fileTimeout));
   try {
     const events = run({
       files: selected.map((file) => resolve(file)),
-      concurrency: Number(values.concurrency),
+      concurrency,
       timeout: 120000,
-      execArgv: ['--import', 'tsx'],
+      // Fork: tests/crawlable-corpus.test.mjs holds ~1.9 GB of live heap in its
+      // canonical-pages test (measured 2026-11-06 on this tree and on pristine
+      // upstream alike), and Node's default old-space limit on a 7 GB runner is
+      // ~2 GB, so the file died with "Reached heap limit" in CI. Give every file
+      // 3 GB of headroom; the other files stay far below it.
+      execArgv: ['--import', 'tsx', '--max-old-space-size=3072'],
       testNamePatterns: values['test-name-pattern'],
       env,
+      signal: abort.signal,
+    });
+    // A file-level test is the one whose name is its own path.
+    events.on('test:dequeue', (data) => {
+      if (data.file && data.name === data.file) running.set(data.file, Date.now());
+    });
+    events.on('test:complete', (data) => {
+      if (data.file && data.name === data.file) running.delete(data.file);
     });
     events.on('test:summary', (data) => {
       if (!data.file) success = data.success;
@@ -114,8 +166,15 @@ export async function main(args) {
       })}\n`);
     });
     await pipeline(events, new spec(), process.stdout, { end: false });
+    if (overdue.length) {
+      for (const file of overdue) {
+        console.error(`Data test file still running after --file-timeout=${fileTimeout}ms (a test hung or a handle was left open): ${relative(process.cwd(), file).split(sep).join('/')}`);
+      }
+      return 1;
+    }
     return success ? 0 : 1;
   } finally {
+    clearInterval(watchdog);
     if (timingFd !== undefined) closeSync(timingFd);
   }
 }

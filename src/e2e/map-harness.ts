@@ -1842,6 +1842,7 @@ const ensureDeterministicStyles = (): void => {
       transition: none !important;
     }
 
+    body.${DETERMINISTIC_BODY_CLASS} .map-distance-control,
     body.${DETERMINISTIC_BODY_CLASS} .deckgl-controls,
     body.${DETERMINISTIC_BODY_CLASS} .deckgl-time-slider,
     body.${DETERMINISTIC_BODY_CLASS} .deckgl-layer-toggles,

@@ -33,8 +33,10 @@
  */
 import { enqueueSentryCall } from '@/bootstrap/sentry-defer';
 import { PREMIUM_RPC_PATHS } from '@/shared/premium-paths';
+import { createRequestTimeoutSignal, isTimeoutOrAbortError } from './timeout-signal';
 import { PRO_FRESH_CACHE_RPC_PATHS } from '@/shared/pro-fresh-rpc';
 import { withPremiumIntent } from './premium-intent';
+import { noteSelfHostPremiumDenial } from './self-host-key';
 import { isDesktopRuntime } from './runtime';
 
 /**
@@ -81,6 +83,10 @@ export function reportServerError(
   // decision point. Reporting every browser-visible 503 again would turn one
   // Redis outage into a per-route, per-client Sentry flood.
   if (res.headers.get('X-RateLimit-Mode') === 'degraded') return;
+  // api/mcp-proxy relays a remote MCP server's timeout as its own 504 and
+  // already captured it server-side at warning. The remote server is the
+  // caller's choice, not our origin (WORLDMONITOR-17A).
+  if (res.headers.get('X-Wm-Upstream-Timeout') === '1') return;
   try {
     const href = input instanceof Request ? input.url : String(input);
     const path = new URL(href, globalThis.location?.href ?? 'https://worldmonitor.app').pathname;
@@ -158,8 +164,14 @@ async function fetchReportingServerErrors(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<Response> {
-  const res = await globalThis.fetch(input, init);
+  const res = await globalThis.fetch(input, { ...init, signal: createRequestTimeoutSignal(input, init, 120_000) });
   reportServerError(res, input, undefined, init?.signal);
+  // On a self-hosted install a premium denial can mean the desktop key was
+  // revoked or lapsed; the verdict service re-checks (no-op elsewhere). Relay
+  // timeouts and unreachable answers are 504/502, not denials.
+  if ((res.status === 401 || res.status === 403) && isPremiumRpcTarget(input)) {
+    noteSelfHostPremiumDenial();
+  }
   return res;
 }
 
@@ -188,18 +200,19 @@ function isPremiumRpcTarget(input: RequestInfo | URL, forcePremium = false): boo
   }
 }
 
-function isProFreshCacheRpcTarget(input: RequestInfo | URL): boolean {
+function isOptionalAuthRpcTarget(input: RequestInfo | URL): boolean {
   try {
     const href = input instanceof Request ? input.url : String(input);
     const path = new URL(href, globalThis.location?.href ?? 'https://worldmonitor.app').pathname;
-    return PRO_FRESH_CACHE_RPC_PATHS.has(path);
+    return PRO_FRESH_CACHE_RPC_PATHS.has(path) || path === '/api/intelligence/v1/get-country-history';
   } catch {
     return false;
   }
 }
 
 /**
- * Fetch adapter for generated RPC clients that include Pro-fresh market reads.
+ * Fetch adapter for optional paid credentials on free RPCs, including market
+ * freshness and the country-history retention window.
  *
  * Two disjoint reasons to leave the anonymous wm-session path, in order:
  *
@@ -224,8 +237,8 @@ export function proFreshRpcFetch(
   if (isPremiumRpcTarget(input)) {
     return premiumFetch(input, init);
   }
-  if (!isProFreshCacheRpcTarget(input)) {
-    return globalThis.fetch(input, init);
+  if (!isOptionalAuthRpcTarget(input)) {
+    return globalThis.fetch(input, { ...init, signal: createRequestTimeoutSignal(input, init, 120_000) });
   }
   return premiumFetch(input, { ...init, forcePremium: true });
 }
@@ -327,7 +340,10 @@ export async function premiumFetch(
           { ...withCredentials(requestInit), headers: existing },
         );
       }
-    } catch { /* not available — fall through */ }
+    } catch (error) {
+      if (isTimeoutOrAbortError(error)) throw error;
+      /* credentials not available — fall through */
+    }
   }
 
   // 2. Legacy in-memory test seam. In production, tester/widget keys are
@@ -375,7 +391,10 @@ export async function premiumFetch(
           { ...withCredentials(requestInit), headers: existing },
         );
       }
-    } catch { /* not signed in — fall through */ }
+    } catch (error) {
+      if (isTimeoutOrAbortError(error)) throw error;
+      /* not signed in — fall through */
+    }
   }
 
   // 4. No auth — let the request through.
@@ -398,7 +417,7 @@ export async function premiumFetch(
   // the marker is meant to describe, and never a request that already steps
   // aside via its own Authorization / X-WorldMonitor-Key header.
   //
-  // EXCEPT the Pro-fresh cache tape. `forcePremium` carries two meanings, and
+  // EXCEPT optional paid reads. `forcePremium` carries two meanings, and
   // only one of them licenses the marker:
   //
   //   - summarization.ts  — "this call requires Pro"; a 401 IS the expected
@@ -409,9 +428,10 @@ export async function premiumFetch(
   //     access on the ordinary cache policy, and those paths 401 when the wms_
   //     cookie is rejected (verified against prod). Marking them would strip
   //     the mint-and-replay that absorbs an HMAC rotation or cache flap, so a
-  //     recoverable blip would surface as a dead price tape instead.
+  //     recoverable blip would surface as a dead price tape instead. Country
+  //     history likewise keeps anonymous access and only widens paid windows.
   const marksPremiumIntent =
-    isPremiumRpcTarget(input, forcePremium) && !isProFreshCacheRpcTarget(input);
+    isPremiumRpcTarget(input, forcePremium) && !isOptionalAuthRpcTarget(input);
   const unauthenticatedInit = marksPremiumIntent
     ? withPremiumIntent(withCredentials(requestInit))
     : withCredentials(requestInit);
