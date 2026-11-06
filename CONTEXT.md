@@ -102,6 +102,25 @@ archiver's attribution entries. PR #1 is superseded by this branch.** Decisions 
   - Windows-only and left alone: `deploy-config` deploy-gate tests (`spawnSync /bin/bash ENOENT`),
     and the two CI timing assertions (`imd-cyclone-marine` linear-time, `food-prices-hostile-input`
     MIT bucketing) that pass here and looked like runner contention.
+- **CI pass three (the runner tier).** The second run left three reds that were the hardware, not
+  the code. This fork is a private repository, so its `ubuntu-latest` jobs run on GitHub's 2 vCPU /
+  7 GB tier; upstream is public and gets 4 vCPU / 16 GB. That is why Node's default heap ceiling here
+  is ~2 GB (the corpus test's 1.9 GB fits upstream's machines) and why `--concurrency=4` oversubscribes
+  the box: `food-prices-hostile-input` OCPV took 1014 ms against its 1000 ms bound (162 ms on a
+  desktop) and every linear-time budget test sat at 55-100% of its bound. Fixed in the follow-up:
+  - `scripts/run-data-tests.mjs` treats `--concurrency` as a ceiling clamped to
+    `os.availableParallelism()`, so the fork's shards run 2-wide while upstream's runners keep 4;
+    `tests/ci-test-selection.test.mjs` pins the `--concurrency=4` workflow text, which stays.
+  - the pulse refresh's "Verify published artifacts" step runs `node --import tsx --test` outside the
+    runner, so it carries `NODE_OPTIONS: --max-old-space-size=3072` as step env, which
+    `scripts/rehearse-crawlable-pulse-refresh.mjs` forwards to its replay; the resilience refresh
+    already goes through the runner.
+  - `tests/fixtures/mcp-registry-names.json` is regenerated to the 112-name sorted registry.
+    Upstream's 102-name copy failed `mcp-alias` "matches the sorted registry and the base revision", a
+    built-output suite that never ran here; the base-revision half reads the fixture at `origin/main`
+    (absent on the fork's old main, so the gap is empty).
+  - the `gate` commit status is unit + proto-changes + proto-freshness, so it stays red on the
+    3,000-file cap alone until this PR merges and later PRs are small again.
 - **Windows lesson for the next sync.** This repo has no `* text=auto`, so with `core.autocrlf=true`
   every non-source file materializes CRLF. Splice-style generators then misbehave in two ways: they
   write mixed-EOL files (`build-ai-search`, `build-llms-full`), and when their heading or marker regex

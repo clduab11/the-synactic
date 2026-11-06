@@ -165,6 +165,13 @@ jobs:
         # carrying the capture, so the fix lands in that branch instead of
         # costing a re-freeze.
         if: steps.reconcile.outputs.skip != 'true'
+        env:
+          # Fork: tests/crawlable-corpus.test.mjs holds ~1.9 GB of live heap and
+          # this private repo's ubuntu-latest runners (2 vCPU / 7 GB) give Node a
+          # ~2 GB default ceiling, so this step died with "Reached heap limit".
+          # scripts/run-data-tests.mjs gives its children the same headroom; this
+          # step runs node --test directly, and the rehearsal forwards step env.
+          NODE_OPTIONS: --max-old-space-size=3072
         run: |
           node --import tsx --test --test-concurrency=1 \
             tests/accuracy-corpus.test.mjs \

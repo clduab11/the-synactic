@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { closeSync, existsSync, globSync, openSync, readFileSync, statSync, writeSync } from 'node:fs';
+import { availableParallelism } from 'node:os';
 import { relative, resolve, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { run } from 'node:test';
@@ -71,6 +72,15 @@ export async function main(args) {
   if (!/^[1-9]\d*$/.test(values.concurrency) || !Number.isSafeInteger(Number(values.concurrency))) {
     throw new Error('Concurrency must be a positive integer');
   }
+  // Fork: --concurrency is a ceiling, not a demand. CI passes 4, sized for
+  // upstream's public-repo runners (4 vCPU). This private fork's ubuntu-latest
+  // jobs get GitHub's 2 vCPU tier, where four CPU-bound test processes halve
+  // each other's speed: the linear-time budget tests (food-prices-hostile-input,
+  // imd-cyclone-marine) ran at 55-100% of their bounds and one tipped over
+  // (OCPV, 1014 ms against 1000; 162 ms on a desktop). Never run more files at
+  // once than there are cores; upstream's runners still get their 4.
+  const requestedConcurrency = Number(values.concurrency);
+  const concurrency = Math.min(requestedConcurrency, availableParallelism());
   if (!/^[1-9]\d*$/.test(values['file-timeout']) || !Number.isSafeInteger(Number(values['file-timeout']))) {
     throw new Error('--file-timeout must be a positive integer of milliseconds');
   }
@@ -104,7 +114,10 @@ export async function main(args) {
     console.log(JSON.stringify(selected));
     return 0;
   }
-  console.log(`Data tests: ${selected.length}/${files.length} files, shard ${index}/${total}, concurrency ${values.concurrency}`);
+  const concurrencyNote = concurrency < requestedConcurrency
+    ? ` (requested ${requestedConcurrency}, ${availableParallelism()} cores)`
+    : '';
+  console.log(`Data tests: ${selected.length}/${files.length} files, shard ${index}/${total}, concurrency ${concurrency}${concurrencyNote}`);
   const env = { ...process.env };
   // This is a new test run, even when a contract test invokes the CLI.
   delete env.NODE_TEST_CONTEXT;
@@ -124,7 +137,7 @@ export async function main(args) {
   try {
     const events = run({
       files: selected.map((file) => resolve(file)),
-      concurrency: Number(values.concurrency),
+      concurrency,
       timeout: 120000,
       // Fork: tests/crawlable-corpus.test.mjs holds ~1.9 GB of live heap in its
       // canonical-pages test (measured 2026-11-06 on this tree and on pristine
