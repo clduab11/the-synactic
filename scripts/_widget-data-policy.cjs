@@ -226,6 +226,7 @@ const EXCLUDED_BOOTSTRAP_KEYS = {
 };
 
 const EXCLUDED_RPC_ROUTES = {
+  '/api/cyber/v1/get-network-info': 'Opt-in passive lookup for an arbitrary public IP; requires provider authorization and attribution in the Cyber Threat popup',
   '/api/maritime/v1/list-ukmto-incidents': 'Publisher claims requiring source attribution and freshness; use the UKMTO panel',
   "/api/displacement/v1/get-cross-border-movements": "Requires source attribution and per-source freshness; use the cross-border displacement panel",
   "/api/intelligence/v1/get-country-history": "Daily archive is planned and activation-gated; use the country history panel after activation",
@@ -269,6 +270,7 @@ const EXCLUDED_RPC_ROUTES = {
   "/api/economic/v1/get-eu-gas-storage": "Same data as bootstrap key euGasStorage",
   "/api/economic/v1/get-eurostat-country-data": "Same data as bootstrap key eurostatCountryData",
   "/api/economic/v1/get-fao-food-price-index": "Same data as bootstrap key faoFoodPriceIndex",
+  "/api/economic/v1/get-food-prices": "Source-specific food baskets require country, market and unit selection; use the dashboard food-price card",
   "/api/economic/v1/get-macro-signals": "Same data as bootstrap key macroSignals",
   "/api/economic/v1/get-nat-gas-storage": "Same data as bootstrap key natGasStorage",
   "/api/economic/v1/get-national-debt": "Pro-only (401 for the anonymous widget session)",

@@ -149,6 +149,7 @@ Free 与未登录的仪表盘用户在信息流增强上仍可使用常规的关
 | `POST /api/scenario/v1/run-scenario`（队列深度） | 100 在处理中 | — | 全局 |
 | `POST /api/leads/v1/register-interest` | 5 | 60 分钟 | 按 IP + Turnstile（桌面来源需要签名 HMAC 绕过） |
 | `POST /api/leads/v1/submit-contact` | 3 | 60 分钟 | 按 IP + Turnstile |
+| `POST /api/feedback/v1/submit-report` | 5 | 60 分钟 | 按 IP（IPv6 按 /64），与 MCP `report_issue` 共享额度；另有全部匿名报告每小时 100 条、安全报告每天 30 条的总上限；失败即关闭（限流器不可用时返回 503） |
 
 其他写入端点（`/api/brief/share-url`、`/api/notification-channels`、`/api/create-checkout`、`/api/customer-portal` 等）回退使用上面的默认按 IP 限制。
 
@@ -227,6 +228,5 @@ WorldMonitor **不会**因用户越过上限而自动升级、收取超额费用
 ## 硬上限（非软限制）
 
 - Webhook 回调 URL 必须为 HTTPS（localhost 除外）。
-- `api/download` 文件大小限制约为每请求 50 MB。
 - 当待处理队列超过 **100** 时，`POST /api/scenario/v1/run-scenario` 会全局暂停接收新作业 — 返回 429。
 - `api/v2/shipping/webhooks` 的 TTL 为 **30 天** — 需重新注册以延长。

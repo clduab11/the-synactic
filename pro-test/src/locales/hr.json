@@ -11,11 +11,10 @@
   "hero": {
     "noiseWord": "Šum",
     "signalWord": "Signal",
-    "valueProps": "Geopolitički AI sloj za obavještajne uvide — pitajte ga, pretplatite se, gradite na njemu.",
+    "valueProps": "Pitajte AI analitičara, postavite pravila upozorenja, dobijte izvještaje i koristite ga u Claudeu.",
     "launchingDate": "Dostupno sada",
     "tryFreeDashboard": "Isprobajte besplatnu nadzornu ploču",
     "choosePlan": "Odaberite plan",
-    "signIn": "Prijava",
     "goToDashboard": "Idi na nadzornu ploču"
   },
   "wired": {
@@ -380,15 +379,16 @@
       "api": {
         "description": "Gradite interno alate na temelju podataka užive obavještajne analize",
         "features": [
-          "REST API + službeni SDK-ovi (npm, PyPI, RubyGems, Go)",
-          "Uključen licencni / API ključ",
-          "Tokovi podataka u stvarnom vremenu",
-          "60 zahtjeva/minutu",
-          "1.000 zahtjeva/dan uključeno (REST + MCP kombinovano; live MCP poziv broji kao 2-3)",
-          "Webhook obavijesti"
+          "Uključena puna Pro nadzorna ploča (1 imenovani korisnik)",
+          "REST API + službeni SDKs (npm, PyPI, RubyGems, Go)",
+          "Uključena licenca / API ključ",
+          "Tokovi podataka u realnom vremenu",
+          "60 zahtjeva/minuta",
+          "1.000 zahtjeva/dan uključeno (REST + MCP kombinirano; jedan MCP poziv uživo računa se kao 2-3)",
+          "Obavijesti putem webhooks"
         ],
         "highlightFeatures": [
-          "Komercijalna licencija — za vašu organizaciju"
+          "Komercijalna upotreba — samo interno, ne za klijente"
         ]
       },
       "enterprise": {
@@ -419,7 +419,7 @@
           "Prioritetna podrška"
         ],
         "highlightFeatures": [
-          "Komercijalna licencija — za vaše klijente"
+          "Komercijalna upotreba — u vašim proizvodima za klijente"
         ]
       },
       "proBusiness": {
@@ -446,7 +446,8 @@
     "axisPersonal": "Osobno",
     "axisPersonalNote": "individualna upotreba",
     "axisCommercial": "Komercijalno",
-    "axisCommercialNote": "rad, klijenti i proizvodi"
+    "axisCommercialNote": "rad, klijenti i proizvodi",
+    "cancelAnytime": "Otkaži bilo kada iz svog računa. Zadržavate pristup do kraja razdoblja za koje ste platili."
   },
   "welcome": {
     "meta": {
@@ -475,7 +476,6 @@
       "sub": "Dok postane vijest, već si znao.",
       "ctaPrimary": "Pokreni nadzornu ploču",
       "ctaFree": "Besplatno · Bez prijave · Učitava se u sekundama",
-      "ctaSecondary": "Vidi kako ga koriste ↓",
       "trustUsers": "2M+ korisnika",
       "trustOpenSource": "Otvoreni kod · AGPL-3.0",
       "screenshotAlt": "World Monitor živa obavještajna nadzorna ploča — globalna karta sa slojevima sukoba, transporta i tržišta",
@@ -485,7 +485,8 @@
       "asOf": "Stanje od {{date}}",
       "whatIsTitle": "Što je World Monitor?",
       "whatIsBody": "World Monitor je besplatna ($0), open-source (AGPL-3.0) kontrolna ploča koju koristi 2M+ osoba. Streamira {{feeds}} vijesti i OSINT izvore od {{providers}} atribuiranih pružatelja na jednu živu svjetsku kartu s {{mapLayers}} vrsta slojeva karte, pokrivajući geopolitiku, tržišta, brodarstvo, zrakoplovstvo i cyber sigurnost. Usklađuje ih tako da se konvergentni eventi pojave prije naslova. Svaki podatak je dokumentiran i svaka metoda izvora je navedena.",
-      "whatIsBestFor": "Najbolje za analitičare, novinare, tradere i developere kojima trebaju geopolitički signali uživo."
+      "whatIsBestFor": "Najbolje za analitičare, novinare, tradere i developere kojima trebaju geopolitički signali uživo.",
+      "ctaPro": "Pro od {{price}}/mjesec"
     },
     "live": {
       "eyebrow": "Uživo sada",
@@ -505,7 +506,8 @@
       "marketWeakest": "Najslabije",
       "trendRising": "rastući",
       "trendFalling": "padajući",
-      "trendStable": "stabilan"
+      "trendStable": "stabilan",
+      "situationLink": "Pratite situaciju: krize, vijesti, kritične točke i prekidi na jednoj ploči"
     },
     "moments": {
       "eyebrow": "Mehanizam za korelaciju",
@@ -663,7 +665,8 @@
       "proF4": "MCP, REST API & službeni SDK — live alati pod jednim ključem",
       "proF5": "Prilagođeni builder widgeta za vlastite panele",
       "cta": "Pogledaj planove i cijene",
-      "note": "Od $39,99/mj · 3 mjeseca besplatno pri godišnjoj naplati"
+      "note": "Od $39,99/mj · 3 mjeseca besplatno pri godišnjoj naplati",
+      "disclaimer": "World Monitor služi isključivo u informativne svrhe i ne predstavlja financijske, investicijske ni pravne savjete, kao ni savjete o sigurnosti. Provjerite ono što vidite i posavjetujte se s kvalificiranim stručnjakom prije donošenja odluka pri kojima bi pogreška mogla prouzročiti gubitak ili štetu."
     },
     "faq": {
       "eyebrow": "Bez skrivenih troškova",
@@ -710,14 +713,14 @@
       "chokepointTitle": "Provjeri usko mjesto",
       "chokepointDesc": "Inspekcirajte status prekida, tokove brodova i rizik kroz {{chokepoints}} kritičnih pomorskih prolaza.",
       "countryRiskTitle": "Objasni politički rizik zemlje",
-      "countryRiskDesc": "Pratite političke, sigurnosne, ekonomske i signale otpornosti iza promjene zemlje, s otpornosti rangiranom za {{resilienceRanked}} zemalja.",
+      "countryRiskDesc": "Pratite političke, sigurnosne i ekonomske signale te signale otpornosti koji stoje iza promjene u nekoj zemlji. Otpornost je rangirana za {{resilienceRanked}} od {{resilienceUniverse}} zemalja, odnosno oko {{resilienceRankedPct}} %, pa se pomak može tumačiti u odnosu na dugoročnu strukturnu osnovu te zemlje, umjesto samo na temelju novinskih naslova ovog tjedna.",
       "open": "Otvori dokaze",
       "workflow": "Postupak korak po korak"
     },
     "voices": {
       "eyebrow": "Njihovim riječima",
       "title": "Što ljudi kažu o World Monitoru",
-      "sub": "{{users}} ljudi u {{countries}} zemalja koristilo je World Monitor. Evo što su rekli mediji i neki od njih.",
+      "sub": "{{users}} ljudi u {{countries}} zemalja koristilo je World Monitor. The Atlantic pisao je o njemu 14. ožujka 2026., a El País dva dana poslije. O njemu su izvještavali i WIRED, The Economic Times, Arabian Business i L'Orient Today. Evo što su rekli mediji i neki korisnici.",
       "translatedJa": "Prevedeno s japanskog",
       "prev": "Prethodni citati",
       "next": "Još citata"

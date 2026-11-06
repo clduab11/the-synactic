@@ -1945,7 +1945,7 @@ describe('forecast llm overrides', () => {
     assert.equal(providers[1]?.name, 'openrouter-free');
     assert.equal(providers[1]?.model, 'google/gemma-4-26b-a4b-it:free');
     assert.equal(providers[2]?.name, 'openrouter-free-backup');
-    assert.equal(providers[2]?.model, 'nvidia/nemotron-3-super-120b-a12b:free');
+    assert.equal(providers[2]?.model, 'nvidia/nemotron-3.5-super-vl:free');
     assert.equal(providers.length, 3);
   });
 
@@ -2052,7 +2052,7 @@ describe('forecast llm overrides', () => {
     assert.equal(scenarioProviders[0]?.model, 'nvidia/nemotron-3-ultra-550b-a55b:free');
     assert.equal(scenarioProviders[0]?.timeout, LONG_COMPLETION_TIMEOUT_MS, 'scenario defaults ride the same long-generation leg, so they carry the same cap');
     assert.equal(scenarioProviders[1]?.model, 'google/gemma-4-26b-a4b-it:free');
-    assert.equal(scenarioProviders[2]?.model, 'nvidia/nemotron-3-super-120b-a12b:free');
+    assert.equal(scenarioProviders[2]?.model, 'nvidia/nemotron-3.5-super-vl:free');
     assert.equal(scenarioProviders.length, 3);
   });
 
@@ -2348,7 +2348,7 @@ describe('forecast llm overrides', () => {
       fetch: async (_url, init) => {
         const { model } = JSON.parse(init.body);
         models.push(model);
-        if (model !== 'nvidia/nemotron-3-super-120b-a12b:free') {
+        if (model !== 'nvidia/nemotron-3.5-super-vl:free') {
           return {
             ok: false,
             status: 503,
@@ -2372,7 +2372,7 @@ describe('forecast llm overrides', () => {
     assert.deepEqual(models, [
       ...Array(4).fill('nvidia/nemotron-3-ultra-550b-a55b:free'),
       'google/gemma-4-26b-a4b-it:free',
-      'nvidia/nemotron-3-super-120b-a12b:free',
+      'nvidia/nemotron-3.5-super-vl:free',
     ]);
     assert.deepEqual(result, {
       text: 'Backup fallback succeeded with enough narrative content.',

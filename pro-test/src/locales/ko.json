@@ -11,11 +11,10 @@
   "hero": {
     "noiseWord": "노이즈",
     "signalWord": "시그널",
-    "valueProps": "지정학 AI 레이어 — 질문하고, 구독하고, 그 위에 쌓으세요.",
+    "valueProps": "AI 분석가에게 질문하고, 알림 규칙을 설정하며, 브리핑을 받고, Claude에서 사용하세요.",
     "launchingDate": "지금 이용 가능",
     "tryFreeDashboard": "무료 대시보드 체험",
     "choosePlan": "플랜 선택",
-    "signIn": "로그인",
     "goToDashboard": "대시보드로 이동"
   },
   "wired": {
@@ -380,15 +379,16 @@
       "api": {
         "description": "실시간 인텔리전스 데이터로 내부 도구 구축",
         "features": [
+          "전체 Pro 대시보드 포함 (지정 사용자 1명)",
           "REST API + 공식 SDK (npm, PyPI, RubyGems, Go)",
           "라이선스 / API 키 포함",
           "실시간 데이터 스트림",
-          "분당 60개 요청",
-          "1,000개 요청/일 포함 (REST + MCP 합계; 라이브 MCP 호출은 2-3으로 계산)",
+          "분당 60 요청",
+          "일 1,000 요청 포함 (REST + MCP 합산; MCP 라이브 호출 1회는 2-3으로 계산)",
           "웹훅 알림"
         ],
         "highlightFeatures": [
-          "상용 라이선스 — 조직용"
+          "상용 사용 — 내부용 전용, 고객 대면 제품 불가"
         ]
       },
       "enterprise": {
@@ -419,7 +419,7 @@
           "우선 지원"
         ],
         "highlightFeatures": [
-          "상용 라이선스 — 고객용"
+          "상용 사용 — 고객 대면 제품에 사용 가능"
         ]
       },
       "proBusiness": {
@@ -446,7 +446,8 @@
     "axisPersonal": "개인용",
     "axisPersonalNote": "개인 사용",
     "axisCommercial": "상용",
-    "axisCommercialNote": "업무, 클라이언트 및 제품"
+    "axisCommercialNote": "업무, 클라이언트 및 제품",
+    "cancelAnytime": "언제든지 계정에서 취소할 수 있습니다. 결제한 기간이 끝날 때까지 접근 권한이 유지됩니다."
   },
   "welcome": {
     "meta": {
@@ -475,7 +476,6 @@
       "sub": "뉴스가 되기 전에, 이미 알고 있을 겁니다.",
       "ctaPrimary": "대시보드 열기",
       "ctaFree": "무료 · 가입 불필요 · 초 단위로 로드됨",
-      "ctaSecondary": "사용 방법 보기 ↓",
       "trustUsers": "200만+ 사용자",
       "trustOpenSource": "오픈소스 · AGPL-3.0",
       "screenshotAlt": "World Monitor 실시간 인텔리전스 대시보드 — 분쟁, 해운 및 시장 레이어가 포함된 글로벌 지도",
@@ -485,7 +485,8 @@
       "asOf": "{{date}} 기준",
       "whatIsTitle": "World Monitor란 무엇인가요?",
       "whatIsBody": "World Monitor는 2백만 명 이상이 사용하는 무료($0), 오픈소스(AGPL-3.0) 대시보드입니다. {{feeds}}개의 뉴스와 OSINT 피드를 {{providers}}개 출처에서 가져와 {{mapLayers}}가지 지도 레이어 유형으로 하나의 실시간 세계 지도에 스트리밍합니다. 지정학, 시장, 해상 운송, 항공, 사이버 분야를 아우르며, 수렴하는 사건들이 헤드라인보다 먼저 드러나도록 상관관계를 분석합니다. 모든 수치는 출처가 명시되고 모든 방법론은 문서화되어 있습니다.",
-      "whatIsBestFor": "실시간 지정학 신호가 필요한 애널리스트, 기자, 트레이더, 개발자에게 가장 적합합니다."
+      "whatIsBestFor": "실시간 지정학 신호가 필요한 애널리스트, 기자, 트레이더, 개발자에게 가장 적합합니다.",
+      "ctaPro": "Pro {{price}}/월부터"
     },
     "live": {
       "eyebrow": "지금 실시간",
@@ -505,7 +506,8 @@
       "marketWeakest": "최약",
       "trendRising": "상승 중",
       "trendFalling": "하락 중",
-      "trendStable": "안정적"
+      "trendStable": "안정적",
+      "situationLink": "상황 모니터링: 위기, 속보, 병목 지점, 장애를 하나의 대시보드에서 추적하세요"
     },
     "moments": {
       "eyebrow": "상관관계 엔진",
@@ -663,7 +665,8 @@
       "proF4": "MCP, REST API & 공식 SDK — 하나의 키로 라이브 도구 사용",
       "proF5": "자신만의 패널을 위한 커스텀 위젯 빌더",
       "cta": "요금제 및 가격 확인",
-      "note": "$39.99/월부터 · 연간 결제 시 3개월 무료"
+      "note": "$39.99/월부터 · 연간 결제 시 3개월 무료",
+      "disclaimer": "World Monitor는 정보 제공만을 목적으로 하며 금융, 투자, 법률, 보안 또는 안전에 관한 조언에 해당하지 않습니다. 보시는 내용을 검증하시고, 오류로 인해 손실이나 피해가 발생할 수 있는 결정을 내리기 전에 자격을 갖춘 전문가와 상담하시기 바랍니다."
     },
     "faq": {
       "eyebrow": "숨은 비용 없음",
@@ -710,14 +713,14 @@
       "chokepointTitle": "병목 지점 확인",
       "chokepointDesc": "{{chokepoints}}개 주요 해상 교통로의 해운 차질 상황, 선박 흐름, 위험도를 점검합니다.",
       "countryRiskTitle": "국가 위험 변화 설명",
-      "countryRiskDesc": "국가의 변화를 주도하는 정치, 보안, 경제, 회복력 신호를 추적합니다. {{resilienceRanked}}개국의 회복력 순위가 산출됩니다.",
+      "countryRiskDesc": "국가의 변화 뒤에 있는 정치, 안보, 경제, 회복력 신호를 추적합니다. {{resilienceUniverse}}개국 중 {{resilienceRanked}}개국, 약 {{resilienceRankedPct}}%에 대해 회복력 순위가 산출되므로, 이번 주 뉴스 헤드라인만으로 변화를 판단하는 대신 해당 국가의 장기적인 구조적 기준에 비추어 해석할 수 있습니다.",
       "open": "증거 보기",
       "workflow": "단계별 워크플로"
     },
     "voices": {
       "eyebrow": "그들의 말",
       "title": "사람들이 말하는 World Monitor",
-      "sub": "{{countries}}개국 {{users}}명이 World Monitor를 사용했습니다. 언론과 일부 사용자의 이야기를 소개합니다.",
+      "sub": "{{countries}}개국 {{users}}명이 World Monitor를 사용했습니다. The Atlantic은 2026년 3월 14일에, El País는 이틀 후에 이를 다뤘으며 WIRED, The Economic Times, Arabian Business, L'Orient Today도 보도했습니다. 언론과 일부 사용자의 이야기를 소개합니다.",
       "translatedJa": "일본어에서 번역",
       "prev": "이전 인용문",
       "next": "더 많은 인용문"

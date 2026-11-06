@@ -13,6 +13,7 @@ import {
   callForecastLLM,
   __setForecastLlmTransportForTests,
 } from '../scripts/seed-forecasts.mjs';
+import { openrouterModel } from '../scripts/_openrouter-model.mjs';
 
 const ENV_KEYS = ['USAGE_TELEMETRY', 'AXIOM_API_TOKEN', 'OPENROUTER_API_KEY'];
 const originalEnv = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
@@ -116,7 +117,9 @@ test('provider fallback chains keep incrementing the index', async () => {
   const captured = captureAxiom();
   __setForecastLlmTransportForTests({
     fetch: async (_url, init) => {
-      if (JSON.parse(init.body).model.endsWith(':free')) return llmResponse({ error: 'down' }, 503);
+      // Fork: the `openrouter` rung resolves to a free-tier model too, so the
+      // free rung is told apart by model identity rather than a `:free` suffix.
+      if (JSON.parse(init.body).model !== openrouterModel()) return llmResponse({ error: 'down' }, 503);
       return llmResponse({
         choices: [{ message: { content: 'a forecast narrative that is long enough' } }],
         model: 'google/gemini-2.5-flash',

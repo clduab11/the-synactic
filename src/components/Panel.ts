@@ -8,8 +8,6 @@ import { getAiFlowSettings } from '@/services/ai-flow-settings';
 import { getSecretState } from '@/services/runtime-config';
 import { PanelGateReason } from '@/services/panel-gating';
 import { lockSvg, upgradeSvg } from '@/components/gate-icons';
-import { createCheckoutConsentElement } from '@/utils/legal-links';
-import { WEB_APP_ORIGIN } from '@/config/web-origin';
 import { dataFreshness, type PanelFreshnessSummary } from '@/services/data-freshness';
 import { formatPanelFreshnessDisplay } from '@/services/panel-freshness-display';
 import {
@@ -25,10 +23,15 @@ import {
 import {
   clampColSpan,
   clearColSpanClass,
+  getColSpan,
+  getDefaultColSpan,
   getExplicitColSpanClass,
   getMaxColSpan,
   isPanelGridColumnCountReady,
+  MAX_PANEL_COL_SPAN,
+  observePanelGridColumns,
   setColSpanClass,
+  syncColResizeAria,
 } from '@/utils/panel-grid';
 
 export type PanelSeverity = 'critical' | 'high' | 'medium' | 'low' | 'none';
@@ -68,14 +71,6 @@ const ROW_RESIZE_STEP_PX = 80;
 const COL_RESIZE_STEP_PX = 80;
 const FRESHNESS_BADGE_REFRESH_MS = 60_000;
 
-function getDefaultColSpan(element: HTMLElement): number {
-  return element.classList.contains('panel-wide') ? 2 : 1;
-}
-
-function getColSpan(element: HTMLElement): number {
-  return getExplicitColSpanClass(element) ?? getDefaultColSpan(element);
-}
-
 function persistPanelColSpan(panelId: string, element: HTMLElement): void {
   const maxSpan = getMaxColSpan(element);
   const naturalSpan = clampColSpan(getDefaultColSpan(element), maxSpan);
@@ -96,16 +91,49 @@ function deltaToColSpan(startSpan: number, deltaX: number, maxSpan = 3): number 
   return clampColSpan(startSpan + spanDelta, maxSpan);
 }
 
-function getRowSpan(element: HTMLElement): number {
+function getSpanClass(element: HTMLElement): number | null {
   if (element.classList.contains('span-4')) return 4;
   if (element.classList.contains('span-3')) return 3;
   if (element.classList.contains('span-2')) return 2;
   if (element.classList.contains('span-1')) return 1;
-  // A natural wide panel already occupies two dashboard rows even when it
-  // has no explicit span-N class. Treat that footprint as the resize baseline
-  // so the first vertical drag changes the visible height instead of being a
-  // no-op against the existing grid-row: span 2 rule.
+  return null;
+}
+
+function getRowSpan(element: HTMLElement): number {
+  // A user-set span (.resized) is authoritative: its class is !important.
+  const spanClass = getSpanClass(element);
+  if (spanClass !== null && element.classList.contains('resized')) return spanClass;
+
+  // Otherwise the rendered span is the resize baseline the user sees. Natural
+  // wide video panels take three rows (#8276), and the CLS-pinned span-2
+  // defaults take four on desktop, so their classes understate it.
+  if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
+    const match = /^span\s+([1-4])(?:\s|$)/.exec(window.getComputedStyle(element).gridRowStart);
+    if (match) return Number(match[1]);
+  }
+  if (spanClass !== null) return spanClass;
+
+  // Fallback when the element is not yet attached to the layout.
   return element.classList.contains('panel-wide') ? 2 : 1;
+}
+
+// #8276: A stylesheet can give any panel a natural row span that changes at
+// viewport breakpoints, so every mounted row separator re-reads its span on
+// resize. One shared listener serves all panels instead of one per panel.
+const rowSpanSyncs = new Set<() => void>();
+
+function handleRowSpanViewportResize(): void {
+  for (const sync of rowSpanSyncs) sync();
+}
+
+function registerRowSpanSync(sync: () => void, signal: AbortSignal): void {
+  if (typeof window === 'undefined' || signal.aborted) return;
+  if (rowSpanSyncs.size === 0) window.addEventListener('resize', handleRowSpanViewportResize);
+  rowSpanSyncs.add(sync);
+  signal.addEventListener('abort', () => {
+    rowSpanSyncs.delete(sync);
+    if (rowSpanSyncs.size === 0) window.removeEventListener('resize', handleRowSpanViewportResize);
+  }, { once: true });
 }
 
 function deltaToRowSpan(startSpan: number, deltaY: number): number {
@@ -141,6 +169,7 @@ export class Panel {
   private isResizing = false;
   private startY = 0;
   private startRowSpan = 1;
+  private startRowSpanClasses: string[] = [];
   private onTouchMove: ((e: TouchEvent) => void) | null = null;
   private onTouchEnd: (() => void) | null = null;
   private onTouchCancel: (() => void) | null = null;
@@ -152,6 +181,8 @@ export class Panel {
   private isColResizing = false;
   private startX = 0;
   private startColSpan = 1;
+  /** The `col-span-N` class at drag start, which may ask for more than the grid shows. */
+  private startColSpanClass: number | undefined;
   private onColMouseMove: ((e: MouseEvent) => void) | null = null;
   private onColMouseUp: (() => void) | null = null;
   private onColWindowBlur: (() => void) | null = null;
@@ -244,12 +275,13 @@ export class Panel {
     this.severityDotEl.setAttribute('aria-hidden', 'true');
     headerLeft.appendChild(this.severityDotEl);
 
-    const initialFreshness = dataFreshness.getPanelFreshness(this.panelId);
-    if (initialFreshness) {
+    // The first /api/health poll runs after first paint, so most panels are built
+    // before freshness is known. The badge stays hidden until the listener sees it.
+    if (dataFreshness.hasPanelFreshnessSources(this.panelId)) {
       this.freshnessBadgeEl = document.createElement('span');
       this.freshnessBadgeEl.className = 'panel-freshness-badge';
       headerLeft.appendChild(this.freshnessBadgeEl);
-      this.updateFreshnessBadge(initialFreshness);
+      this.updateFreshnessBadge();
       this.freshnessUnsubscribe = dataFreshness.subscribe(() => this.updateFreshnessBadge());
       this.freshnessRefreshTimer = setInterval(
         () => this.updateFreshnessBadge(),
@@ -387,9 +419,10 @@ export class Panel {
         return;
       }
 
-      const maxSpan = getMaxColSpan(this.element);
-      const clampedSavedSpan = clampColSpan(savedColSpan, maxSpan);
-      setColSpanClass(this.element, clampedSavedSpan);
+      // Keep the saved span even when the grid is narrower: CSS clamps what
+      // renders to the grid's real columns (data-grid-cols), so the span
+      // comes back when the window or the map column gives the grid room.
+      setColSpanClass(this.element, clampColSpan(savedColSpan, MAX_PANEL_COL_SPAN));
     } else if (savedColSpan !== undefined) {
       clearPanelColSpan(this.panelId);
     }
@@ -411,7 +444,7 @@ export class Panel {
         return;
       }
       this.colSpanReconcileRaf = null;
-      this.restoreSavedColSpan();
+      observePanelGridColumns(this.element);
       this.syncKeyboardColResizeAria();
     };
 
@@ -457,6 +490,18 @@ export class Panel {
     handle.setAttribute('aria-valuemin', '1');
     handle.setAttribute('aria-valuemax', '4');
     this.syncKeyboardRowResizeAria();
+
+    // #8276: notifyConnected() refreshes ARIA once the panel enters the grid,
+    // where its CSS row span may differ from the detached element's fallback.
+    // Refresh again at viewport breakpoints. Destroy aborts the registration.
+    registerRowSpanSync(() => {
+      if (this.element.isConnected) this.syncKeyboardRowResizeAria();
+    }, this.abortController.signal);
+
+    // Also refresh the value before keyboard interaction.
+    handle.addEventListener('focus', () => {
+      this.syncKeyboardRowResizeAria();
+    });
     handle.addEventListener('keydown', (e: KeyboardEvent) => {
       const current = getRowSpan(this.element);
       let next: number | null = null;
@@ -506,13 +551,26 @@ export class Panel {
   }
 
   private syncKeyboardColResizeAria(): void {
-    if (!this.colResizeHandle) return;
-    const maxSpan = getMaxColSpan(this.element);
-    this.colResizeHandle.setAttribute('aria-valuemax', String(maxSpan));
-    this.colResizeHandle.setAttribute(
-      'aria-valuenow',
-      String(clampColSpan(getColSpan(this.element), maxSpan)),
-    );
+    if (this.colResizeHandle) syncColResizeAria(this.element, this.colResizeHandle);
+  }
+
+  // Compare span classes, not computed spans: a drag that returns to its start
+  // restores the starting classes, but a breakpoint crossed mid-drag can still
+  // change the natural CSS span, which must not be saved as a manual resize.
+  private rowSpanClassesChangedSinceDragStart(): boolean {
+    const current = ['span-1', 'span-2', 'span-3', 'span-4', 'resized']
+      .filter(token => this.element.classList.contains(token));
+    return current.join(' ') !== this.startRowSpanClasses.join(' ');
+  }
+
+  private updateRowResize(deltaY: number): void {
+    const span = deltaToRowSpan(this.startRowSpan, deltaY);
+    if (span === this.startRowSpan) {
+      this.element.classList.remove('span-1', 'span-2', 'span-3', 'span-4', 'resized');
+      this.element.classList.add(...this.startRowSpanClasses);
+    } else {
+      setSpanClass(this.element, span);
+    }
   }
 
   private setupResizeHandlers(): void {
@@ -520,8 +578,7 @@ export class Panel {
 
     this.onRowMouseMove = (e: MouseEvent) => {
       if (!this.isResizing) return;
-      const deltaY = e.clientY - this.startY;
-      setSpanClass(this.element, deltaToRowSpan(this.startRowSpan, deltaY));
+      this.updateRowResize(e.clientY - this.startY);
     };
 
     this.onRowMouseUp = () => {
@@ -541,9 +598,10 @@ export class Panel {
         window.removeEventListener('blur', this.onRowWindowBlur);
       }
 
-      const currentSpan = getRowSpan(this.element);
-      savePanelSpan(this.panelId, currentSpan);
-      if (currentSpan !== this.startRowSpan) trackLayoutCustomized('panel-resize');
+      if (this.rowSpanClassesChangedSinceDragStart()) {
+        savePanelSpan(this.panelId, getRowSpan(this.element));
+        trackLayoutCustomized('panel-resize');
+      }
       this.syncKeyboardRowResizeAria();
     };
 
@@ -555,6 +613,8 @@ export class Panel {
       this.isResizing = true;
       this.startY = e.clientY;
       this.startRowSpan = getRowSpan(this.element);
+      this.startRowSpanClasses = ['span-1', 'span-2', 'span-3', 'span-4', 'resized']
+        .filter(token => this.element.classList.contains(token));
       this.element.dataset.resizing = 'true';
       this.element.classList.add('resizing');
       document.body.classList.add('panel-resize-active');
@@ -586,6 +646,8 @@ export class Panel {
       this.isResizing = true;
       this.startY = touch.clientY;
       this.startRowSpan = getRowSpan(this.element);
+      this.startRowSpanClasses = ['span-1', 'span-2', 'span-3', 'span-4', 'resized']
+        .filter(token => this.element.classList.contains(token));
       this.element.classList.add('resizing');
       this.element.dataset.resizing = 'true';
       document.body.classList.add('panel-resize-active');
@@ -599,8 +661,7 @@ export class Panel {
       if (!this.isResizing) return;
       const touch = e.touches[0];
       if (!touch) return;
-      const deltaY = touch.clientY - this.startY;
-      setSpanClass(this.element, deltaToRowSpan(this.startRowSpan, deltaY));
+      this.updateRowResize(touch.clientY - this.startY);
     };
 
     this.onTouchEnd = () => {
@@ -614,9 +675,10 @@ export class Panel {
       document.body.classList.remove('panel-resize-active');
       this.resizeHandle?.classList.remove('active');
       this.removeRowTouchDocumentListeners();
-      const currentSpan = getRowSpan(this.element);
-      savePanelSpan(this.panelId, currentSpan);
-      if (currentSpan !== this.startRowSpan) trackLayoutCustomized('panel-resize');
+      if (this.rowSpanClassesChangedSinceDragStart()) {
+        savePanelSpan(this.panelId, getRowSpan(this.element));
+        trackLayoutCustomized('panel-resize');
+      }
       this.syncKeyboardRowResizeAria();
     };
     this.onTouchCancel = this.onTouchEnd;
@@ -657,6 +719,21 @@ export class Panel {
     }
   }
 
+  private finishColResize(): void {
+    const finalSpan = clampColSpan(getColSpan(this.element), getMaxColSpan(this.element));
+    if (finalSpan !== this.startColSpan) {
+      persistPanelColSpan(this.panelId, this.element);
+      trackLayoutCustomized('panel-resize');
+    } else if (this.startColSpanClass === undefined) {
+      // The drag rewrote the class with the span the grid shows; put back the
+      // span the panel asked for, so it widens again when the grid has room.
+      clearColSpanClass(this.element);
+    } else {
+      setColSpanClass(this.element, this.startColSpanClass);
+    }
+    this.syncKeyboardColResizeAria();
+  }
+
   private setupColResizeHandlers(): void {
     if (!this.colResizeHandle) return;
 
@@ -683,12 +760,7 @@ export class Panel {
       if (this.onColWindowBlur) {
         window.removeEventListener('blur', this.onColWindowBlur);
       }
-      const finalSpan = clampColSpan(getColSpan(this.element), getMaxColSpan(this.element));
-      if (finalSpan !== this.startColSpan) {
-        persistPanelColSpan(this.panelId, this.element);
-        trackLayoutCustomized('panel-resize');
-      }
-      this.syncKeyboardColResizeAria();
+      this.finishColResize();
     };
 
     this.onColWindowBlur = () => this.onColMouseUp?.();
@@ -699,6 +771,7 @@ export class Panel {
       this.isColResizing = true;
       this.startX = e.clientX;
       this.startColSpan = clampColSpan(getColSpan(this.element), getMaxColSpan(this.element));
+      this.startColSpanClass = getExplicitColSpanClass(this.element);
       this.element.dataset.resizing = 'true';
       this.element.classList.add('col-resizing');
       document.body.classList.add('panel-resize-active');
@@ -728,6 +801,7 @@ export class Panel {
       this.isColResizing = true;
       this.startX = touch.clientX;
       this.startColSpan = clampColSpan(getColSpan(this.element), getMaxColSpan(this.element));
+      this.startColSpanClass = getExplicitColSpanClass(this.element);
       this.element.dataset.resizing = 'true';
       this.element.classList.add('col-resizing');
       document.body.classList.add('panel-resize-active');
@@ -756,12 +830,7 @@ export class Panel {
       document.body.classList.remove('panel-resize-active');
       this.colResizeHandle?.classList.remove('active');
       this.removeColTouchDocumentListeners();
-      const finalSpan = clampColSpan(getColSpan(this.element), getMaxColSpan(this.element));
-      if (finalSpan !== this.startColSpan) {
-        persistPanelColSpan(this.panelId, this.element);
-        trackLayoutCustomized('panel-resize');
-      }
-      this.syncKeyboardColResizeAria();
+      this.finishColResize();
     };
     this.onColTouchCancel = this.onColTouchEnd;
   }
@@ -789,7 +858,8 @@ export class Panel {
       this.statusBadgeEl.title = detailTitle;
       this.statusBadgeEl.setAttribute('aria-label', detailTitle);
     } else {
-      this.statusBadgeEl.removeAttribute('title');
+      // A narrow column shows the badge as a bare dot; the title names it on hover.
+      this.statusBadgeEl.title = this.statusBadgeEl.textContent;
       this.statusBadgeEl.removeAttribute('aria-label');
     }
     this.statusBadgeEl.style.display = 'inline-flex';
@@ -827,6 +897,8 @@ export class Panel {
     this._collapsed = collapsed;
     this.content.style.display = collapsed ? 'none' : '';
     this.element.classList.toggle('panel-collapsed', collapsed);
+    // Collapsing can change the CSS row span (#8276), so refresh the separator.
+    this.syncKeyboardRowResizeAria();
     btn.textContent = collapsed ? '▸' : '▾';
     const label = collapsed
       ? (t('components.panel.expandPanel') ?? 'Expand')
@@ -856,8 +928,15 @@ export class Panel {
       return { ok: false, persisted: false };
     }
     this._applyCollapsed(this._collapseBtn, collapsed);
+    this.onCollapsedChange(collapsed);
     return { ok: true, persisted: true };
   }
+
+  /**
+   * Runs after the viewer collapses or expands the panel. Not called when the saved state is
+   * restored in the constructor, before subclass fields exist.
+   */
+  protected onCollapsedChange(_collapsed: boolean): void {}
 
   /** Override in panels that expose a fullscreen control. */
   public supportsFullscreen(): boolean {
@@ -955,6 +1034,19 @@ export class Panel {
       && !this._collapsed;
   }
 
+  /**
+   * True when the user can see this panel right now: attached, enabled, expanded, not
+   * filtered out by the mobile category nav (`.mobile-cat-hidden`), and not covered by the
+   * fullscreen map (`body.live-news-fullscreen-active` hides the panel grid). Handlers that
+   * claim a map interaction gate on this so a panel the user cannot see never swallows a
+   * click it has no way to answer.
+   */
+  public isVisibleToUser(): boolean {
+    return this.canHostLiveMedia()
+      && !this.element.classList.contains('mobile-cat-hidden')
+      && !document.body.classList.contains('live-news-fullscreen-active');
+  }
+
   protected runWhenConnected(callback: () => void): boolean {
     if (this.destroyed) return false;
     if (this.element.isConnected) {
@@ -968,6 +1060,7 @@ export class Panel {
   }
 
   public notifyConnected(): void {
+    if (!this.destroyed && this.element.isConnected) this.syncKeyboardRowResizeAria();
     this.flushConnectedCallbacks();
   }
 
@@ -1198,15 +1291,11 @@ export class Panel {
       lockedChildren.push(featureList);
     }
 
-    // Assent immediately above the CTA (#6976). This button jumps straight to
-    // Dodo's hosted checkout, where Dodo (merchant of record) shows its terms
-    // and never ours — so ours are presented here, before the jump. The desktop
-    // branch below opens the /pro pricing page in the OS browser instead, and
-    // that page carries its own assent line above every tier CTA.
-    if (!isDesktopRuntime()) lockedChildren.push(createCheckoutConsentElement(WEB_APP_ORIGIN));
+    // The CTA opens the /pro plan picker, which shows the Terms above every
+    // plan button (#6976), so no assent line is needed here.
     const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta' }, 'Upgrade to Pro');
     ctaBtn.addEventListener('click', () => {
-      import('@/services/upgrade-flow').then((m) => m.openUpgradeCheckout()).catch(() => {
+      import('@/services/upgrade-flow').then((m) => m.openUpgradePlans()).catch(() => {
         window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
       });
     });

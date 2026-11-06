@@ -75,6 +75,16 @@ services:
       # AUTH REQUIRED and the CII cold-start deadlock persists (the endpoint
       # is auth-gated even on self-host). Generate: openssl rand -hex 32 → .env
       WORLDMONITOR_RELAY_KEY: "${WORLDMONITOR_RELAY_KEY:-}"
+      # Desktop-key relay. A browser user who enters their own paid desktop key
+      # in Settings gets Pro panels: this server forwards their Pro requests to
+      # the World Monitor cloud with that key, metered on their account's
+      # desktop allocation. Nothing leaves the install until a user enters a
+      # key. Set to "off" to disable the relay and the Settings entry.
+      WORLDMONITOR_SELFHOST_RELAY: "${WORLDMONITOR_SELFHOST_RELAY:-}"
+      # Set to 1 when users reach this install over HTTPS through an outer
+      # TLS proxy (nginx inside the container then sees plain http), so the
+      # desktop-key cookie is marked Secure.
+      WORLDMONITOR_PUBLIC_HTTPS: "${WORLDMONITOR_PUBLIC_HTTPS:-}"
       # LLM provider (any OpenAI-compatible endpoint)
       LLM_API_URL: "${LLM_API_URL:-}"
       LLM_API_KEY: "${LLM_API_KEY:-}"
@@ -112,6 +122,7 @@ services:
       # EXA_API_KEYS; the singular EXA_API_KEY is honoured only by standalone
       # .mjs seeders, so the singular alone never reaches the app. Session 11.
       EXA_API_KEYS: "${EXA_API_KEYS:-}"
+      ALPHA_VANTAGE_API_KEY: "${ALPHA_VANTAGE_API_KEY:-}"
       EIA_API_KEY: "${EIA_API_KEY:-}"
       FRED_API_KEY: "${FRED_API_KEY:-}"
       ACLED_EMAIL: "${ACLED_EMAIL:-}"
@@ -149,7 +160,6 @@ services:
       # honours also reaches the container. Unset ones resolve to "" and the
       # registry treats empty as absent, so these are inert until used.
       EXA_API_KEY: "${EXA_API_KEY:-}"
-      ALPHA_VANTAGE_API_KEY: "${ALPHA_VANTAGE_API_KEY:-}"
       DATACOMMONS_API_KEY: "${DATACOMMONS_API_KEY:-}"
       GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
       CF_API_TOKEN: "${CF_API_TOKEN:-}"

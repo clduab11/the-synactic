@@ -870,12 +870,12 @@ describe('news digest methodology parity', () => {
     assert.deepEqual(providerModels, [
       'nvidia/nemotron-3-ultra-550b-a55b:free',
       'google/gemma-4-26b-a4b-it:free',
-      'nvidia/nemotron-3-super-120b-a12b:free',
+      'nvidia/nemotron-3.5-super-vl:free',
     ]);
     assert.equal(weeklyTemperature, 0.3);
 
     assertDocMatches(
-      /Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*`nvidia\/nemotron-3-ultra-550b-a55b:free`[\s\S]*`google\/gemma-4-26b-a4b-it:free`[\s\S]*`nvidia\/nemotron-3-super-120b-a12b:free`[\s\S]*temperature\s+`0\.3`/, // pragma: allowlist secret
+      /Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*`nvidia\/nemotron-3-ultra-550b-a55b:free`[\s\S]*`google\/gemma-4-26b-a4b-it:free`[\s\S]*`nvidia\/nemotron-3\.5-super-vl:free`[\s\S]*temperature\s+`0\.3`/, // pragma: allowlist secret
       'regional weekly brief provider order, models, and temperature',
     );
     assertDocMatches(

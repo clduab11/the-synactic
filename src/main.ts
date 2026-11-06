@@ -405,6 +405,10 @@ function shouldSuppressCspViolation(
       // (www.6ppn.com/ext/assets/style.<hash>.css — the /ext/ path is the
       // extension's own asset root). Exact host + .css path (WORLDMONITOR-J0).
       if (url.protocol === 'https:' && url.hostname === 'www.6ppn.com' && cssFile.test(url.pathname)) return true;
+      // Same extension asset shape from a second host
+      // (price.dianxiaobao.net/ext/assets/style.<hash>.css, WORLDMONITOR-J0
+      // round 6, the only unfiltered blockedURI in the issue's last 30 days).
+      if (url.protocol === 'https:' && url.hostname === 'price.dianxiaobao.net' && cssFile.test(url.pathname)) return true;
       // FontAwesome public CDN. The injected sheet is v4.7.0 — a 2016 release
       // this app never shipped — and our style-src is `'self' 'unsafe-inline'`
       // with no cross-origin host at all, so any use.fontawesome.com stylesheet
@@ -552,15 +556,16 @@ import { applyDeviceTierClass } from '@/utils/device-tier';
 import { applyFont } from '@/services/font-settings';
 import { applyFontScale, FONT_SCALE_STORAGE_KEY } from '@/services/font-scale-settings';
 import { initAnalytics, trackContentHandoff } from '@/services/analytics';
-import { clearChunkReloadGuard, installChunkReloadGuard } from '@/bootstrap/chunk-reload';
+import { installChunkReloadGuard } from '@/bootstrap/chunk-reload';
 import { initDebugBearRum } from '@/bootstrap/debugbear-rum';
 import { installStaleBundleCheck } from '@/bootstrap/stale-bundle-check';
 import { installBetaConsoleToggle } from '@/bootstrap/beta-console-toggle';
 import { installSwUpdateHandler, readServiceWorkerContainer } from '@/bootstrap/sw-update';
 import { scheduleAfterFirstPaint } from '@/utils/after-paint';
 
-// Auto-reload on stale chunk 404s after deployment (Vite fires this for modulepreload failures).
-const chunkReloadStorageKey = installChunkReloadGuard(__BUILD_HASH__);
+// Auto-reload once per build on stale chunk 404s after deployment (Vite fires
+// `vite:preloadError` for failed dynamic imports and modulepreloads).
+installChunkReloadGuard(__BUILD_HASH__);
 
 // First-touch agent link (`?ref=agent-claude`). Read before App.ts referral
 // capture strips `ref` from the URL; recorded as the sign-up source on the
@@ -648,7 +653,7 @@ safeStorageRemove('wm-settings-open');
 
 // Standalone windows: ?settings=1 = panel display settings, ?live-channels=1 = channel management
 // Both need i18n initialized so t() does not return undefined.
-const urlParams = new URL(location.href).searchParams;
+const urlParams = new URLSearchParams(location.search);
 if (urlParams.get('settings') === '1') {
   void Promise.all([import('./services/i18n'), import('./settings-window')]).then(
     async ([i18n, m]) => {
@@ -681,9 +686,6 @@ if (urlParams.get('settings') === '1') {
     resolveBindings(app.getWebMcpBindings());
     app
       .init(webMcpController)
-      .then(() => {
-        clearChunkReloadGuard(chunkReloadStorageKey);
-      })
       .catch((error: unknown) => {
         console.error(error);
         try {

@@ -24,6 +24,9 @@ loadEnvFile(import.meta.url);
 
 const EONET_API_URL = 'https://eonet.gsfc.nasa.gov/api/v3/events';
 const GDACS_API = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP';
+// GDACS's F5 bot defense answers browser User-Agents with an HTML JavaScript
+// challenge (since 2026-11-03) and serves the JSON list to a named client.
+const GDACS_USER_AGENT = 'WorldMonitor/1.0 (+https://www.worldmonitor.app)';
 const NHC_BASE = 'https://mapservices.weather.noaa.gov/tropical/rest/services/tropical/NHC_tropical_weather/MapServer';
 const CANONICAL_KEY = 'natural:events:v1';
 const NHC_SNAPSHOT_KEY = 'natural:events:nhc-snapshot:v1';
@@ -229,6 +232,7 @@ async function readEonetBody(res, controller, signal) {
 async function fetchEventSourceJson(source, url, fetchFn, noContentValue, {
   attemptTimeoutMs = SOURCE_REQUEST_TIMEOUT_MS,
   budgetMs = SOURCE_REQUEST_BUDGET_MS,
+  userAgent = CHROME_UA,
 } = {}) {
   const started = performance.now();
   const deadline = started + budgetMs;
@@ -249,7 +253,7 @@ async function fetchEventSourceJson(source, url, fetchFn, noContentValue, {
     let headersReceivedAt;
     try {
       const res = await fetchFn(url, {
-        headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+        headers: { Accept: 'application/json', 'User-Agent': userAgent },
         signal,
         ...(dispatcher ? { dispatcher: new Dispatcher1Wrapper(dispatcher) } : {}),
       });
@@ -431,7 +435,7 @@ async function fetchGdacsType(eventtype, fetchFn, now) {
   } else url.searchParams.set('eventtype', eventtype);
   const data = await fetchEventSourceJson(`gdacs:${eventtype}`, url.toString(), fetchFn,
     eventtype === 'VO' ? { type: 'FeatureCollection', features: [] } : undefined,
-    { attemptTimeoutMs: GDACS_REQUEST_TIMEOUT_MS, budgetMs: GDACS_REQUEST_BUDGET_MS });
+    { attemptTimeoutMs: GDACS_REQUEST_TIMEOUT_MS, budgetMs: GDACS_REQUEST_BUDGET_MS, userAgent: GDACS_USER_AGENT });
   if (!Array.isArray(data?.features) || data.features.some(feature =>
     !['Point', 'Polygon', 'MultiPolygon', 'LineString', 'MultiLineString'].includes(feature?.geometry?.type))) {
     throw new Error(`GDACS malformed response (${eventtype})`);
@@ -1142,7 +1146,7 @@ export function naturalEventsPublishTransform(data) {
   return publicData;
 }
 
-export function naturalEventsAfterPublish(data) {
+export function naturalEventsAfterPublish(data, context = {}) {
   const nhc = data?._nhcSnapshot;
   const nhcFailed = nhc?.consecutiveFailures > 0;
   const gdacsFailed = data?._gdacsFailedTypes || [];
@@ -1161,6 +1165,21 @@ export function naturalEventsAfterPublish(data) {
     },
   ]));
   const patch = { sourceState: failedSources.length ? 'degraded' : 'ok', sourceHealth, failedSources };
+  if (context.runId) {
+    const identity = value => typeof value === 'string' && /^[a-zA-Z0-9_.-]{1,128}$/.test(value) ? value : null;
+    console.info(JSON.stringify({
+      event: 'natural_source_receipt',
+      schemaVersion: 1,
+      runId: context.runId,
+      publisher: identity(process.env.RAILWAY_SERVICE_NAME),
+      deploymentId: identity(process.env.RAILWAY_DEPLOYMENT_ID),
+      revision: identity(process.env.RAILWAY_GIT_COMMIT_SHA),
+      canonicalKey: context.canonicalKey,
+      recordCount: context.recordCount,
+      sourceFetchedAt: data.fetchedAt,
+      ...patch,
+    }));
+  }
   if (!failedSources.length) return { freshnessMetaPatch: patch };
 
   console.warn(`[natural-events] DEGRADED: ${failedSources.join(', ')}`);

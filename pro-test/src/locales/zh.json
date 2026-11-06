@@ -11,11 +11,10 @@
   "hero": {
     "noiseWord": "噪音",
     "signalWord": "信号",
-    "valueProps": "地缘政治 AI 层 — 向它提问、订阅它、在其之上构建。",
+    "valueProps": "询问 AI 分析师、设置告警规则、获取简报，并在 Claude 中使用。",
     "launchingDate": "现已上线",
     "tryFreeDashboard": "试用免费仪表板",
     "choosePlan": "选择方案",
-    "signIn": "登录",
     "goToDashboard": "转到仪表板"
   },
   "wired": {
@@ -380,15 +379,16 @@
       "api": {
         "description": "在实时数据基础上构建内部工具",
         "features": [
+          "完整 Pro 仪表板（1 个命名用户）",
           "REST API + 官方 SDK（npm、PyPI、RubyGems、Go）",
           "包含许可证 / API 密钥",
           "实时数据流",
-          "每分钟 60 个请求",
-          "每天包含 1,000 次请求（REST + MCP 合计；一次实时 MCP 调用计为 2-3 次）",
+          "60 请求/分钟",
+          "包含 1,000 请求/天（REST + MCP 合计；一次实时 MCP 调用计为 2-3）",
           "Webhook 通知"
         ],
         "highlightFeatures": [
-          "商业许可证 — 供您的组织使用"
+          "商业用途 — 仅内部使用，不面向客户"
         ]
       },
       "enterprise": {
@@ -419,7 +419,7 @@
           "优先支持"
         ],
         "highlightFeatures": [
-          "商业许可证 — 供您的客户使用"
+          "商业用途 — 在您面向客户的产品中使用"
         ]
       },
       "proBusiness": {
@@ -446,7 +446,8 @@
     "axisPersonal": "个人\t",
     "axisPersonalNote": "个人使用\t",
     "axisCommercial": "商业\t",
-    "axisCommercialNote": "工作、客户与产品"
+    "axisCommercialNote": "工作、客户与产品",
+    "cancelAnytime": "随时从您的账户取消。您可以继续使用至所付费期间的结束。"
   },
   "welcome": {
     "meta": {
@@ -475,7 +476,6 @@
       "sub": "新闻报道之前，您已经了解。",
       "ctaPrimary": "启动仪表板\t",
       "ctaFree": "免费 · 无需注册 · 秒速加载\t",
-      "ctaSecondary": "查看人们如何使用它 ↓\t",
       "trustUsers": "200 万+ 用户\t",
       "trustOpenSource": "开源 · AGPL-3.0\t",
       "screenshotAlt": "World Monitor 实时情报仪表板 — 包含冲突、海运和市场图层的全球地图\t",
@@ -485,7 +485,8 @@
       "asOf": "截至{{date}}",
       "whatIsTitle": "World Monitor 是什么？",
       "whatIsBody": "World Monitor 是一款免费（$0）、开源（AGPL-3.0）的仪表板，供 200 多万人使用。它将来自 {{providers}} 个归属提供商的 {{feeds}} 条新闻和 OSINT 源流式传输到一张实时世界地图上，包括 {{mapLayers}} 种地图图层类型，涵盖地缘政治、市场、海运、航空和网络安全。它关联这些数据，使汇聚事件在登上新闻头条前就浮现出来。每个数据都有溯源，每种方法都有文档记录。",
-      "whatIsBestFor": "最适合需要实时地缘政治信号的分析师、记者、交易员和开发者。"
+      "whatIsBestFor": "最适合需要实时地缘政治信号的分析师、记者、交易员和开发者。",
+      "ctaPro": "Pro 版本起价 {{price}}/月"
     },
     "live": {
       "eyebrow": "实时在线\t",
@@ -505,7 +506,8 @@
       "marketWeakest": "最弱",
       "trendRising": "上升",
       "trendFalling": "下降",
-      "trendStable": "稳定"
+      "trendStable": "稳定",
+      "situationLink": "监控局势：在一个看板上汇总危机、头条、卡点和中断事件"
     },
     "moments": {
       "eyebrow": "关联引擎",
@@ -663,7 +665,8 @@
       "proF4": "MCP、REST API及官方SDK——一个密钥下的实时工具",
       "proF5": "自定义小部件构建器，用于您自己的面板",
       "cta": "查看计划和定价",
-      "note": "起价 $39.99/月 · 按年计费可免费享受 3 个月"
+      "note": "起价 $39.99/月 · 按年计费可免费享受 3 个月",
+      "disclaimer": "World Monitor 仅供参考，不构成财务、投资、法律、安保或安全建议。请核实您所看到的内容，并在作出错误可能导致损失或伤害的决定之前，咨询具备相应资质的专业人士。"
     },
     "faq": {
       "eyebrow": "无隐藏条件",
@@ -710,14 +713,14 @@
       "chokepointTitle": "检查海峡",
       "chokepointDesc": "查看{{chokepoints}}条关键海运通道的中断状态、船舶流向和风险。",
       "countryRiskTitle": "解释国家风险变动",
-      "countryRiskDesc": "追踪国家变化背后的政治、安全、经济和韧性信号，涵盖{{resilienceRanked}}个国家的韧性排名。",
+      "countryRiskDesc": "追踪一个国家变化背后的政治、安全、经济和韧性信号。韧性排名覆盖{{resilienceUniverse}}个国家中的{{resilienceRanked}}个，约占{{resilienceRankedPct}}%，因此可以参照该国长期的结构性基准来解读变动，而不只是依据本周的新闻标题。",
       "open": "打开证据",
       "workflow": "分步工作流程"
     },
     "voices": {
       "eyebrow": "用户怎么说",
       "title": "大家如何评价 World Monitor",
-      "sub": "{{countries}} 个国家的 {{users}} 人使用过 World Monitor。以下是媒体和部分用户的评价。",
+      "sub": "{{countries}} 个国家的 {{users}} 人使用过 World Monitor。The Atlantic 于2026年3月14日撰文报道了它，El País 在两天后也作了报道，WIRED、The Economic Times、Arabian Business 和 L'Orient Today 也都报道过它。以下是媒体和部分用户的说法。",
       "translatedJa": "译自日语",
       "prev": "上一组引语",
       "next": "更多引语"

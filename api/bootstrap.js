@@ -1,4 +1,4 @@
-import { sanitizeBootstrapValue } from './_bootstrap-public-payload.js';
+import { restoreWildfireBootstrapMetadata, sanitizeBootstrapValue } from './_bootstrap-public-payload.js';
 import { validateImfDataset } from './_imf-dataset.js';
 import { stripTrailingSlashes } from './_strip-trailing-slashes.js';
 import { waitUntil as vercelWaitUntil } from '@vercel/functions';
@@ -22,6 +22,7 @@ import { jsonResponse } from './_json-response.js';
 import { checkRateLimit } from './_rate-limit.js';
 import {
   checkBootstrapDesktopKeyBudget,
+  checkBootstrapDesktopKeyClient,
   checkBootstrapUserApiKeyRateLimit,
   isCanonicalUserApiKey,
   resolveBootstrapUserKeyAccess,
@@ -335,7 +336,10 @@ async function getCachedJsonBatch(keys, shadowMarkerTier = null) {
         // Envelope-aware: bootstrap is a public-boundary consumer — strip _seed
         // from contract-mode canonical keys so clients never see envelope
         // metadata. Legacy bare-shape values pass through unchanged.
-        result.set(keys[i], unwrapEnvelope(parsed).data);
+        const { data: payload, _seed } = unwrapEnvelope(parsed);
+        result.set(keys[i], keys[i] === BOOTSTRAP_CACHE_KEYS.wildfires
+          ? restoreWildfireBootstrapMetadata(payload, _seed)
+          : payload);
       } catch { /* skip malformed */ }
     }
   }
@@ -437,6 +441,10 @@ async function validateBootstrapAuth(req, cors) {
     }
 
     if (entitlementResult.scope === 'desktop') {
+      const client = checkBootstrapDesktopKeyClient(req);
+      if (!client.ok) {
+        return { ok: false, response: authFailure({ error: client.error }, client.status, cors) };
+      }
       const budget = await checkBootstrapDesktopKeyBudget(userKeyResult.userId, entitlementResult.entitlement);
       if (!budget.ok) {
         return {

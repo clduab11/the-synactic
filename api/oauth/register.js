@@ -74,7 +74,7 @@ async function getRatelimit() {
   if (!url || !token) return null;
   const { Ratelimit, Redis } = await loadUpstashRatelimit();
   _rl = new Ratelimit({
-    redis: new Redis({ url, token }),
+    redis: new Redis({ retry: { retries: 2, backoff: (attempt) => Math.round(Math.min(1_000, 100 * 2 ** attempt) * (0.5 + Math.random() * 0.5)) }, signal: () => AbortSignal.timeout(3_000), url, token }),
     limiter: Ratelimit.slidingWindow(5, '60 s'),
     prefix: 'rl:oauth-register',
     analytics: false,
@@ -108,7 +108,7 @@ export default async function handler(req, ctx) {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
   if (req.method !== 'POST') {
-    return jsonResp({ error: 'method_not_allowed' }, 405);
+    return jsonResponse({ error: 'method_not_allowed' }, 405, { ...corsHeaders, Allow: 'POST, OPTIONS' });
   }
 
   let admission;

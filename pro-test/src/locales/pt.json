@@ -11,11 +11,10 @@
   "hero": {
     "noiseWord": "Ruído",
     "signalWord": "Sinal",
-    "valueProps": "A camada de IA geopolítica — pergunte-lhe, assine, construa sobre ela.",
+    "valueProps": "Consulte um analista de IA, configure regras de alertas, receba briefings e use no Claude.",
     "launchingDate": "Disponível agora",
     "tryFreeDashboard": "Experimente o painel gratuito",
     "choosePlan": "Escolha o seu plano",
-    "signIn": "Entrar",
     "goToDashboard": "Ir para o Painel"
   },
   "wired": {
@@ -380,15 +379,16 @@
       "api": {
         "description": "Crie ferramentas internas com dados de inteligência em tempo real",
         "features": [
-          "API REST + SDKs oficiais (npm, PyPI, RubyGems, Go)",
-          "Chave de licença / API incluída",
+          "Dashboard Pro completo incluído (1 usuário nomeado)",
+          "REST API + SDKs oficiais (npm, PyPI, RubyGems, Go)",
+          "Licença / chave de API incluída",
           "Fluxos de dados em tempo real",
           "60 requisições/minuto",
           "1.000 requisições/dia incluídas (REST + MCP combinados; uma chamada MCP ao vivo conta como 2-3)",
           "Notificações por webhook"
         ],
         "highlightFeatures": [
-          "Licença comercial — para sua organização"
+          "Uso comercial — apenas interno, não voltado para o cliente"
         ]
       },
       "enterprise": {
@@ -419,7 +419,7 @@
           "Suporte prioritário"
         ],
         "highlightFeatures": [
-          "Licença comercial — para seus clientes"
+          "Uso comercial — em seus produtos voltados para o cliente"
         ]
       },
       "proBusiness": {
@@ -446,7 +446,8 @@
     "axisPersonal": "Pessoal",
     "axisPersonalNote": "uso individual",
     "axisCommercial": "Comercial",
-    "axisCommercialNote": "trabalho, clientes e produtos"
+    "axisCommercialNote": "trabalho, clientes e produtos",
+    "cancelAnytime": "Cancele quando quiser pela sua conta. Você mantém acesso até o fim do período que pagou."
   },
   "welcome": {
     "meta": {
@@ -475,7 +476,6 @@
       "sub": "Quando vira notícia, você já sabia.",
       "ctaPrimary": "Abrir o painel",
       "ctaFree": "Grátis · Sem cadastro · Carrega em segundos",
-      "ctaSecondary": "Veja como as pessoas usam ↓",
       "trustUsers": "2M+ usuários",
       "trustOpenSource": "Código aberto · AGPL-3.0",
       "screenshotAlt": "Painel de inteligência ao vivo do World Monitor — mapa global com camadas de conflitos, navegação e mercados",
@@ -485,7 +485,8 @@
       "asOf": "Em {{date}}",
       "whatIsTitle": "O que é World Monitor?",
       "whatIsBody": "World Monitor é um dashboard gratuito ($0), open-source (AGPL-3.0) usado por 2M+ pessoas. Ele transmite {{feeds}} feeds de notícias e OSINT de {{providers}} provedores atribuídos em um único mapa-múndi ao vivo com {{mapLayers}} tipos de camada de mapa, abrangendo geopolítica, mercados, navegação marítima, aviação e cibersegurança. Ele correlaciona-os para que eventos convergentes apareçam antes dos destaques. Cada dado é rastreado e cada método documentado.",
-      "whatIsBestFor": "Ideal para analistas, jornalistas, traders e desenvolvedores que precisam de sinais geopolíticos ao vivo."
+      "whatIsBestFor": "Ideal para analistas, jornalistas, traders e desenvolvedores que precisam de sinais geopolíticos ao vivo.",
+      "ctaPro": "Pro a partir de {{price}}/mês"
     },
     "live": {
       "eyebrow": "Ao vivo agora",
@@ -505,7 +506,8 @@
       "marketWeakest": "Pior desempenho",
       "trendRising": "em alta",
       "trendFalling": "em queda",
-      "trendStable": "estável"
+      "trendStable": "estável",
+      "situationLink": "Monitore a situação: crises, manchetes, pontos críticos e interrupções em um único painel"
     },
     "moments": {
       "eyebrow": "Mecanismo de correlação",
@@ -663,7 +665,8 @@
       "proF4": "MCP, REST API e SDKs oficiais — ferramentas ao vivo sob uma única chave",
       "proF5": "Construtor de widgets personalizados para seus próprios painéis",
       "cta": "Ver planos e preços",
-      "note": "A partir de $39,99/mês · 3 meses grátis quando faturado anualmente"
+      "note": "A partir de $39,99/mês · 3 meses grátis quando faturado anualmente",
+      "disclaimer": "O World Monitor destina-se exclusivamente a fins informativos e não constitui aconselhamento financeiro, de investimento, jurídico ou sobre segurança. Verifique o que vê e consulte um profissional qualificado antes de tomar decisões em que um erro possa causar perdas ou danos."
     },
     "faq": {
       "eyebrow": "Sem pegadinhas",
@@ -710,14 +713,14 @@
       "chokepointTitle": "Verificar um ponto de estrangulamento",
       "chokepointDesc": "Inspecione o status de interrupções, fluxos de navios e riscos em {{chokepoints}} passagens marítimas críticas.",
       "countryRiskTitle": "Explicar uma mudança de risco país",
-      "countryRiskDesc": "Rastreie sinais políticos, de segurança, econômicos e de resiliência por trás da mudança em um país, com resiliência classificada para {{resilienceRanked}} países.",
+      "countryRiskDesc": "Rastreie os sinais políticos, de segurança, econômicos e de resiliência por trás da mudança em um país. A resiliência é classificada para {{resilienceRanked}} de {{resilienceUniverse}} países, cerca de {{resilienceRankedPct}}%, permitindo interpretar um movimento em relação à base estrutural de longo prazo desse país, em vez de se apoiar apenas nas manchetes das notícias desta semana.",
       "open": "Abrir evidências",
       "workflow": "Fluxo de trabalho passo a passo"
     },
     "voices": {
       "eyebrow": "Nas palavras deles",
       "title": "O que as pessoas dizem sobre o World Monitor",
-      "sub": "{{users}} pessoas em {{countries}} países já usaram o World Monitor. Veja o que disseram a imprensa e algumas delas.",
+      "sub": "{{users}} pessoas em {{countries}} países já usaram o World Monitor. The Atlantic escreveu sobre ele em 14 de março de 2026 e El País dois dias depois. WIRED, The Economic Times, Arabian Business e L'Orient Today também o cobriram. Veja o que disseram a imprensa e alguns usuários.",
       "translatedJa": "Traduzido do japonês",
       "prev": "Citações anteriores",
       "next": "Mais citações"

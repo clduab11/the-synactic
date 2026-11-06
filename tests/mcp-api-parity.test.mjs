@@ -84,6 +84,7 @@ const HTTP_METHODS = new Set([
 // -----------------------------------------------------------------------------
 
 const EXCLUDED_FROM_MCP_PARITY = new Map([
+  ['GET /api/economic/v1/get-food-prices', 'deferred-to-future-tool: source-specific food prices and dated food-security context are served to the dashboard (#9841)'],
   ['GET /api/maritime/v1/list-ukmto-incidents', 'deferred-to-future-tool: UKMTO publisher reports await activation and source-aware MCP composition (#9831)'],
 
   // === mutating (20) ===
@@ -110,6 +111,8 @@ const EXCLUDED_FROM_MCP_PARITY = new Map([
     "mutating: writes to Convex (not server/_shared/redis) — lead registration write"],
   ["POST /api/leads/v1/submit-contact",
     "mutating: writes to Convex (not server/_shared/redis) — contact form write"],
+  ["POST /api/feedback/v1/submit-report",
+    "mutating: agent feedback written to Convex; MCP exposure is report_issue, which calls the shared admitFeedbackReport path rather than this route (#8721)"],
   ["POST /api/news/v1/submit-error-report",
     "mutating: reader error report written to the #9093 review queue via runRedisPipeline"],
   ["POST /api/news/v1/review-error-report",
@@ -134,7 +137,9 @@ const EXCLUDED_FROM_MCP_PARITY = new Map([
   // only (see docs/mcp-tools-reference.mdx). Do not restate this as "the daily
   // quota bounds it" without qualifying the env-key path.
 
-  // === fetch-on-miss (28) ===
+  // === fetch-on-miss (29) ===
+  ['GET /api/cyber/v1/get-network-info',
+    'fetch-on-miss: high-cardinality-input — arbitrary public IP enrichment; provider authorization, privacy disclosure and source attribution are handled by the Cyber Threat popup'],
   ["GET /api/intelligence/v1/get-risk-scores",
     "fetch-on-miss: paid-upstream — cachedFetchJsonWithMeta + ACLED API on cache miss. Cross-domain composite spans conflict plus auxiliary infra outages, climate anomalies, cyber threats, wildfires, GPS jamming, OREF history, advisories, displacement, news insights/threats, aviation, earthquakes, sanctions, temporal anomalies, and military CII; intended for a future expanded_risk_scores composite tool because the current shape doesn't fit any single existing tool."],
   ["GET /api/aviation/v1/get-carrier-ops",
@@ -223,8 +228,6 @@ const EXCLUDED_FROM_MCP_PARITY = new Map([
     "manual-mapping: parameterized cache key not statically resolvable — equivalent data covered by sibling cache tool at the prefix level"],
   ["GET /api/scenario/v1/list-scenario-templates",
     "manual-mapping: handler uses inline Redis or Convex (not server/_shared/redis) — manual triage"],
-  ["POST /api/economic/v1/get-fred-series-batch",
-    "manual-mapping: parameterized cache key not statically resolvable — equivalent data covered by sibling cache tool at the prefix level"],
 
   // === deferred-to-future-tool (55) ===
   ["GET /api/aviation/v1/list-aircraft-emergencies",

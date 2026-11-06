@@ -11,11 +11,10 @@
   "hero": {
     "noiseWord": "Ruis",
     "signalWord": "Signaal",
-    "valueProps": "De geopolitieke AI-laag — vraag het, abonneer je, bouw erop voort.",
+    "valueProps": "Stel vragen aan een AI-analist, stel waarschuwingsregels in, ontvang briefings en gebruik het in Claude.",
     "launchingDate": "Nu beschikbaar",
     "tryFreeDashboard": "Probeer het gratis dashboard",
     "choosePlan": "Kies je plan",
-    "signIn": "Inloggen",
     "goToDashboard": "Naar Dashboard"
   },
   "wired": {
@@ -380,15 +379,16 @@
       "api": {
         "description": "Bouw interne tools op live intelligentiegegevens",
         "features": [
+          "Volledige Pro-dashboard inbegrepen (1 benoemde gebruiker)",
           "REST API + officiële SDK's (npm, PyPI, RubyGems, Go)",
-          "Licentie-/API-sleutel inbegrepen",
-          "Real-time gegevensstromen",
+          "Licentie / API-sleutel inbegrepen",
+          "Gegevensstromen in realtime",
           "60 aanvragen/minuut",
-          "1.000 verzoeken/dag inbegrepen (REST + MCP gecombineerd; een live MCP-aanroep telt als 2-3)",
-          "Webhook-meldingen"
+          "1.000 aanvragen/dag inbegrepen (REST + MCP gecombineerd; een live MCP-aanroep telt als 2-3)",
+          "Webhookberichten"
         ],
         "highlightFeatures": [
-          "Commerciële licentie — voor uw organisatie"
+          "Commercieel gebruik — alleen intern, niet naar klanten toe"
         ]
       },
       "enterprise": {
@@ -419,7 +419,7 @@
           "Prioritaire ondersteuning"
         ],
         "highlightFeatures": [
-          "Commerciële licentie — voor uw klanten"
+          "Commercieel gebruik — in uw naar klanten gerichte producten"
         ]
       },
       "proBusiness": {
@@ -446,7 +446,8 @@
     "axisPersonal": "Persoonlijk",
     "axisPersonalNote": "individueel gebruik",
     "axisCommercial": "Commercieel",
-    "axisCommercialNote": "werk, klanten & producten"
+    "axisCommercialNote": "werk, klanten & producten",
+    "cancelAnytime": "Annuleer op elk moment vanuit je account. Je behoudt toegang tot het einde van de periode waarvoor je hebt betaald."
   },
   "welcome": {
     "meta": {
@@ -475,7 +476,6 @@
       "sub": "Tegen de tijd dat het nieuws is, wist je het al.",
       "ctaPrimary": "Dashboard starten",
       "ctaFree": "Gratis · Geen registratie · Laadt in seconden",
-      "ctaSecondary": "Zie hoe mensen het gebruiken ↓",
       "trustUsers": "2M+ gebruikers",
       "trustOpenSource": "Open broncode · AGPL-3.0",
       "screenshotAlt": "World Monitor live inlichtingendashboard — wereldkaart met conflicten, scheepvaart- en marktlagen",
@@ -485,7 +485,8 @@
       "asOf": "Per {{date}}",
       "whatIsTitle": "Wat is World Monitor?",
       "whatIsBody": "World Monitor is een gratis ($0), open-source (AGPL-3.0) dashboard dat door 2M+ mensen wordt gebruikt. Het streamt {{feeds}} nieuws- en OSINT-feeds van {{providers}} geattribueerde providers op één live wereldkaart met {{mapLayers}} kaartlaagtypen, omvattend geopolitiek, markten, scheepvaart, luchtvaart en cyber. Het correleert ze zodat convergende gebeurtenissen eerder aan het licht komen dan in de koppen. Elke cijfer is bronvermeld en elke methode gedocumenteerd.",
-      "whatIsBestFor": "Ideaal voor analisten, journalisten, traders en ontwikkelaars die live geopolitieke signalen nodig hebben."
+      "whatIsBestFor": "Ideaal voor analisten, journalisten, traders en ontwikkelaars die live geopolitieke signalen nodig hebben.",
+      "ctaPro": "Pro vanaf {{price}}/maand"
     },
     "live": {
       "eyebrow": "Nu live",
@@ -505,7 +506,8 @@
       "marketWeakest": "Zwakste",
       "trendRising": "stijgend",
       "trendFalling": "dalend",
-      "trendStable": "stabiel"
+      "trendStable": "stabiel",
+      "situationLink": "Monitor de situatie: crises, nieuwsfeiten, knelpunten en storingen op één dashboard"
     },
     "moments": {
       "eyebrow": "Correlatie-engine",
@@ -663,7 +665,8 @@
       "proF4": "MCP, REST API & officïele SDK's — live tools onder één sleutel",
       "proF5": "Custom widget builder voor je eigen panelen",
       "cta": "Zie plannen & prijzen",
-      "note": "Vanaf $39,99/mnd · 3 maanden gratis bij jaarlijkse betaling"
+      "note": "Vanaf $39,99/mnd · 3 maanden gratis bij jaarlijkse betaling",
+      "disclaimer": "World Monitor is uitsluitend bedoeld voor informatieve doeleinden en vormt geen financieel advies, beleggingsadvies, juridisch advies, beveiligingsadvies of veiligheidsadvies. Verifieer wat u ziet en raadpleeg een gekwalificeerde professional voordat u beslissingen neemt waarbij een fout tot verlies of schade zou kunnen leiden."
     },
     "faq": {
       "eyebrow": "Geen addertje onder het gras",
@@ -710,14 +713,14 @@
       "chokepointTitle": "Controleer een kritiek passage",
       "chokepointDesc": "Controleer verstoringstatus, scheepsstromen en risico's over {{chokepoints}} kritieke zeepassages.",
       "countryRiskTitle": "Leg een landenrisico-beweging uit",
-      "countryRiskDesc": "Volg de politieke, veiligheids-, economische en veerkrachtsignalen achter veranderingen in een land; veerkracht gerangschikt voor {{resilienceRanked}} landen.",
+      "countryRiskDesc": "Volg de politieke, veiligheids-, economische en veerkrachtsignalen achter de verandering in een land. Voor {{resilienceRanked}} van de {{resilienceUniverse}} landen, ongeveer {{resilienceRankedPct}}%, is de veerkracht gerangschikt. Zo kan een verschuiving worden geïnterpreteerd tegen de structurele basis van dat land op lange termijn, in plaats van alleen op basis van de nieuwskoppen van deze week.",
       "open": "Open bewijs",
       "workflow": "Stapsgewijze werkwijze"
     },
     "voices": {
       "eyebrow": "In hun woorden",
       "title": "Wat mensen zeggen over World Monitor",
-      "sub": "{{users}} mensen in {{countries}} landen hebben World Monitor gebruikt. Dit zeiden de pers en sommigen van hen.",
+      "sub": "{{users}} mensen in {{countries}} landen hebben World Monitor gebruikt. The Atlantic schreef erover op 14 maart 2026 en El País twee dagen later. Ook WIRED, The Economic Times, Arabian Business en L'Orient Today hebben erover bericht. Dit zeiden de pers en enkele gebruikers.",
       "translatedJa": "Vertaald uit het Japans",
       "prev": "Vorige citaten",
       "next": "Meer citaten"

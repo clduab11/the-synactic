@@ -95,7 +95,9 @@ import {
 import { isApiOnlyPath } from './_shared/api-only-paths';
 import {
   DESKTOP_KEY_API_ONLY_ERROR,
+  DESKTOP_KEY_CLIENT_ERROR,
   DESKTOP_KEY_LIMIT_ERROR,
+  admitsDesktopKeyClientRequest,
   resolveUserKeyEntitlement,
   resolveUserKeyScope,
 } from './_shared/desktop-key-principal';
@@ -268,6 +270,8 @@ const TIER_CDN_CACHE: Record<CacheTier, string | null> = {
 };
 
 const RPC_CACHE_TIER: Record<string, CacheTier> = {
+  // Server cache owns enrichment lifetime; provider disablement must be immediate.
+  '/api/cyber/v1/get-network-info': 'no-store',
   // 'live' tier — bbox-quantized + tanker-aware caching upstream of the
   // 60s in-handler cache, absorbing identical-bbox requests at the CDN
   // before they hit this Vercel function. Energy Atlas live-tanker layer.
@@ -382,6 +386,7 @@ const RPC_CACHE_TIER: Record<string, CacheTier> = {
   '/api/economic/v1/list-bigmac-prices': 'daily',
   '/api/economic/v1/list-fuel-prices': 'daily',
   '/api/economic/v1/get-fao-food-price-index': 'daily',
+  '/api/economic/v1/get-food-prices': 'slow',
   '/api/economic/v1/get-crude-inventories': 'daily',
   '/api/economic/v1/get-nat-gas-storage': 'daily',
   '/api/economic/v1/get-eu-yield-curve': 'daily',
@@ -595,6 +600,12 @@ export const PUBLIC_NO_AUTH_RPC_PATHS = new Set<string>([
   // endpoint limit (server/_shared/rate-limit.ts), and a bounded review queue
   // that refuses rather than evicts. Reports are never applied automatically.
   '/api/news/v1/submit-error-report',
+  // #8721 agent feedback: agents without a key are the reporters we most want
+  // (threat model Decision 1), so REST callers are always anonymous. Gates:
+  // the 24 KB body cap, the outer per-IP endpoint limit, and
+  // admitFeedbackReport's fail-closed buckets. Reports are never acted on
+  // automatically.
+  '/api/feedback/v1/submit-report',
   // #9093 /trust page: public label history and today's counts. Read-only,
   // public coverage metadata; a visitor who lands on /trust directly has no
   // session cookie. Bounded by a per-IP endpoint limit and the 'fast' CDN tier.
@@ -1108,7 +1119,7 @@ export function createDomainGateway(
     }
 
     let request = stripClientTrustedHeaders(originalRequest);
-    const rawPathname = new URL(request.url).pathname;
+    const rawPathname = originalPathname;
     const pathname = stripTrailingSlashes(rawPathname);
     const t0 = Date.now();
 
@@ -1566,8 +1577,13 @@ export function createDomainGateway(
         isSidecarOllamaTranslation = body.provider === 'ollama' && body.mode === 'translate';
       } catch { /* malformed requests retain the normal authentication path */ }
     }
-    const seedRefreshVerified = await isResilienceRankingSeedRefreshRequest(request, pathname);
-    const relayWarmPingVerified = await isRelayWarmPingRequest(request, pathname);
+    // Both are route-scoped credential checks that read only the request, and
+    // either can short-circuit to `false` without touching the other. This is
+    // the per-request dispatch path, so resolve them together.
+    const [seedRefreshVerified, relayWarmPingVerified] = await Promise.all([
+      isResilienceRankingSeedRefreshRequest(request, pathname),
+      isRelayWarmPingRequest(request, pathname),
+    ]);
     // Resolve the quota policy against the route POST compatibility will use.
     // Keep body validation after auth and abuse limiting; invalid bodies still
     // return before reservation or dispatch.
@@ -1934,6 +1950,10 @@ export function createDomainGateway(
           emitRequest(403, 'tier_403', null);
           return createGatewayAuthErrorResponse(403, DESKTOP_KEY_API_ONLY_ERROR, corsHeaders);
         }
+        if (!admitsDesktopKeyClientRequest(request)) {
+          emitRequest(403, 'tier_403', null);
+          return createGatewayAuthErrorResponse(403, DESKTOP_KEY_CLIENT_ERROR, corsHeaders);
+        }
         // Pro-session treatment from here on, attributed to the owner.
         isDesktopPrincipal = true;
         rateLimitPrincipalUserId = sessionUserId;
@@ -2183,7 +2203,7 @@ export function createDomainGateway(
       }
     }
     if (!matchedHandler) {
-      const allowed = router.allowedMethods(new URL(request.url).pathname);
+      const allowed = router.allowedMethods(rawPathname);
       if (allowed.length > 0) {
         emitRequest(405, 'method_not_allowed', null);
         return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -2799,7 +2819,8 @@ export function createDomainGateway(
         // re-invoking the function, so a disallowed origin could read a cached ACAO: * response.
       }
       mergedHeaders.delete('X-No-Cache');
-      if (!new URL(request.url).searchParams.has('_debug')) {
+      const responseSearchParams = new URL(request.url).searchParams;
+      if (!responseSearchParams.has('_debug')) {
         mergedHeaders.delete('X-Cache-Tier');
       }
 
@@ -2811,7 +2832,7 @@ export function createDomainGateway(
       // via their requestBody and their responses are not cached/ETagged here.
       // See server/_shared/response-projection.ts + /docs/mcp-jmespath.
       let responseView = new Uint8Array(bodyBytes);
-      const jmespathExpr = new URL(request.url).searchParams.get('jmespath');
+      const jmespathExpr = responseSearchParams.get('jmespath');
       if (jmespathExpr && (mergedHeaders.get('Content-Type') ?? '').includes('application/json')) {
         let projection = projectJsonResponse(bodyStr, jmespathExpr);
         if (projection.ok) {

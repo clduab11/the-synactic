@@ -11,11 +11,10 @@
   "hero": {
     "noiseWord": "Szum",
     "signalWord": "Sygnał",
-    "valueProps": "Geopolityczna warstwa AI — zapytaj ją, subskrybuj, buduj na niej.",
+    "valueProps": "Pytaj AI analityka, ustaw reguły alertów, otrzymuj briefingi i używaj w Claude.",
     "launchingDate": "Dostępne teraz",
     "tryFreeDashboard": "Wypróbuj darmowy panel",
     "choosePlan": "Wybierz plan",
-    "signIn": "Zaloguj się",
     "goToDashboard": "Przejdź do Pulpitu"
   },
   "wired": {
@@ -380,15 +379,16 @@
       "api": {
         "description": "Twórz narzędzia wewnętrzne na podstawie aktualnych danych analizy",
         "features": [
+          "Pełny dashboard Pro w pakiecie (1 użytkownik nazwany)",
           "REST API + oficjalne SDK (npm, PyPI, RubyGems, Go)",
-          "Klucz licencyjny / API w zestawie",
+          "Licencja / klucz API w pakiecie",
           "Strumienie danych w czasie rzeczywistym",
           "60 żądań/minutę",
-          "1000 żądań/dzień w pakiecie (REST + MCP razem; jedno aktywne połączenie MCP liczy się jako 2-3)",
+          "1000 żądań/dzień w pakiecie (REST + MCP łącznie; jedno aktywne wywołanie MCP liczy się jako 2-3)",
           "Powiadomienia webhook"
         ],
         "highlightFeatures": [
-          "Licencja komercyjna — dla Twojej organizacji"
+          "Użycie komercyjne — tylko wewnętrznie, bez dostępu klientów"
         ]
       },
       "enterprise": {
@@ -419,7 +419,7 @@
           "Wsparcie priorytetowe"
         ],
         "highlightFeatures": [
-          "Licencja komercyjna — dla Twoich klientów"
+          "Użycie komercyjne — w produktach dostępnych dla klientów"
         ]
       },
       "proBusiness": {
@@ -446,7 +446,8 @@
     "axisPersonal": "Osobiste",
     "axisPersonalNote": "użytek indywidualny",
     "axisCommercial": "Komercyjne",
-    "axisCommercialNote": "praca, klienci i produkty"
+    "axisCommercialNote": "praca, klienci i produkty",
+    "cancelAnytime": "Anuluj w dowolnym momencie z poziomu swojego konta. Zachowujesz dostęp do końca okresu, za który zapłaciłeś."
   },
   "welcome": {
     "meta": {
@@ -475,7 +476,6 @@
       "sub": "Kiedy to staje się wiadomością, ty już o tym wiesz.",
       "ctaPrimary": "Uruchom pulpit",
       "ctaFree": "Darmowe · Bez rejestracji · Wczytuje się w sekundy",
-      "ctaSecondary": "Zobacz, jak go używają ↓",
       "trustUsers": "2M+ użytkowników",
       "trustOpenSource": "Otwarty kod · AGPL-3.0",
       "screenshotAlt": "Żywa mapa inteligencji World Monitor — globalna mapa z warstwami konfliktów, transportu i rynków",
@@ -485,7 +485,8 @@
       "asOf": "Stan na {{date}}",
       "whatIsTitle": "Czym jest World Monitor?",
       "whatIsBody": "World Monitor to darmowy ($0), open-source'owy (AGPL-3.0) dashboard używany przez 2M+ osób. Transmituje {{feeds}} kanałów wiadomości i OSINT ze {{providers}} przypisanych dostawców na jedną żywą mapę świata z {{mapLayers}} typami warstw mapy, obejmującymi geopolitykę, rynki, transport morski, lotnictwo i cyber. Koreluje je, aby zbieżne zdarzenia wyświetliły się przed nagłówkami. Każda liczba jest udokumentowana wraz ze źródłem i metodą.",
-      "whatIsBestFor": "Najlepszy dla analityków, dziennikarzy, traderów i deweloperów, którzy potrzebują geopolitycznych sygnałów na żywo."
+      "whatIsBestFor": "Najlepszy dla analityków, dziennikarzy, traderów i deweloperów, którzy potrzebują geopolitycznych sygnałów na żywo.",
+      "ctaPro": "Pro od {{price}}/miesiąc"
     },
     "live": {
       "eyebrow": "Na żywo teraz",
@@ -505,7 +506,8 @@
       "marketWeakest": "Najsłabsze",
       "trendRising": "rosnący",
       "trendFalling": "spadający",
-      "trendStable": "stabilny"
+      "trendStable": "stabilny",
+      "situationLink": "Monitoruj sytuację: kryzysy, wiadomości, wąskie gardła i awarie na jednym pulpicie"
     },
     "moments": {
       "eyebrow": "Silnik korelacji",
@@ -663,7 +665,8 @@
       "proF4": "MCP, REST API i oficjalne SDK — live narzędzia pod jednym kluczem",
       "proF5": "Konstruktor niestandardowych widżetów dla Twoich paneli",
       "cta": "Zobacz plany i ceny",
-      "note": "Od $39,99/mies. · 3 miesiące za darmo przy rocznej opłacie"
+      "note": "Od $39,99/mies. · 3 miesiące za darmo przy rocznej opłacie",
+      "disclaimer": "World Monitor służy wyłącznie celom informacyjnym i nie stanowi porady finansowej, inwestycyjnej, prawnej ani dotyczącej bezpieczeństwa. Weryfikuj prezentowane informacje i skonsultuj się z wykwalifikowanym specjalistą przed podjęciem decyzji, w przypadku których błąd mógłby spowodować stratę lub szkodę."
     },
     "faq": {
       "eyebrow": "Bez zasadzki",
@@ -710,14 +713,14 @@
       "chokepointTitle": "Sprawdź wąskie gardło",
       "chokepointDesc": "Sprawdź status zaburzeń, przepływy statków i ryzyko na {{chokepoints}} krytycznych przejściach morskich.",
       "countryRiskTitle": "Wyjaśnij ruch na rynku ryzyka kraju",
-      "countryRiskDesc": "Prześledzaj sygnały polityczne, bezpieczeństwa, gospodarcze i odporności za zmianami w kraju — odporność rankingowana dla {{resilienceRanked}} krajów.",
+      "countryRiskDesc": "Śledź sygnały polityczne, gospodarcze oraz te dotyczące bezpieczeństwa i odporności, które stoją za zmianą w danym kraju. Ranking odporności obejmuje {{resilienceRanked}} z {{resilienceUniverse}} krajów, czyli około {{resilienceRankedPct}}%, dzięki czemu zmianę można interpretować w odniesieniu do długoterminowej bazy strukturalnej danego kraju, zamiast opierać się wyłącznie na nagłówkach wiadomości z tego tygodnia.",
       "open": "Otwórz dowody",
       "workflow": "Procedura krok po kroku"
     },
     "voices": {
       "eyebrow": "Ich słowami",
       "title": "Co ludzie mówią o World Monitor",
-      "sub": "{{users}} osób w {{countries}} krajach korzystało z World Monitor. Oto co powiedziały media i niektórzy z nich.",
+      "sub": "{{users}} osób w {{countries}} krajach korzystało z World Monitor. The Atlantic napisał o nim 14 marca 2026 r., a El País dwa dni później. Pisały o nim także WIRED, The Economic Times, Arabian Business i L'Orient Today. Oto co powiedziały media i niektórzy użytkownicy.",
       "translatedJa": "Przetłumaczono z japońskiego",
       "prev": "Poprzednie cytaty",
       "next": "Więcej cytatów"

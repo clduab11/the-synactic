@@ -22,6 +22,7 @@ import {
   __setForecastLlmTransportForTests,
   __setForecastLlmRunDeadlineForTests,
 } from '../scripts/seed-forecasts.mjs';
+import { openrouterModel } from '../scripts/_openrouter-model.mjs';
 
 const ENV_KEYS = [
   'LLM_API_URL',
@@ -544,7 +545,11 @@ test('generic-only market_implications budget is generic timeout plus stage guar
 
 test('critical_signals cache tag includes generic model only when generic is runnable', () => {
   const hostedBaseline = buildCriticalSignalRouteTag(getForecastLlmCallOptions('critical_signals'));
-  assert.equal(hostedBaseline, 'openrouter_google/gemini-2.5-flash');
+  // Fork: the critical_signals OpenRouter pin is the resolved free-tier default
+  // (owner ruling 2026-08-03; the decorrelated pick is no longer listed), so the
+  // tag carries that model, sanitized the way the builder does, not upstream's
+  // paid Gemini pin.
+  assert.equal(hostedBaseline, `openrouter_${openrouterModel()}`.replace(/[^a-zA-Z0-9._/-]/g, '-'));
   assert.equal(
     hostedBaseline.includes('generic'),
     false,

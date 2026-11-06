@@ -1359,12 +1359,12 @@ last-good observations with an unavailable source status.
 |---|---|
 | **Service name** | `seed-bundle-macro` |
 | **Start command** | `node scripts/seed-bundle-macro.mjs` |
-| **Cron schedule** | `0 8,9 * * *` (daily 08:00 and 09:00 UTC) |
+| **Cron schedule** | `0 8,9,10 * * *` (daily 08:00, 09:00 and 10:00 UTC) |
 | **Watch paths** | `scripts/**`, `shared/**` |
 | **Replaces** | 6 services |
 | **Net savings** | 5 slots |
 | **Members** | BIS Data (12h), CBR Rates (daily), BoC Valet (daily), StatCan WDS (daily), China Macro (36h), China Release Calendar (36h), China Policy Events (6h), BIS Extended (12h), BLS Series (daily), Eurostat (daily), Eurostat House Prices (7d), Eurostat Government Debt (2d), Eurostat Industrial Production (daily), IMF Macro (30d), National Debt (30d), FAO FFPI (daily), World Bank External Debt (30d), BIS LBS (7d), FATF Listing (30d), Education Attainment (7d), World CPI IMF (daily), World CPI Eurostat (daily), World CPI JP e-Stat (daily), World CPI AU ABS (daily) |
-| **Wall budget** | 570 seconds. The runner defers a section when its timeout plus 10-second kill grace cannot fit before Railway's 10-minute limit. Physical Premiums runs first with 80 seconds of admission headroom. Education gets first priority at 08:00 each Sunday UTC, with Physical second. The 09:00 retry always puts Physical first, so a deferred run has another full admission window even when Education fails. Completed members skip through their interval gates. |
+| **Wall budget** | 550 seconds, with bounded parallel freshness prefetch. The runner defers a section when its timeout plus 10-second kill grace cannot fit, leaving time for the scheduler's bounded acknowledgement before Railway's 600-second limit. Physical Premiums leads 08:00 and 09:00; Education leads Sunday 08:00 with Physical second. At 10:00, one macro member leads according to the persistent `bundle:turn:macro` cursor, followed by Physical and the remaining rotated members. The existing scheduler lease prevents overlapping rotation turns; completed failed runs advance the cursor too. Every macro member, including never-seeded food feeds, therefore receives a first admission slot within one rotation, even if earlier members repeatedly time out. Completed members skip through their interval gates. Apply the updated source-controlled cron only during an approved Railway rollout. |
 
 ### Bundle 9: seed-bundle-health
 
@@ -1513,6 +1513,35 @@ entries.
 | seed-consumer-prices | `2a369c41-cc5c-486a-a8d7-f0ca552e27a8` | Scraper |
 | seed-consumer-prices-publish | `4492a338-cb37-40da-9e98-95a8d67e49c9` | Redis publisher |
 | seed-consumer-aggregate | `4fdd1078-7884-48f8-92fc-06b390d0fdc4` | Index calculator |
+
+### Regional energy feeds: seed-bundle-regional-energy (#9842)
+
+The regional grid and fuel feeds run in their own service. The daily
+`seed-bundle-energy-sources` cron keeps its 07:30 UTC cadence, and a failing
+regional host retries only on this service's ticks.
+
+| Setting | Value |
+|---|---|
+| **Service name** | `seed-bundle-regional-energy` |
+| **Start command** | `node seed-bundle-regional-energy.mjs` (root directory `scripts`) |
+| **Cron schedule** | `*/15 * * * *` (every fifteen minutes) |
+| **Service ID** | `441a7f0d-b3a7-464a-8328-9638c00c226c` (provisioned 2026-10-31; 2 vCPU, 2 GB; asia-southeast1) |
+| **Members** | PGCB, Petrobangla, NISO, Eskom, CAMMESA, GSE, ONS and ANP (#9842); EVN, KOREM, COES, ICCC, FCCC and MEM (#9893); QatarEnergy, ERB, NPA, SONABHY, ZERA, DOE, ANP Timor-Leste, CREG and URSEA (#10051). Each keeps its own interval gate from `scripts/shared/regional-energy-feeds.json`. |
+| **Wall-time budget** | `maxBundleMs: 570_000`; each member reserves 120 s plus kill grace |
+| **Required variable** | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
+| **Heartbeat** | `bundle:heartbeat:regional-energy` |
+
+The scheduler claims `bundle:turn:regional-energy` under a 15-minute lease and
+rotates the lead group by four members per completed tick. Four members fit one
+tick even when all of them time out, so every member leads within
+`ceil(members / 4)` completed ticks. A Redis outage or a held lease defers the
+tick without advancing the turn.
+
+Health stays soft for each feed until its first successful publication writes
+`seed-activated:energy:regional-<id>`. Creating the service is therefore safe
+before the first tick, and no probe turns strict before the cron runs. See
+[regional energy feeds](regional-energy-feeds.md) for source contracts and
+acceptance checks.
 
 ### Standalone seed crons (43, not bundled)
 

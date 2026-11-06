@@ -11,11 +11,10 @@
   "hero": {
     "noiseWord": "Bruit",
     "signalWord": "Signal",
-    "valueProps": "La couche d'IA géopolitique — interrogez-la, abonnez-vous, construisez dessus.",
+    "valueProps": "Interrogez un analyste IA, configurez des règles d'alerte, recevez des briefings et utilisez-le dans Claude.",
     "launchingDate": "Disponible maintenant",
     "tryFreeDashboard": "Essayez le tableau de bord gratuit",
     "choosePlan": "Choisissez votre offre",
-    "signIn": "Se connecter",
     "goToDashboard": "Aller au Tableau de Bord"
   },
   "wired": {
@@ -380,15 +379,16 @@
       "api": {
         "description": "Créez des outils internes sur des données de renseignement en direct",
         "features": [
+          "Dashboard Pro complet inclus (1 utilisateur nommé)",
           "API REST + SDK officiels (npm, PyPI, RubyGems, Go)",
           "Clé de licence / API incluse",
           "Flux de données en temps réel",
           "60 requêtes/minute",
           "1 000 requêtes/jour incluses (REST + MCP combinés ; un appel MCP en direct compte pour 2-3)",
-          "Notifications webhook"
+          "Notifications par webhook"
         ],
         "highlightFeatures": [
-          "Licence commerciale — pour votre organisation"
+          "Usage commercial — interne uniquement, pas accessible aux clients"
         ]
       },
       "enterprise": {
@@ -419,7 +419,7 @@
           "Support prioritaire"
         ],
         "highlightFeatures": [
-          "Licence commerciale — pour vos clients"
+          "Usage commercial — dans vos produits destinés aux clients"
         ]
       },
       "proBusiness": {
@@ -446,7 +446,8 @@
     "axisPersonal": "Personnel",
     "axisPersonalNote": "usage personnel",
     "axisCommercial": "Commercial",
-    "axisCommercialNote": "travail, clients et produits"
+    "axisCommercialNote": "travail, clients et produits",
+    "cancelAnytime": "Annulez à tout moment depuis votre compte. Vous conservez l'accès jusqu'à la fin de la période que vous avez payée."
   },
   "welcome": {
     "meta": {
@@ -475,7 +476,6 @@
       "sub": "Au moment où c'est une nouvelle, vous le saviez déjà.",
       "ctaPrimary": "Lancer le tableau de bord",
       "ctaFree": "Gratuit · Pas d'inscription · Charge en quelques secondes",
-      "ctaSecondary": "Découvrez comment les gens l'utilisent ↓",
       "trustUsers": "2M+ utilisateurs",
       "trustOpenSource": "Source ouverte · AGPL-3.0",
       "screenshotAlt": "Tableau de bord d'intelligence en direct World Monitor — carte mondiale avec couches de conflits, de navigation et de marchés",
@@ -485,7 +485,8 @@
       "asOf": "Au {{date}}",
       "whatIsTitle": "Qu'est-ce que World Monitor ?",
       "whatIsBody": "World Monitor est un tableau de bord gratuit ($0), open-source (AGPL-3.0) utilisé par 2M+ personnes. Il diffuse {{feeds}} fils d'actualités et fils OSINT de {{providers}} fournisseurs attribués sur une carte mondiale en direct unique avec {{mapLayers}} types de couches cartographiques, couvrant la géopolitique, les marchés, le transport maritime, l'aviation et la cybersécurité. Il les corrèle pour que les événements convergents s'affichent avant les gros titres. Chaque chiffre est sourcé et chaque méthode documentée.",
-      "whatIsBestFor": "Idéal pour les analystes, journalistes, traders et développeurs qui ont besoin de signaux géopolitiques en direct."
+      "whatIsBestFor": "Idéal pour les analystes, journalistes, traders et développeurs qui ont besoin de signaux géopolitiques en direct.",
+      "ctaPro": "Pro à partir de {{price}}/mois"
     },
     "live": {
       "eyebrow": "En direct maintenant",
@@ -505,7 +506,8 @@
       "marketWeakest": "Plus faible",
       "trendRising": "hausse",
       "trendFalling": "baisse",
-      "trendStable": "stable"
+      "trendStable": "stable",
+      "situationLink": "Surveiller la situation : crises, titres d'actualité, points sensibles et pannes sur un seul tableau de bord"
     },
     "moments": {
       "eyebrow": "Moteur de corrélation",
@@ -663,7 +665,8 @@
       "proF4": "MCP, API REST et SDKs officiels — outils en direct sous une seule clé",
       "proF5": "Constructeur de widgets personnalisés pour vos propres tableaux de bord",
       "cta": "Voir les forfaits et tarifs",
-      "note": "À partir de 39,99 $/mois · 3 mois gratuits lors de la facturation annuelle"
+      "note": "À partir de 39,99 $/mois · 3 mois gratuits lors de la facturation annuelle",
+      "disclaimer": "World Monitor est fourni à des fins d’information uniquement et ne constitue pas un conseil financier, en investissement, juridique, en sûreté ou en sécurité. Vérifiez ce que vous voyez et consultez un professionnel qualifié avant de prendre des décisions pour lesquelles une erreur pourrait entraîner une perte ou un préjudice."
     },
     "faq": {
       "eyebrow": "Aucun piège",
@@ -710,14 +713,14 @@
       "chokepointTitle": "Vérifier un point d'étranglement",
       "chokepointDesc": "Inspectez l'état des perturbations, les flux de navires et les risques dans {{chokepoints}} passages maritimes critiques.",
       "countryRiskTitle": "Expliquer un mouvement de risque-pays",
-      "countryRiskDesc": "Tracez les signaux politiques, sécuritaires, économiques et de résilience derrière l'évolution d'un pays, avec la résilience classée pour {{resilienceRanked}} pays.",
+      "countryRiskDesc": "Suivez les signaux politiques, sécuritaires, économiques et de résilience derrière l'évolution d'un pays. La résilience fait l'objet d'un classement pour {{resilienceRanked}} pays sur {{resilienceUniverse}}, soit environ {{resilienceRankedPct}} %, afin de pouvoir interpréter un mouvement au regard du socle structurel à long terme de ce pays, plutôt qu'à partir des seuls titres de l'actualité de cette semaine.",
       "open": "Ouvrir les preuves",
       "workflow": "Méthode pas à pas"
     },
     "voices": {
       "eyebrow": "Dans leurs mots",
       "title": "Ce que l’on dit de World Monitor",
-      "sub": "{{users}} personnes dans {{countries}} pays ont utilisé World Monitor. Voici ce qu’en ont dit la presse et certaines d’entre elles.",
+      "sub": "{{users}} personnes dans {{countries}} pays ont utilisé World Monitor. The Atlantic en a parlé le 14 mars 2026 et El País deux jours plus tard. WIRED, The Economic Times, Arabian Business et L'Orient Today l'ont également couvert. Voici ce qu'en ont dit la presse et certains utilisateurs.",
       "translatedJa": "Traduit du japonais",
       "prev": "Citations précédentes",
       "next": "Plus de citations"

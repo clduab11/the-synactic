@@ -3,6 +3,73 @@
 **This file is fork-specific. `AGENTS.md` in this directory is upstream's and is still authoritative for architecture, build, and conventions — read both.**
 Kept as a separate file so upstream merges never conflict with fork knowledge.
 
+**v12 — 2026-11-06. Upstream sync: koala73/worldmonitor `4cad4a5e4` merged (295 commits since
+the 2026-10-31 `e3268a4a8` sync; 39 conflicted paths), on the same branch as the v11 sync (PR #8),
+which first fast-forwarded over the nine fork fixes ported from PR #1 (`port/pr1-fork-fixes`):
+the prediction-market price archiver and its activation-marker probe, the trader charter at
+boundary 1 v5, the self-host `VITE_SELFHOST_PRO` image unlock, the README trader console, the
+catalog domain overrides, HTML-escaped variant meta, the call-shape long-completion budget, and the
+archiver's attribution entries. PR #1 is superseded by this branch.** Decisions that took judgment:
+
+- **Version and inventories.** `package.json`, the lockfile, `tauri.conf.json` and `Cargo.toml` are
+  at upstream's 2.11.8 (from 2.11.6). The MCP server card is 1.50.0 at **112 tools** (upstream 102 +
+  the 10 fork tools; no name collisions). `/api/health` walks **417 probes** (upstream 414 + `defconLevel`,
+  `krakenMarkets`, `predictionPriceArchive`); the four health/api-platform example bodies say so, and
+  `check-health-probe-cutovers.mts origin/main` passes for every new upstream probe (the regional
+  energy fleet) and the fork's archiver probe.
+- **Registry ledger (`scripts/mcp-registry-published-versions.json`).** `1.47.0` keeps the fork's
+  109-tool pin; upstream's `1.48.0` and `1.49.0` entries are kept verbatim although they describe
+  hosted inventories the fork never built (they keep the ledger merge-friendly and the test only
+  enforces the newest entry); `1.50.0` is re-pinned at 112 tools with the fork manifest fingerprint
+  `6789c8e5…`. `server.json` took upstream's new description wording.
+- **Generated artifacts are regenerated, not hand-merged.** Product catalog/facts, the server and
+  agent cards, `llms.txt`/`llms-full.txt`, `ai-search.md`, the agent-skills index and skill
+  extension, the attribution manifest and the full "Observed Source Inventory" block of
+  `docs/source-attribution.mdx` (the drift PR #8 had deferred), sandbox fixtures, depth/hero/copy
+  stats and the pro-test locales all come from `npm run generate` on an LF tree. The OpenAPI
+  documents were hand-patched for the one proto comment that differs (`climate_disaster.proto`:
+  "GDACS, NASA FIRMS, EONET. (ReliefWeb removed 2026-08-03.)" — EONET is upstream's addition, the
+  ReliefWeb removal is the fork's); `make generate` still needs the Go toolchain this machine lacks.
+- **Locales.** The four upstream-rewritten locale files (`fa`, `nl`, `sw`, `uk`) took upstream's
+  translations, had `shell.documentTitle` pruned again (the fork keeps its static title, v10), and
+  got the 86 fork keys back through `sync-locale-keys` (one genuinely translated fork value in `fa`
+  and `nl` restored). `scripts/locale-baselines/app.json` is the sorted flat snapshot of the merged
+  `en.json` — upstream's baseline is exactly that for its keys, so the fork keys simply join it.
+- **Spliced source conflicts.** `api/health.js` activation markers carry the archiver marker beside
+  upstream's regional-energy block; `rpc-tools.ts` imports both the fork's classifier/chokepoint
+  symbols and upstream's `argNum`/`argStrList`; `panel-layout.ts` imports `widgetsEvictedBySaving`
+  (fork) and `subscribeWidgetAccess` (upstream); `StockBacktestPanel` keeps the fork's
+  `number | undefined` tone with upstream's CSS-variable colours; the ais-relay widget client composes
+  the fork's `WIDGET_ANTHROPIC_BASE_URL` with upstream's `timeout`/`maxRetries: 0`; `seed-fx-yoy`
+  keeps the Windows-safe `pathToFileURL` main guard over upstream's `fetchYahooJson` import;
+  `variant-meta.ts`/`index.html` keep the fork title and take upstream's "169 of 196" description;
+  `docker-compose.yml` keeps the fork's `EXA_API_KEYS` block and takes upstream's
+  `ALPHA_VANTAGE_API_KEY` placement (the fork's alias-block copy was removed — Compose rejects the
+  duplicate key); `SELF_HOSTING.md` takes upstream's rewritten rows with the fork's `the-synactic`
+  container names; README and the superseded-audit banner stay the fork's.
+- **Tests adapted to recorded fork rulings.** `mcp-published-endpoint-canonical` (new upstream) no
+  longer requires README.md to carry the hosted MCP endpoint (same ruling as `cii-docs-drift`).
+  Three LLM-policy suites that were already red before this sync now encode the free-tier default:
+  the critical_signals route tag follows `openrouterModel()`, the chain-telemetry "paid" rung is the
+  resolved primary, and the forecast fallback test tells the free rung apart by model identity
+  rather than a `:free` suffix (the fork's primary is free too). `news-digest-methodology-parity`
+  pins the fork primary ahead of upstream's new `nemotron-3.5-super-vl` third model.
+- **Verified here:** `typecheck`, `typecheck:api`, `lint:boundaries`, `lint`, `docs:check`,
+  `generate:check` (all steps but the entitlement crosswalk, whose scanner shells to POSIX `grep`
+  through `cmd.exe` on Windows and returns nothing — run through bash it reports 390 rules, 0
+  unmapped, 0 drift), the cutover gate, and the focused data-test batch around every conflicted
+  area. Still failing on Windows only, reproduced identically on a pristine upstream checkout:
+  `docs-stats-bootstrap-cache`, `docs-stats-category-explainer`, `docs-stats-plan-layer-entitlement`
+  (double-drive `C:\C:\` paths) and `agent-corpus-canonical-host` (backslash paths). CI did not run
+  on this PR (Actions budget), so ubuntu remains the enforcement environment.
+- **Windows lesson for the next sync.** This repo has no `* text=auto`, so with `core.autocrlf=true`
+  every non-source file materializes CRLF and the generators that splice hand-authored text
+  (`build-ai-search`, `build-llms-full`) write mixed files or, when the `## Generated corpus` heading
+  no longer matches, append a second corpus (the doubled 523 KB `llms-full.txt` this sync first
+  produced). Regenerate from a worktree created with `git -c core.autocrlf=false -c core.eol=lf
+  worktree add`, or rewrite `w/crlf` **and** `w/mixed` files to LF first; `checkout-index -f`
+  does not do it. Legal-PDF and crosswalk "staleness" on a CRLF tree are the same class.
+
 **v11 — 2026-10-31. Upstream sync: koala73/worldmonitor `e3268a4a8` merged (870 commits since
 the 2026-10-05 `9e8b2f650` sync; 101 conflicted paths).** Key decisions and adaptations:
 
