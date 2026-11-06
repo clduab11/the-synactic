@@ -12,6 +12,7 @@ import {
   __setForecastLlmRunDeadlineForTests,
 } from '../scripts/seed-forecasts.mjs';
 import { CHROME_UA } from '../scripts/_seed-utils.mjs';
+import { openrouterModel } from '../scripts/_openrouter-model.mjs';
 
 const REAL_FETCH = globalThis.fetch;
 
@@ -150,7 +151,9 @@ describe('resolveScenarioLlmResult validation retry', () => {
     try {
       __setForecastLlmTransportForTests({
         fetch: async (_url, init) => {
-          const provider = JSON.parse(init.body).model.endsWith(':free') ? 'openrouter-free' : 'openrouter';
+          // Fork: the `openrouter` rung is a free-tier model too, so rungs are told
+          // apart by model identity rather than a `:free` suffix.
+          const provider = JSON.parse(init.body).model === openrouterModel() ? 'openrouter' : 'openrouter-free';
           providers.push(provider);
           return {
             ok: true,

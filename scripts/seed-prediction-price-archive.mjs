@@ -366,6 +366,10 @@ if (DIRECT_RUN) {
     } else {
       console.error(`[seed] prediction/price-archive ${result.exitCode === 1 ? 'FAILED' : 'DEGRADED'} (exit ${result.exitCode}) — ${result.failures.join('; ')}`);
     }
+    // Terminal marker: the Railway crash diagnostic only vouches for a run that
+    // printed one (tests/railway-entrypoint-terminal-marker.test.mts). The exit
+    // code still carries OK / DEGRADED / FAILED.
+    console.log(`=== Done (${elapsed}s) ===`);
     process.exit(result.exitCode);
   }).catch((err) => {
     console.error(`FATAL: ${err?.message || err}`);

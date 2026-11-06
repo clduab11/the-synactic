@@ -31,6 +31,8 @@ import {
   __setForecastLlmTransportForTests,
   __setForecastLlmRunDeadlineForTests,
   __setForecastLlmCallOverrideForTests,
+  getForecastLlmCallOptions,
+  getMarketImplicationsMinRunBudgetMs,
 } from '../scripts/seed-forecasts.mjs';
 import { __testing__ as healthTesting } from '../api/health.js';
 
@@ -99,7 +101,13 @@ function captureRedisCommands() {
 function armTimingOutProvider() {
   process.env.OPENROUTER_API_KEY = 'test-key';
   process.env.FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER = 'openrouter';
-  __setForecastLlmRunDeadlineForTests(Date.now() + 60_000);
+  // The stage is admitted only when the remaining run budget covers the resolved
+  // chain (getMarketImplicationsMinRunBudgetMs). Derive the deadline from that
+  // instead of a fixed window: the fork's long-generation OpenRouter rung
+  // (60s) made a 60s window starve the stage before any provider was tried.
+  __setForecastLlmRunDeadlineForTests(
+    Date.now() + getMarketImplicationsMinRunBudgetMs(getForecastLlmCallOptions('market_implications')) + 5_000,
+  );
   const calls = { count: 0 };
   __setForecastLlmTransportForTests({
     fetch: async () => {

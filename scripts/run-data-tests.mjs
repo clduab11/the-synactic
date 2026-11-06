@@ -126,7 +126,12 @@ export async function main(args) {
       files: selected.map((file) => resolve(file)),
       concurrency: Number(values.concurrency),
       timeout: 120000,
-      execArgv: ['--import', 'tsx'],
+      // Fork: tests/crawlable-corpus.test.mjs holds ~1.9 GB of live heap in its
+      // canonical-pages test (measured 2026-11-06 on this tree and on pristine
+      // upstream alike), and Node's default old-space limit on a 7 GB runner is
+      // ~2 GB, so the file died with "Reached heap limit" in CI. Give every file
+      // 3 GB of headroom; the other files stay far below it.
+      execArgv: ['--import', 'tsx', '--max-old-space-size=3072'],
       testNamePatterns: values['test-name-pattern'],
       env,
       signal: abort.signal,

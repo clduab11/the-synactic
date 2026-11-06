@@ -115,7 +115,7 @@ describe('upstream moves through the real seed and pool builders', () => {
     const deps = {
       ...predictionScoring, ...countryIndex, buildBootstrapPools,
       GEOPOLITICAL_TAGS: ['geopolitics'], TECH_TAGS: [], FINANCE_TAGS: [],
-      GAMMA_BASE: 'https://fixture.invalid', CHROME_UA: 'test', FETCH_TIMEOUT: 100, TAG_DELAY_MS: 0,
+      GAMMA_BASE: 'https://fixture.invalid', CHROME_UA: 'test', HONEST_UA: 'test', FETCH_TIMEOUT: 100, TAG_DELAY_MS: 0,
       sleep: async () => {}, console: { log() {}, warn() {} },
       fetchKalshiMarkets: async () => ({ featured: [], countryCandidates: [], complete: true }),
       fetchKalshiCountryMarkets: async () => ({ countryCandidates: [], complete: true }),

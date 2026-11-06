@@ -8,7 +8,7 @@ import {
 } from './_prediction-classify.mjs';
 import {
   isExcluded, parseYesPrice, parseKalshiYesPrice, parsePredictionMarketVolume, parsePolymarketLiquidity,
-  selectPricedKalshiMarket, isExpired, kalshiMarketUrl, parsePolymarketChange, parseKalshiChange24h,
+  selectPricedKalshiMarket, isExpired, kalshiMarketUrl, parsePolymarketChange, parseKalshiChange24h, toPercentScale, kalshiNum, quotedSpreadPct,
 } from './_prediction-scoring.mjs';
 import {
   buildCountryMarketIndex,
@@ -51,23 +51,8 @@ const KALSHI_COUNTRY_LOCK_TTL_MS = 300_000;
  * Returns undefined (key dropped by JSON.stringify) rather than 0 when either
  * side is missing — a fabricated 0 would read as a perfectly tight market.
  */
-function quotedSpreadPct(bid, ask) {
-  if (!Number.isFinite(bid) || !Number.isFinite(ask)) return undefined;
-  const mid = (ask + bid) / 2;
-  if (mid <= 0) return undefined;
-  return +(((ask - bid) / mid) * 100).toFixed(2);
-}
 
-/** Kalshi publishes every numeric as a JSON STRING; Polymarket as a number. */
-function kalshiNum(raw) {
-  const n = parseFloat(raw);
-  return Number.isFinite(n) ? n : undefined;
-}
 
-/** Venue prices are 0-1; the published yesPrice is 0-100. Match it. */
-function toPercentScale(v) {
-  return typeof v === 'number' && Number.isFinite(v) ? +(v * 100).toFixed(1) : undefined;
-}
 
 const GEOPOLITICAL_TAGS = predictionTags.geopolitical;
 const TECH_TAGS = predictionTags.tech;

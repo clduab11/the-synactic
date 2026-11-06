@@ -15593,19 +15593,9 @@ button.popup-link {
   font-size: 12px;
 }
 
+/* Header and cell typography, padding and rules come from .wm-table. */
 .kraken-table th {
   text-align: left;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--overlay-medium);
-}
-
-.kraken-table td {
-  padding: 5px 6px;
-  border-bottom: 1px solid var(--overlay-light, rgba(255, 255, 255, 0.04));
 }
 
 .kraken-table .kraken-num {

@@ -7,7 +7,7 @@
   "totalTolerancePct": 0.25,
   "totalToleranceBytes": 16384,
   "total": {
-    "raw": 458666
+    "raw": 466580
   },
   "chunks": {
     "analytics": {
@@ -19,7 +19,7 @@
       "files": 1
     },
     "clerk": {
-      "raw": 21861,
+      "raw": 22355,
       "files": 1
     },
     "convex-client": {
@@ -35,7 +35,7 @@
       "files": 1
     },
     "entitlements": {
-      "raw": 2639,
+      "raw": 3383,
       "files": 1
     },
     "font-settings": {
@@ -59,19 +59,19 @@
       "files": 1
     },
     "main": {
-      "raw": 134857,
+      "raw": 136037,
       "files": 1
     },
     "map-layer-definitions": {
-      "raw": 14566,
+      "raw": 14825,
       "files": 1
     },
     "panels": {
-      "raw": 37755,
+      "raw": 41708,
       "files": 1
     },
     "runtime-config": {
-      "raw": 10377,
+      "raw": 10525,
       "files": 1
     },
     "safe-storage": {
@@ -91,7 +91,7 @@
       "files": 1
     },
     "theme-colors": {
-      "raw": 71681,
+      "raw": 72817,
       "files": 1
     },
     "theme-manager": {
@@ -109,11 +109,11 @@
   },
   "deferred": {
     "total": {
-      "raw": 1511801
+      "raw": 1522398
     },
     "chunks": {
       "App": {
-        "raw": 957022,
+        "raw": 965867,
         "files": 1
       },
       "ai-flow-settings": {
@@ -129,7 +129,7 @@
         "files": 1
       },
       "base": {
-        "raw": 2406,
+        "raw": 2427,
         "files": 1
       },
       "cached-risk-scores": {
@@ -149,7 +149,7 @@
         "files": 1
       },
       "corroboration": {
-        "raw": 14245,
+        "raw": 14431,
         "files": 1
       },
       "cross-domain-storage": {
@@ -161,19 +161,19 @@
         "files": 1
       },
       "desktop-cloud-auth": {
-        "raw": 1534,
+        "raw": 1705,
         "files": 1
       },
       "feeds": {
-        "raw": 100459,
+        "raw": 100951,
         "files": 1
       },
       "gdelt-intel": {
-        "raw": 160143,
+        "raw": 160335,
         "files": 1
       },
       "index": {
-        "raw": 39453,
+        "raw": 39580,
         "files": 2
       },
       "layout-batch": {
@@ -217,11 +217,11 @@
         "files": 1
       },
       "settings-persistence": {
-        "raw": 7959,
+        "raw": 8007,
         "files": 1
       },
       "source-provenance": {
-        "raw": 90335,
+        "raw": 90506,
         "files": 1
       },
       "storage-facility-registry-store": {
@@ -237,7 +237,7 @@
         "files": 1
       },
       "widget-store": {
-        "raw": 27968,
+        "raw": 28312,
         "files": 1
       }
     }

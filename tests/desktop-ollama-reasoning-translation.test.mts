@@ -68,7 +68,8 @@ test('desktop Ollama translation turns off reasoning and outlasts a silent model
     assert.equal(result.summary, 'Eine neue Technologieplattform wurde veröffentlicht.');
     assert.equal(calls.length, 1);
     assert.equal(calls[0]!.reasoning_effort, 'none');
-    assert.equal('think' in calls[0]!, false, 'Ollama /v1/chat/completions ignores think');
+    // Fork: think:false rides along for LM Studio hosts (tests/llm-no-reasoning-contract.test.mjs).
+    assert.notEqual(calls[0]!.think, true, 'a think flag may only ever be false');
   } finally {
     __testing__.setUpstreamIdleTimeoutMs(12000);
     await app.close();

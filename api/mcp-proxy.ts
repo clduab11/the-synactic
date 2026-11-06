@@ -9,7 +9,7 @@ import { DESKTOP_KEY_CLIENT_ERROR } from '../server/_shared/desktop-key-principa
 import { chargeDesktopKeyBudget, desktopKeyBudgetResponse } from '../server/_shared/desktop-key-meter.js';
 import { runRedisPipeline } from '../server/_shared/redis.js';
 import { isBlockedResolvedAddress } from '../server/_shared/ip-address-classification.js';
-import { withPresetAuth, listConfiguredPresetHosts } from './_mcp-preset-auth';
+import { withPresetAuth, listConfiguredPresetHosts } from './_mcp-preset-auth.js';
 import { buildUsageIdentity } from '../server/_shared/usage-identity.js';
 import {
   readBoundedRequestBody,

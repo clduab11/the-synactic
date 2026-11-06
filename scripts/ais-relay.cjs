@@ -14910,12 +14910,7 @@ async function handleWidgetAgentRequest(req, res) {
     // replay billed turns and can sleep beyond the remaining request budget.
     // Turns are non-streaming, so headers arrive only after generation: the
     // client timeout must cover the whole request budget, not a fixed minute.
-    const client = new Anthropic({
-      apiKey: WIDGET_ANTHROPIC_KEY,
-      timeout: timeoutMs,
-      maxRetries: 0,
-      ...(widgetBaseUrl ? { baseURL: widgetBaseUrl } : {}),
-    });
+    const client = new Anthropic({ apiKey: WIDGET_ANTHROPIC_KEY, timeout: timeoutMs, maxRetries: 0, ...(widgetBaseUrl ? { baseURL: widgetBaseUrl } : {}) });
 
     const messages = [
       ...conversationHistory

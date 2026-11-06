@@ -162,3 +162,22 @@ export function filterAndScore(candidates, tagFilter, limit = 25, now = Date.now
     .sort((a, b) => scoreMarket(b) - scoreMarket(a))
     .slice(0, limit);
 }
+
+/** Venue prices are 0-1; the published yesPrice is 0-100. Match it. */
+export function toPercentScale(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? +(v * 100).toFixed(1) : undefined;
+}
+
+/** Kalshi publishes every numeric as a JSON STRING; Polymarket as a number. */
+export function kalshiNum(raw) {
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Quoted bid/ask spread as a percentage of the midpoint; undefined when a side is missing. */
+export function quotedSpreadPct(bid, ask) {
+  if (!Number.isFinite(bid) || !Number.isFinite(ask)) return undefined;
+  const mid = (ask + bid) / 2;
+  if (mid <= 0) return undefined;
+  return +(((ask - bid) / mid) * 100).toFixed(2);
+}

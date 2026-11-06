@@ -20,8 +20,10 @@ const OLLAMA_CALL_SITES = [
 test('every Ollama provider config turns reasoning off with reasoning_effort', () => {
   for (const file of OLLAMA_CALL_SITES) {
     const source = readFileSync(resolve(root, file), 'utf8');
-    assert.ok(!/\bthink:\s*false/.test(source), `${file} sends think, which Ollama ignores`);
-    assert.match(source, /extraBody:\s*\{\s*reasoning_effort:\s*'none'\s*\}/, file);
+    // Fork: think:false and enable_thinking:false ride along for LM Studio and
+    // vLLM hosts (tests/llm-no-reasoning-contract.test.mjs); Ollama drops the
+    // field it does not bind, so only reasoning_effort is asserted here.
+    assert.match(source, /extraBody:\s*\{[^}]*reasoning_effort:\s*'none'/, file);
   }
 });
 
@@ -40,7 +42,7 @@ test('llm-chain sends reasoning_effort none to Ollama', async () => {
     assert.equal(text, 'Eine neue Plattform.');
     assert.equal(bodies.length, 1);
     assert.equal(bodies[0].reasoning_effort, 'none');
-    assert.equal('think' in bodies[0], false);
+    assert.notEqual(bodies[0].think, true, 'a think flag may only ever be false');
   } finally {
     globalThis.fetch = originalFetch;
     if (originalUrl === undefined) delete process.env.OLLAMA_API_URL;

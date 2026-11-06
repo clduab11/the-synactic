@@ -72,6 +72,36 @@ archiver's attribution entries. PR #1 is superseded by this branch.** Decisions 
   corpus" also fails here and did before the sync. The entitlement crosswalk's scanner shells to POSIX
   `grep` through `cmd.exe` on Windows and returns nothing; run through bash it reports 390 rules, 0
   unmapped, 0 drift.
+- **CI pass two (unit shards).** The first full CI run on this branch exposed 40 Linux failures the
+  Windows tree could not see. Classified against a pre-merge checkout: 5 were merge-introduced, 34 were
+  fork debt that had never met CI, 1 was heap. Fixed in the follow-up:
+  - merge-introduced: `KrakenMarketsPanel` and `stock-backtest-focus-content` tables carry `wm-table`
+    and their stylesheets no longer redeclare the shared header/cell properties; `docker/nginx.conf`
+    sends `X-Robots-Tag noindex` on the fork-only `pro/assets|favico` and `/mcp` blocks; the widget
+    model client keeps upstream's one-line `new Anthropic({...})` shape with the fork's optional
+    `baseURL` spread (test regex widened accordingly).
+  - fork debt: `api/mcp-proxy.ts` imports `./_mcp-preset-auth.js` by file name (native ESM);
+    `seed-prediction-price-archive.mjs` prints the closed-set `=== Done` terminal marker;
+    `kalshiNum`, `toPercentScale` and `quotedSpreadPct` moved from the seeder into
+    `_prediction-scoring.mjs` so the source-slicing harnesses that spread that module's exports see
+    them (the harnesses also receive `HONEST_UA`); `public/llms.txt` carries the fork OpenAPI byte
+    size via `build-openapi-json`; the market-implications health tests derive their run deadline
+    from `getMarketImplicationsMinRunBudgetMs` (the fork's 60s long-generation rung starved a fixed
+    60s window); `seed-insights-llm-retry`, `regional-snapshot-narrative-retry` and
+    `forecast-seed-resilience` identify the first rung as the fork's free default instead of upstream's
+    paid pin; the two Ollama reasoning tests accept `think:false` beside `reasoning_effort:'none'`
+    (the fork's measured LM Studio contract, `tests/llm-no-reasoning-contract.test.mjs`).
+  - heap: `tests/crawlable-corpus.test.mjs` retains ~1.9 GB of live heap in "builds a non-trivial
+    static corpus" — measured identically on this tree and on pristine upstream with the same
+    node_modules — and Node's default old-space limit on the 7 GB runner is ~2 GB, so the file died
+    with "Reached heap limit". `scripts/run-data-tests.mjs` now launches every file with
+    `--max-old-space-size=3072`. Upstream's own runs fit under the limit; the proper fix is reducing
+    the test's retention upstream.
+  - the `panels` bundle budget was re-seeded (37.8 → 41.7 KB raw: the fork's panels) from a
+    no-`.env` `VITE_VARIANT=full vite build`; main and embed surfaces check green.
+  - Windows-only and left alone: `deploy-config` deploy-gate tests (`spawnSync /bin/bash ENOENT`),
+    and the two CI timing assertions (`imd-cyclone-marine` linear-time, `food-prices-hostile-input`
+    MIT bucketing) that pass here and looked like runner contention.
 - **Windows lesson for the next sync.** This repo has no `* text=auto`, so with `core.autocrlf=true`
   every non-source file materializes CRLF. Splice-style generators then misbehave in two ways: they
   write mixed-EOL files (`build-ai-search`, `build-llms-full`), and when their heading or marker regex

@@ -1300,7 +1300,9 @@ describe('widget-agent relay — security', () => {
     // Turns are non-streaming messages.create calls (8192 max_tokens on Pro), so
     // headers arrive only after generation; a fixed 60s client timeout killed
     // turns the 150s/180s widget deadline still had time for.
-    assert.match(relay, /new Anthropic\(\{ apiKey: WIDGET_ANTHROPIC_KEY, timeout: timeoutMs, maxRetries: 0 \}\)/);
+    // Fork: the client may also carry the optional self-host gateway base URL
+    // (WIDGET_ANTHROPIC_BASE_URL); the budget and no-retry contract is unchanged.
+    assert.match(relay, /new Anthropic\(\{ apiKey: WIDGET_ANTHROPIC_KEY, timeout: timeoutMs, maxRetries: 0(?:, \.\.\.\(widgetBaseUrl \? \{ baseURL: widgetBaseUrl \} : \{\}\))? \}\)/);
     assert.match(relay, /const timeoutMs = isPro \? 180_000 : 150_000;/);
   });
 

@@ -18,7 +18,9 @@ afterEach(() => {
   }
 });
 
-const PAID_MODEL = 'deepseek/deepseek-v4-flash';
+// Fork: the chain's first rung is the free-tier default (owner policy 2026-08-03),
+// so the "paid" rung these scenarios exercise is whatever OPENROUTER_MODEL resolves to.
+const PAID_MODEL = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free';
 const FREE_MODEL = 'google/gemma-4-26b-a4b-it:free';
 const BACKUP_MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const modelOf = (init) => JSON.parse(init.body).model;

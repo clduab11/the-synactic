@@ -18,7 +18,8 @@ afterEach(() => {
 });
 
 const BACKUP_MODEL = 'nvidia/nemotron-3.5-super-vl:free';
-const CHAIN_MODELS = ['deepseek/deepseek-v4-flash', 'google/gemma-4-26b-a4b-it:free', BACKUP_MODEL];
+// Fork: the first rung is the free-tier default (owner policy 2026-08-03).
+const CHAIN_MODELS = [process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free', 'google/gemma-4-26b-a4b-it:free', BACKUP_MODEL];
 
 function okResponse(model, content) {
   return {

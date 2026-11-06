@@ -1050,7 +1050,9 @@ function generatedPageRoutes(outDir) {
   const routes = [];
   const visit = (relative) => {
     for (const entry of readdirSync(join(outDir, relative), { withFileTypes: true })) {
-      if (entry.isDirectory()) visit(join(relative, entry.name));
+      // Routes are URL paths, so the relative segment is joined posix-style on
+      // every host; the filesystem lookup above still goes through join().
+      if (entry.isDirectory()) visit(posix.join(relative, entry.name));
       else if (entry.name === 'index.html') routes.push(`/${relative === '.' ? '' : `${relative}/`}`);
     }
   };

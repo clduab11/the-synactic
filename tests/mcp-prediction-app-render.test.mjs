@@ -37,8 +37,9 @@ describe('prediction MCP card parity with the website presentation', () => {
       title: '2028 Democratic presidential nominee', series_ticker: 'KXPRESNOMD', event_ticker: 'KXPRESNOMD-28',
       markets: [{ ticker: 'KXPRESNOMD-28-GN', yes_sub_title: 'Gavin Newsom', last_price_dollars: '0.14', volume_fp: '10800000', close_time: '2028-11-07T15:00:00Z', market_type: 'binary', status: 'active' }],
     };
-    const subject = new Function(...Object.keys(predictionScoring), 'fetchKalshiEvents', `${body}\nreturn { fetchKalshiMarkets };`)(
-      ...Object.values(predictionScoring), async () => ({ events: [event], complete: true }),
+    // Fork: the seeder declares its honest User-Agent (HONEST_UA) on every venue call.
+    const subject = new Function(...Object.keys(predictionScoring), 'fetchKalshiEvents', 'HONEST_UA', `${body}\nreturn { fetchKalshiMarkets };`)(
+      ...Object.values(predictionScoring), async () => ({ events: [event], complete: true }), 'test',
     );
     const produced = await subject.fetchKalshiMarkets();
     const { pools } = buildBootstrapPools(produced.featured, { now: Date.parse('2026-10-17T10:21:20Z') });
