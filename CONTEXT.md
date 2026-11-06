@@ -54,21 +54,35 @@ archiver's attribution entries. PR #1 is superseded by this branch.** Decisions 
   resolved primary, and the forecast fallback test tells the free rung apart by model identity
   rather than a `:free` suffix (the fork's primary is free too). `news-digest-methodology-parity`
   pins the fork primary ahead of upstream's new `nemotron-3.5-super-vl` third model.
-- **Verified here:** `typecheck`, `typecheck:api`, `lint:boundaries`, `lint`, `docs:check`,
-  `generate:check` (all steps but the entitlement crosswalk, whose scanner shells to POSIX `grep`
-  through `cmd.exe` on Windows and returns nothing — run through bash it reports 390 rules, 0
-  unmapped, 0 drift), the cutover gate, and the focused data-test batch around every conflicted
-  area. Still failing on Windows only, reproduced identically on a pristine upstream checkout:
-  `docs-stats-bootstrap-cache`, `docs-stats-category-explainer`, `docs-stats-plan-layer-entitlement`
-  (double-drive `C:\C:\` paths) and `agent-corpus-canonical-host` (backslash paths). CI did not run
-  on this PR (Actions budget), so ubuntu remains the enforcement environment.
+- **Verified here, then on CI (the Actions budget was back for this push):** `typecheck`,
+  `typecheck:api`, `lint:boundaries`, `lint`, `docs:check`, the cutover gate and a 56-suite focused
+  data-test batch (1,129 tests; the 21 failures are the Windows path classes below). CI then ran for
+  the first time on this PR and found three things this box could not: `proto-changes`/`proto-freshness`
+  refuse to classify because GitHub's files API caps a PR at 3,000 changed files and this sync PR has
+  more (a size property of the PR, not a defect); `audit-lockfile` flagged two high brace-expansion
+  advisories in the fork-only `docker/runtime-package-lock.json` (the runtime image gained `sax` and
+  the seeder tiers after upstream's lock); and `docs-stats` found three derived files stale on Linux
+  that were "current" here. The follow-up commit fixes the latter two: the docker runtime lock now
+  carries the root's brace-expansion and uuid floors (npm audit: 0), the crawlable-corpus snapshot
+  path is `posix.join`ed (it is published verbatim in `llms-full.txt` and `teasers.json`), and
+  `docs/source-attribution.mdx` is back to one generated block. Still failing on Windows only,
+  reproduced identically on a pristine upstream checkout: `docs-stats-bootstrap-cache`,
+  `docs-stats-category-explainer`, `docs-stats-plan-layer-entitlement` (double-drive `C:\C:\` paths)
+  and `agent-corpus-canonical-host` (backslash paths); `crawlable-corpus` "builds a non-trivial static
+  corpus" also fails here and did before the sync. The entitlement crosswalk's scanner shells to POSIX
+  `grep` through `cmd.exe` on Windows and returns nothing; run through bash it reports 390 rules, 0
+  unmapped, 0 drift.
 - **Windows lesson for the next sync.** This repo has no `* text=auto`, so with `core.autocrlf=true`
-  every non-source file materializes CRLF and the generators that splice hand-authored text
-  (`build-ai-search`, `build-llms-full`) write mixed files or, when the `## Generated corpus` heading
-  no longer matches, append a second corpus (the doubled 523 KB `llms-full.txt` this sync first
-  produced). Regenerate from a worktree created with `git -c core.autocrlf=false -c core.eol=lf
-  worktree add`, or rewrite `w/crlf` **and** `w/mixed` files to LF first; `checkout-index -f`
-  does not do it. Legal-PDF and crosswalk "staleness" on a CRLF tree are the same class.
+  every non-source file materializes CRLF. Splice-style generators then misbehave in two ways: they
+  write mixed-EOL files (`build-ai-search`, `build-llms-full`), and when their heading or marker regex
+  no longer matches the CRLF text they APPEND a second generated block instead of replacing the first
+  (`llms-full.txt` doubled to 523 KB; `docs/source-attribution.mdx` carried upstream's rows in block
+  one and the fork's in block two, so every checker read the stale first block). Any `join()` of a
+  repo-relative path that is published verbatim leaks backslashes. Regenerate only from a worktree
+  created with `git -c core.autocrlf=false -c core.eol=lf worktree add` (or rewrite `w/crlf` AND
+  `w/mixed` tracked files to LF first; `checkout-index -f` does not renormalize), then compare
+  generated-marker counts against upstream before committing. Node 24.22.2 and 26.7 ship the same
+  ICU 78.3 / CLDR 48, so collation was not a factor.
 
 **v11 — 2026-10-31. Upstream sync: koala73/worldmonitor `e3268a4a8` merged (870 commits since
 the 2026-10-05 `9e8b2f650` sync; 101 conflicted paths).** Key decisions and adaptations:

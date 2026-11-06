@@ -12,7 +12,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { UMAMI_SCRIPT_TAG, writeResearchSection } from './build-research-reports.mjs';
@@ -485,7 +485,9 @@ export function resolveLatestResilienceSnapshotPath(rootDir = DEFAULT_ROOT) {
   }
 
   const [{ filename, match }] = candidates;
-  const relativePath = join(RESILIENCE_SNAPSHOT_DIR, filename);
+  // Repo-relative and published verbatim (llms-full corpus, welcome teasers),
+  // so it must not take the host separator: posix on purpose.
+  const relativePath = posix.join(RESILIENCE_SNAPSHOT_DIR, filename);
   const snapshot = readJson(rootDir, relativePath);
   if (snapshot.capturedAt !== match[1]) {
     throw new Error(
@@ -563,7 +565,9 @@ export function resolveLatestLivePulseSnapshotPath(rootDir = DEFAULT_ROOT) {
   }
 
   const [{ filename, match }] = candidates;
-  const relativePath = join(RESILIENCE_SNAPSHOT_DIR, filename);
+  // Repo-relative and published verbatim (llms-full corpus, welcome teasers),
+  // so it must not take the host separator: posix on purpose.
+  const relativePath = posix.join(RESILIENCE_SNAPSHOT_DIR, filename);
   const snapshot = readJson(rootDir, relativePath);
   if (snapshot.capturedAt !== match[1]) {
     throw new Error(

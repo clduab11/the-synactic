@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, posix, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { after, describe, it } from 'node:test';
 import { brotliCompressSync, constants as zlibConstants } from 'node:zlib';
@@ -1809,7 +1809,8 @@ describe('crawlable corpus generator', () => {
       }
       assert.equal(
         resolveLatestLivePulseSnapshotPath(fixtureRoot),
-        join('docs', 'snapshots', `crawlable-live-pulse-${today}.json`),
+        // Repo-relative and published verbatim, so posix on every host.
+        posix.join('docs', 'snapshots', `crawlable-live-pulse-${today}.json`),
         'the resolver must pick the highest-dated snapshot, not the first or last written',
       );
     } finally {
